@@ -25,7 +25,7 @@ Tableau : https://github.com/users/Madlodon/projects/5. Déplacer l'issue sur le
 - **Done** se fait tout seul quand la PR est fusionnée et ferme l'issue.
 
 ```bash
-ITEM=$(gh project item-list 5 --owner Madlodon --format json --jq '.items[] | select(.content.number==<numéro>) | .id')
+ITEM=$(gh project item-list 5 --owner Madlodon --limit 500 --format json --jq '.items[] | select(.content.number==<numéro>) | .id')
 gh project item-edit --project-id PVT_kwHOC8NMCM4BlBXl --id "$ITEM" --field-id PVTSSF_lAHOC8NMCM4BlBXlzhjvya0 --single-select-option-id <option>
 ```
 
