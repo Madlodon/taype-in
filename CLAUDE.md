@@ -16,6 +16,21 @@ Règles à suivre dans ce dépôt.
 - Commiter uniquement les fichiers liés au changement en cours (pas de `git add .` aveugle).
 - Quand une branche est prête à être poussée, écrire dans la conversation une description de PR **en anglais**, **courte et simple**, prête à copier : un titre, quelques puces sur ce que ça change, et `Closes #<numéro de l'issue>` pour fermer l'issue automatiquement.
 
+## Kanban (GitHub Projects)
+
+Tableau : https://github.com/users/Madlodon/projects/5. Déplacer l'issue sur le tableau :
+
+- Au début du travail sur une issue : **In progress**.
+- Quand la branche est prête à être poussée : **In review**.
+- **Done** se fait tout seul quand la PR est fusionnée et ferme l'issue.
+
+```bash
+ITEM=$(gh project item-list 5 --owner Madlodon --limit 500 --format json --jq '.items[] | select(.content.number==<numéro>) | .id')
+gh project item-edit --project-id PVT_kwHOC8NMCM4BlBXl --id "$ITEM" --field-id PVTSSF_lAHOC8NMCM4BlBXlzhjvya0 --single-select-option-id <option>
+```
+
+Options : In progress = `4d524fb1`, In review = `ede8d74f`.
+
 ## Comment coder
 
 - **Simple** : la solution la plus directe qui fonctionne. Pas d'abstraction anticipée.
