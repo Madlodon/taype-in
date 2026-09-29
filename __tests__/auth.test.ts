@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { createHash } from "node:crypto";
-import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
+import { verify } from "@node-rs/argon2";
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
@@ -40,7 +41,12 @@ beforeAll(async () => {
   await migrate(db, { migrationsFolder: "db/migrations" });
 });
 
+beforeEach(() => {
+  vi.stubEnv("PASSWORD_PEPPER", "poivre-de-test");
+});
+
 afterEach(async () => {
+  vi.unstubAllEnvs();
   if (createdIds.length === 0) return;
   await db.delete(users).where(inArray(users.id, createdIds.splice(0)));
 });
@@ -87,6 +93,27 @@ test("Should_HashPassword_When_AccountIsCreated", async () => {
   expect(user.isGuest).toBe(false);
   expect(user.passwordHash).not.toBe("motdepasse123");
   expect(user.passwordHash).toMatch(/^\$argon2id\$/);
+});
+
+test("Should_NotVerifyHash_When_PepperIsMissing", async () => {
+  const user = await newAccount(undefined, "motdepasse123");
+
+  expect(await verify(user.passwordHash!, "motdepasse123")).toBe(false);
+});
+
+test("Should_ReturnNull_When_PepperHasChanged", async () => {
+  const user = await newAccount(undefined, "motdepasse123");
+  vi.stubEnv("PASSWORD_PEPPER", "autre-poivre");
+
+  expect(await logIn(user.username, "motdepasse123")).toBeNull();
+});
+
+test("Should_Throw_When_PepperIsNotSet", async () => {
+  vi.stubEnv("PASSWORD_PEPPER", "");
+
+  await expect(signUp(uniqueName(), "motdepasse123")).rejects.toThrow(
+    "PASSWORD_PEPPER",
+  );
 });
 
 test("Should_ReturnTaken_When_UsernameExistsWithDifferentCase", async () => {

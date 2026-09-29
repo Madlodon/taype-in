@@ -29,6 +29,14 @@ export const credentialsSchema = z.object({
 
 export type User = typeof users.$inferSelect;
 
+// Clé secrète ajoutée au hachage, gardée hors de la base (variable d'environnement).
+// La perdre ou la changer rend tous les mots de passe invalides.
+function pepper(): { secret: Buffer } {
+  const value = process.env.PASSWORD_PEPPER;
+  if (!value) throw new Error("PASSWORD_PEPPER n'est pas défini.");
+  return { secret: Buffer.from(value) };
+}
+
 export async function signUp(
   username: string,
   password: string,
@@ -36,7 +44,7 @@ export async function signUp(
   try {
     const [user] = await db
       .insert(users)
-      .values({ username, passwordHash: await hash(password) })
+      .values({ username, passwordHash: await hash(password, pepper()) })
       .returning();
     return user;
   } catch (error) {
@@ -57,7 +65,7 @@ export async function logIn(
     .where(sql`lower(${users.username}) = lower(${username})`);
   // Les invités n'ont pas de mot de passe.
   if (!user?.passwordHash) return null;
-  return (await verify(user.passwordHash, password)) ? user : null;
+  return (await verify(user.passwordHash, password, pepper())) ? user : null;
 }
 
 export async function createGuest(): Promise<User> {
