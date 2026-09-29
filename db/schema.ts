@@ -1,12 +1,27 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
   pgTable,
+  primaryKey,
+  real,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+export const languageEnum = pgEnum("language", ["fr", "en"]);
+export const lobbyVisibilityEnum = pgEnum("lobby_visibility", [
+  "public",
+  "unlisted",
+  "private",
+]);
+export const errorModeEnum = pgEnum("error_mode", ["blocking", "tolerant"]);
 
 export const users = pgTable(
   "users",
@@ -33,3 +48,103 @@ export const sessions = pgTable("sessions", {
     .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
+
+// Banque de textes prédéfinis (TXT-3).
+export const texts = pgTable("texts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  language: languageEnum("language").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const lobbies = pgTable("lobbies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: text("code").notNull().unique(),
+  visibility: lobbyVisibilityEnum("visibility").notNull(),
+  hostId: uuid("host_id")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  // Null tant que le lobby est ouvert (LOB-10).
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+});
+
+export const lobbyParticipants = pgTable(
+  "lobby_participants",
+  {
+    lobbyId: uuid("lobby_id")
+      .notNull()
+      .references(() => lobbies.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    isSpectator: boolean("is_spectator").notNull().default(false),
+    // Sert à passer le rôle d'hôte au plus ancien participant.
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.lobbyId, table.userId] })],
+);
+
+// Une ligne par course ; porte les paramètres choisis par l'hôte (LOB-9).
+export const races = pgTable("races", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  lobbyId: uuid("lobby_id")
+    .notNull()
+    .references(() => lobbies.id, { onDelete: "cascade" }),
+  // Texte d'origine dans la banque ; null pour un texte écrit par l'hôte.
+  textId: uuid("text_id").references(() => texts.id, { onDelete: "set null" }),
+  // Copie exacte du texte tapé (coupé à la longueur choisie ou écrit par l'hôte).
+  content: text("content").notNull(),
+  language: languageEnum("language").notNull(),
+  errorMode: errorModeEnum("error_mode").notNull(),
+  // Null = pas de minuterie (CRS-4).
+  timeLimitSeconds: integer("time_limit_seconds"),
+  bonusesEnabled: boolean("bonuses_enabled").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+});
+
+// Résultats des participants humains ; les bots occupent un rang sans ligne.
+export const results = pgTable(
+  "results",
+  {
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    rank: integer("rank").notNull(),
+    wpm: real("wpm").notNull(),
+    // Pourcentage de 0 à 100.
+    accuracy: real("accuracy").notNull(),
+    durationMs: integer("duration_ms").notNull(),
+    errorCount: integer("error_count").notNull(),
+    finished: boolean("finished").notNull(),
+    // Nombre de fautes par touche, pour la heatmap et les touches difficiles.
+    keyErrors: jsonb("key_errors")
+      .$type<Record<string, number>>()
+      .notNull()
+      .default({}),
+  },
+  (table) => [
+    primaryKey({ columns: [table.raceId, table.userId] }),
+    // Historique d'un utilisateur (PROF-2).
+    index("results_user_id_idx").on(table.userId),
+    check("results_rank_positive", sql`${table.rank} >= 1`),
+    check(
+      "results_accuracy_range",
+      sql`${table.accuracy} between 0 and 100`,
+    ),
+  ],
+);
