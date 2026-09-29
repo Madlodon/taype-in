@@ -20,7 +20,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
 COPY public ./public
 COPY db ./db
-COPY package.json next.config.ts ./
+COPY lib ./lib
+COPY package.json next.config.ts server.ts ./
 USER node
 EXPOSE 3000
-CMD ["sh", "-c", "node db/migrate.ts && node_modules/.bin/next start"]
+CMD ["sh", "-c", "node db/migrate.ts && node server.ts"]
