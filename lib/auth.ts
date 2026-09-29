@@ -22,7 +22,7 @@ export const credentialsSchema = z.object({
     ),
   password: z
     .string()
-    .min(8, "Le mot de passe doit avoir au moins 8 caractères.")
+    .min(12, "Le mot de passe doit avoir au moins 12 caractères.")
     // Limite le coût du hachage.
     .max(128, "Le mot de passe doit avoir au plus 128 caractères."),
 });

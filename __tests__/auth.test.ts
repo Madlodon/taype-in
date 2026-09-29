@@ -25,7 +25,7 @@ function uniqueName() {
   return `t_${Math.random().toString(36).slice(2, 12)}`;
 }
 
-async function newAccount(username = uniqueName(), password = "motdepasse") {
+async function newAccount(username = uniqueName(), password = "motdepasse123") {
   const user = (await signUp(username, password)) as User;
   createdIds.push(user.id);
   return user;
@@ -51,18 +51,18 @@ afterAll(async () => {
 
 test("Should_AcceptCredentials_When_UsernameAndPasswordAreValid", () => {
   expect(
-    credentialsSchema.safeParse({ username: "Alex_42", password: "12345678" })
+    credentialsSchema.safeParse({ username: "Alex_42", password: "123456789012" })
       .success,
   ).toBe(true);
 });
 
 test.each([
-  ["username has 2 chars", { username: "ab", password: "12345678" }],
-  ["username has 21 chars", { username: "a".repeat(21), password: "12345678" }],
-  ["username has an accent", { username: "élise", password: "12345678" }],
-  ["username has a space", { username: "a b c", password: "12345678" }],
-  ["username has a dash", { username: "Invité-123", password: "12345678" }],
-  ["password has 7 chars", { username: "alex", password: "1234567" }],
+  ["username has 2 chars", { username: "ab", password: "123456789012" }],
+  ["username has 21 chars", { username: "a".repeat(21), password: "123456789012" }],
+  ["username has an accent", { username: "élise", password: "123456789012" }],
+  ["username has a space", { username: "a b c", password: "123456789012" }],
+  ["username has a dash", { username: "Invité-123", password: "123456789012" }],
+  ["password has 11 chars", { username: "alex", password: "12345678901" }],
   ["password has 129 chars", { username: "alex", password: "a".repeat(129) }],
 ])("Should_RejectCredentials_When_%s", (_label, input) => {
   expect(credentialsSchema.safeParse(input).success).toBe(false);
@@ -70,7 +70,7 @@ test.each([
 
 test("Should_AcceptCredentials_When_LengthsAreAtBounds", () => {
   expect(
-    credentialsSchema.safeParse({ username: "abc", password: "12345678" })
+    credentialsSchema.safeParse({ username: "abc", password: "123456789012" })
       .success,
   ).toBe(true);
   expect(
@@ -82,10 +82,10 @@ test("Should_AcceptCredentials_When_LengthsAreAtBounds", () => {
 });
 
 test("Should_HashPassword_When_AccountIsCreated", async () => {
-  const user = await newAccount(undefined, "motdepasse");
+  const user = await newAccount(undefined, "motdepasse123");
 
   expect(user.isGuest).toBe(false);
-  expect(user.passwordHash).not.toBe("motdepasse");
+  expect(user.passwordHash).not.toBe("motdepasse123");
   expect(user.passwordHash).toMatch(/^\$argon2id\$/);
 });
 
@@ -98,27 +98,27 @@ test("Should_ReturnTaken_When_UsernameExistsWithDifferentCase", async () => {
 });
 
 test("Should_ReturnUser_When_PasswordIsCorrect", async () => {
-  const user = await newAccount(undefined, "motdepasse");
+  const user = await newAccount(undefined, "motdepasse123");
 
-  expect((await logIn(user.username, "motdepasse"))?.id).toBe(user.id);
+  expect((await logIn(user.username, "motdepasse123"))?.id).toBe(user.id);
 });
 
 test("Should_ReturnUser_When_UsernameCaseDiffers", async () => {
-  const user = await newAccount(undefined, "motdepasse");
+  const user = await newAccount(undefined, "motdepasse123");
 
-  expect((await logIn(user.username.toUpperCase(), "motdepasse"))?.id).toBe(
+  expect((await logIn(user.username.toUpperCase(), "motdepasse123"))?.id).toBe(
     user.id,
   );
 });
 
 test("Should_ReturnNull_When_PasswordIsWrong", async () => {
-  const user = await newAccount(undefined, "motdepasse");
+  const user = await newAccount(undefined, "motdepasse123");
 
   expect(await logIn(user.username, "mauvaispass")).toBeNull();
 });
 
 test("Should_ReturnNull_When_UserDoesNotExist", async () => {
-  expect(await logIn(uniqueName(), "motdepasse")).toBeNull();
+  expect(await logIn(uniqueName(), "motdepasse123")).toBeNull();
 });
 
 test("Should_CreateGuestWithoutPassword_When_GuestIsCreated", async () => {

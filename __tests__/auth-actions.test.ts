@@ -47,7 +47,7 @@ beforeEach(() => {
 });
 
 test("Should_ReturnErrorWithoutCreatingUser_When_SignUpInputIsInvalid", async () => {
-  const state = await signUpAction(undefined, form("ab", "motdepasse"));
+  const state = await signUpAction(undefined, form("ab", "motdepasse123"));
 
   expect(state).toEqual({
     error: "Le nom d'utilisateur doit avoir au moins 3 caractères.",
@@ -59,7 +59,7 @@ test("Should_ReturnErrorWithoutCreatingUser_When_SignUpInputIsInvalid", async ()
 test("Should_ReturnError_When_UsernameIsTaken", async () => {
   vi.mocked(auth.signUp).mockResolvedValue("taken");
 
-  const state = await signUpAction(undefined, form("alex", "motdepasse"));
+  const state = await signUpAction(undefined, form("alex", "motdepasse123"));
 
   expect(state?.error).toBe("Ce nom d'utilisateur est déjà pris.");
   expect(cookieStore.set).not.toHaveBeenCalled();
@@ -69,7 +69,7 @@ test("Should_SetHttpOnlySessionCookieAndRedirect_When_SignUpSucceeds", async () 
   vi.mocked(auth.signUp).mockResolvedValue(aUser);
 
   await expect(
-    signUpAction(undefined, form("alex", "motdepasse")),
+    signUpAction(undefined, form("alex", "motdepasse123")),
   ).rejects.toThrow("NEXT_REDIRECT");
 
   expect(auth.createSession).toHaveBeenCalledWith("user-1");
@@ -96,7 +96,7 @@ test("Should_SetSessionCookie_When_LogInSucceeds", async () => {
   vi.mocked(auth.logIn).mockResolvedValue(aUser);
 
   await expect(
-    logInAction(undefined, form("alex", "motdepasse")),
+    logInAction(undefined, form("alex", "motdepasse123")),
   ).rejects.toThrow("NEXT_REDIRECT");
 
   expect(cookieStore.set).toHaveBeenCalledWith(

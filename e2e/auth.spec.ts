@@ -7,7 +7,7 @@ test("Should_StayLoggedIn_When_SigningUpThenLoggingOutAndBackIn", async ({
 
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
-  await page.getByLabel("Mot de passe").fill("motdepasse");
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
   await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
 
@@ -17,7 +17,7 @@ test("Should_StayLoggedIn_When_SigningUpThenLoggingOutAndBackIn", async ({
   await page.getByRole("button", { name: "Se déconnecter" }).click();
   await page.getByRole("link", { name: "Se connecter" }).click();
   await page.getByLabel("Nom d'utilisateur").fill(username);
-  await page.getByLabel("Mot de passe").fill("motdepasse");
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
 });
@@ -25,7 +25,7 @@ test("Should_StayLoggedIn_When_SigningUpThenLoggingOutAndBackIn", async ({
 test("Should_ShowError_When_PasswordIsWrong", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Nom d'utilisateur").fill("personne_inconnue");
-  await page.getByLabel("Mot de passe").fill("motdepasse");
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Se connecter" }).click();
 
   await expect(
