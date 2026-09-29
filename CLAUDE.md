@@ -14,6 +14,7 @@ Règles à suivre dans ce dépôt.
   - Pour créer une branche : `git switch -c`.
 - Ne pas modifier l'historique (`amend`, `reset --hard`, `push --force`).
 - Commiter uniquement les fichiers liés au changement en cours (pas de `git add .` aveugle).
+- Quand une branche est prête à être poussée, écrire dans la conversation une description de PR **en anglais**, prête à copier : titre, résumé des changements, tests effectués et `Closes #<numéro de l'issue>`.
 
 ## Comment coder
 
