@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    # Base de données pour les tests d'intégration
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: taype_in
+          POSTGRES_PASSWORD: taype_in
+          POSTGRES_DB: taype_in
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taype_in -d taype_in"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://taype_in:taype_in@localhost:5432/taype_in
+      PASSWORD_PEPPER: ci-pepper
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: bun install --frozen-lockfile
+      - name: Lint
+        run: bun run lint
+      - name: Typecheck
+        run: bunx tsc --noEmit
+      # Appliquer les migrations avant les tests évite que deux tests
+      # les appliquent en même temps sur une base vide.
+      - name: Migrations
+        run: node db/migrate.ts
+      - name: Unit tests
+        run: bun run test
+      - name: Build
+        run: bun run build
+      - name: Docker image
+        run: docker build -t taype-in .
