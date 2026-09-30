@@ -7,7 +7,8 @@ const TEXT =
   "Le ballon file vers le but adverse. Chaque mot tapé sans faute donne un coup de boost à ta voiture. " +
   "Garde les yeux sur le texte et laisse tes doigts faire le travail : la victoire se joue à la dernière seconde.";
 
-// eslint-disable-next-line no-unused-vars
+// Script classique chargé par les pages HTML : startDemo est global.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function startDemo({ textEl, oneLine, onProgress, onRankChange = () => {} }) {
   const players = [
     { name: "Toi", you: true, progress: 0 },
