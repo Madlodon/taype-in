@@ -1,47 +1,48 @@
 # CLAUDE.md
 
-Règles à suivre dans ce dépôt.
+Rules to follow in this repository.
 
 ## Git / Commits
 
-- Faire **plusieurs petits commits** : un commit par changement logique.
-- Messages de commit **courts** et qui décrivent **ce que le changement fait**.
-  - Exemples : `Ajoute la validation du courriel`, `Corrige le calcul du total`, `Renomme UserService en AccountService`
-  - Éviter : messages vagues (`fix`, `update`, `wip`) ou paragraphes explicatifs.
-- **Ne jamais `push`.** Les commits restent locaux, c'est moi qui pousse.
-- **Interdit** : `git rebase`, `git restore`, `git checkout`.
-  - Pour changer de branche : `git switch`.
-  - Pour créer une branche : `git switch -c`.
-- Ne pas modifier l'historique (`amend`, `reset --hard`, `push --force`).
-- Commiter uniquement les fichiers liés au changement en cours (pas de `git add .` aveugle).
-- Quand une branche est prête à être poussée, écrire dans la conversation une description de PR **en anglais**, **courte et simple**, prête à copier : un titre, quelques puces sur ce que ça change, et `Closes #<numéro de l'issue>` pour fermer l'issue automatiquement.
+- Branch names and commit messages are written **in English**.
+- Make **several small commits**: one commit per logical change.
+- Commit messages are **short** and describe **what the change does**.
+  - Examples: `Add email validation`, `Fix total calculation`, `Rename UserService to AccountService`
+  - Avoid: vague messages (`fix`, `update`, `wip`) or explanatory paragraphs.
+- **Never `push`.** Commits stay local, I push them myself.
+- **Forbidden**: `git rebase`, `git restore`, `git checkout`.
+  - To change branches: `git switch`.
+  - To create a branch: `git switch -c`.
+- Do not rewrite history (`amend`, `reset --hard`, `push --force`).
+- Only commit the files related to the current change (no blind `git add .`).
+- When a branch is ready to be pushed, write a PR description in the conversation **in English**, **short and simple**, ready to copy: a title, a few bullet points on what it changes, and `Closes #<issue number>` to close the issue automatically.
 
 ## Kanban (GitHub Projects)
 
-Tableau : https://github.com/users/Madlodon/projects/5. Déplacer l'issue sur le tableau :
+Board: https://github.com/users/Madlodon/projects/5. Move the issue on the board:
 
-- Au début du travail sur une issue : **In progress**.
-- Quand la branche est prête à être poussée : **In review**.
-- **Done** se fait tout seul quand la PR est fusionnée et ferme l'issue.
+- When starting work on an issue: **In progress**.
+- When the branch is ready to be pushed: **In review**.
+- **Done** happens automatically when the PR is merged and closes the issue.
 
 ```bash
-ITEM=$(gh project item-list 5 --owner Madlodon --limit 500 --format json --jq '.items[] | select(.content.number==<numéro>) | .id')
+ITEM=$(gh project item-list 5 --owner Madlodon --limit 500 --format json --jq '.items[] | select(.content.number==<number>) | .id')
 gh project item-edit --project-id PVT_kwHOC8NMCM4BlBXl --id "$ITEM" --field-id PVTSSF_lAHOC8NMCM4BlBXlzhjvya0 --single-select-option-id <option>
 ```
 
-Options : In progress = `4d524fb1`, In review = `ede8d74f`.
+Options: In progress = `4d524fb1`, In review = `ede8d74f`.
 
-## Comment coder
+## How to code
 
-- **Simple** : la solution la plus directe qui fonctionne. Pas d'abstraction anticipée.
-- **Faire uniquement la feature demandée.** Aucun extra, aucun refactor non demandé, aucun fichier créé « au cas où ».
-- **En cas d'incertitude, demander avant de coder.** Une question maintenant coûte moins cher qu'un mauvais code.
-- Suivre les conventions déjà présentes dans le projet (style, nommage, structure).
-- Ne pas ajouter de dépendance sans demander.
+- **Simple**: the most direct solution that works. No anticipatory abstraction.
+- **Only build the requested feature.** No extras, no unrequested refactors, no files created "just in case".
+- **When in doubt, ask before coding.** A question now costs less than bad code.
+- Follow the conventions already in the project (style, naming, structure).
+- Do not add a dependency without asking.
 
 ## Tests
 
-- Chaque feature vient avec des tests adaptés à ce qu'elle fait.
-- Tester le comportement attendu et les cas limites importants, pas les détails d'implémentation.
-- Les tests doivent passer avant de commiter.
-- Ne pas supprimer ou désactiver un test qui échoue pour faire passer la suite : le signaler.
+- Every feature comes with tests suited to what it does.
+- Test the expected behavior and important edge cases, not implementation details.
+- Tests must pass before committing.
+- Do not delete or disable a failing test to make the suite pass: report it.
