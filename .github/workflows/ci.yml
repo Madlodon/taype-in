@@ -39,8 +39,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Lint
         run: bun run lint
+      # Génère les types de routes de Next (LayoutProps, PageProps…)
       - name: Typecheck
-        run: bunx tsc --noEmit
+        run: bunx next typegen && bunx tsc --noEmit
       # Appliquer les migrations avant les tests évite que deux tests
       # les appliquent en même temps sur une base vide.
       - name: Migrations
