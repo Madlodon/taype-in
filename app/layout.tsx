@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
+import { ThemeProvider } from "next-themes";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,14 +27,19 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang={await getLocale()}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // next-themes ajoute la classe du thème avant l'hydratation.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <NextIntlClientProvider>
-          <header className="flex justify-end p-4">
-            <LocaleSwitcher />
-          </header>
-          {children}
-        </NextIntlClientProvider>
+        <ThemeProvider attribute="class" disableTransitionOnChange>
+          <NextIntlClientProvider>
+            <header className="flex justify-end gap-6 p-4">
+              <ThemeSwitcher />
+              <LocaleSwitcher />
+            </header>
+            {children}
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

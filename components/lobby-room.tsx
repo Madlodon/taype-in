@@ -30,7 +30,7 @@ export function LobbyRoom({ code, hostId }: Props) {
   // Une erreur de transport n'a pas de clé de traduction : son message est affiché tel quel.
   if (error) {
     return (
-      <p role="alert" className="text-red-600">
+      <p role="alert" className="text-red-600 dark:text-red-400">
         {t.has(`errors.${error}`) ? t(`errors.${error}`) : error}
       </p>
     );
