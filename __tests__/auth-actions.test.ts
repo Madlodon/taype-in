@@ -50,7 +50,7 @@ test("Should_ReturnErrorWithoutCreatingUser_When_SignUpInputIsInvalid", async ()
   const state = await signUpAction(undefined, form("ab", "motdepasse123"));
 
   expect(state).toEqual({
-    error: "Le nom d'utilisateur doit avoir au moins 3 caractères.",
+    error: "usernameTooShort",
     username: "ab",
   });
   expect(auth.signUp).not.toHaveBeenCalled();
@@ -61,7 +61,7 @@ test("Should_ReturnError_When_UsernameIsTaken", async () => {
 
   const state = await signUpAction(undefined, form("alex", "motdepasse123"));
 
-  expect(state?.error).toBe("Ce nom d'utilisateur est déjà pris.");
+  expect(state?.error).toBe("usernameTaken");
   expect(cookieStore.set).not.toHaveBeenCalled();
 });
 
@@ -86,7 +86,7 @@ test("Should_ReturnGenericError_When_LogInFails", async () => {
   const state = await logInAction(undefined, form("alex", "mauvais"));
 
   expect(state).toEqual({
-    error: "Nom d'utilisateur ou mot de passe incorrect.",
+    error: "wrongCredentials",
     username: "alex",
   });
   expect(cookieStore.set).not.toHaveBeenCalled();

@@ -1,21 +1,24 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { signUpAction } from "@/app/actions/auth";
 import { AuthForm } from "@/components/auth-form";
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  const t = await getTranslations("Auth");
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-semibold">Créer un compte</h1>
+      <h1 className="text-2xl font-semibold">{t("signUpTitle")}</h1>
       <AuthForm
         action={signUpAction}
-        submitLabel="Créer le compte"
+        submitLabel={t("signUpSubmit")}
         passwordAutoComplete="new-password"
       />
       <p className="text-sm">
-        Aucun courriel : un mot de passe oublié ne peut pas être récupéré.
+        {t("noEmailWarning")}
       </p>
       <Link href="/login" className="underline">
-        J&apos;ai déjà un compte
+        {t("haveAccount")}
       </Link>
     </main>
   );

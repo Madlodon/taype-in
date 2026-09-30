@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createLobby, findOpenLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 
+// error est une clé de traduction (Lobbies.errors).
 export type JoinFormState = { error?: string; code?: string } | undefined;
 
 // Tout utilisateur connecté, invité compris, peut créer une course (LOB-5).
@@ -27,7 +28,7 @@ export async function joinLobbyAction(
   const code = String(formData.get("code") ?? "");
   const lobby = code.trim() ? await findOpenLobby(code) : null;
   if (!lobby) {
-    return { error: "Aucune course ouverte avec ce code.", code };
+    return { error: "noOpenLobby", code };
   }
   redirect(`/lobbies/${lobby.code}`);
 }

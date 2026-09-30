@@ -1,0 +1,67 @@
+{
+  "Home": {
+    "loggedInAs": "Connecté en tant que <strong>{username}</strong>",
+    "guest": "(invité)",
+    "startRace": "Démarrer une course",
+    "logOut": "Se déconnecter",
+    "signUp": "Créer un compte",
+    "logIn": "Se connecter",
+    "playAsGuest": "Jouer en invité"
+  },
+  "Auth": {
+    "logInTitle": "Se connecter",
+    "logInSubmit": "Se connecter",
+    "signUpTitle": "Créer un compte",
+    "signUpSubmit": "Créer le compte",
+    "noEmailWarning": "Aucun courriel : un mot de passe oublié ne peut pas être récupéré.",
+    "haveAccount": "J'ai déjà un compte",
+    "createAccount": "Créer un compte",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "errors": {
+      "usernameTooShort": "Le nom d'utilisateur doit avoir au moins 3 caractères.",
+      "usernameTooLong": "Le nom d'utilisateur doit avoir au plus 20 caractères.",
+      "usernameInvalid": "Seulement des lettres sans accent, des chiffres et _.",
+      "passwordTooShort": "Le mot de passe doit avoir au moins 12 caractères.",
+      "passwordTooLong": "Le mot de passe doit avoir au plus 128 caractères.",
+      "usernameTaken": "Ce nom d'utilisateur est déjà pris.",
+      "wrongCredentials": "Nom d'utilisateur ou mot de passe incorrect."
+    }
+  },
+  "Lobbies": {
+    "title": "Courses",
+    "create": "Créer une course",
+    "joinByCode": "Rejoindre avec un code",
+    "publicRaces": "Courses publiques",
+    "noPublicRaces": "Aucune course publique pour le moment.",
+    "raceOf": "Course de {host}",
+    "participantCount": "{count, plural, one {# participant} other {# participants}}",
+    "code": "Code de la course",
+    "join": "Rejoindre",
+    "errors": {
+      "noOpenLobby": "Aucune course ouverte avec ce code."
+    }
+  },
+  "NewLobby": {
+    "title": "Créer une course",
+    "visibility": "Visibilité",
+    "public": "Publique : visible dans la liste des courses",
+    "unlisted": "Non répertoriée : on la rejoint avec le code",
+    "submit": "Créer la course"
+  },
+  "LobbyRoom": {
+    "title": "Salle d'attente",
+    "code": "Code de la course :",
+    "participants": "Participants ({count})",
+    "participantsList": "Participants",
+    "host": "(hôte)",
+    "errors": {
+      "notLoggedIn": "Non connecté",
+      "invalidMessage": "Message invalide",
+      "lobbyNotFound": "Course introuvable"
+    }
+  },
+  "LocaleSwitcher": {
+    "label": "Langue"
+  }
+}

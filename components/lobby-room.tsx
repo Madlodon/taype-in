@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import type { Ack, ParticipantsMessage } from "@/lib/socket-messages";
@@ -8,6 +9,7 @@ type Props = { code: string; hostId: string };
 
 // Salle d'attente : la liste des participants suit les arrivées et départs.
 export function LobbyRoom({ code, hostId }: Props) {
+  const t = useTranslations("LobbyRoom");
   const [participants, setParticipants] = useState<ParticipantsMessage["participants"]>([]);
   const [error, setError] = useState<string>();
 
@@ -25,22 +27,25 @@ export function LobbyRoom({ code, hostId }: Props) {
     };
   }, [code]);
 
+  // Une erreur de transport n'a pas de clé de traduction : son message est affiché tel quel.
   if (error) {
     return (
       <p role="alert" className="text-red-600">
-        {error}
+        {t.has(`errors.${error}`) ? t(`errors.${error}`) : error}
       </p>
     );
   }
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-xl font-semibold">Participants ({participants.length})</h2>
-      <ul aria-label="Participants" className="flex flex-col gap-1">
+      <h2 className="text-xl font-semibold">
+        {t("participants", { count: participants.length })}
+      </h2>
+      <ul aria-label={t("participantsList")} className="flex flex-col gap-1">
         {participants.map((participant) => (
           <li key={participant.id}>
             {participant.username}
-            {participant.id === hostId && " (hôte)"}
+            {participant.id === hostId && ` ${t("host")}`}
           </li>
         ))}
       </ul>

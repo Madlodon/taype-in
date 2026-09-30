@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
 import { LobbyRoom } from "../components/lobby-room";
+import en from "../messages/en.json";
+import fr from "../messages/fr.json";
 
 type Handler = (...args: unknown[]) => void;
 
@@ -14,6 +17,31 @@ const socket = {
 
 vi.mock("socket.io-client", () => ({ io: () => socket }));
 
+function renderRoom(locale: "fr" | "en" = "fr") {
+  return render(
+    <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
+      <LobbyRoom code="K7P3XM" hostId="u1" />
+    </NextIntlClientProvider>,
+  );
+}
+
+function sendParticipants() {
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "u2", username: "Invité-123456" },
+      ],
+    }),
+  );
+}
+
+function listedNames() {
+  return within(screen.getByRole("list", { name: "Participants" }))
+    .getAllByRole("listitem")
+    .map((item) => item.textContent);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -23,7 +51,7 @@ afterEach(() => {
 });
 
 test("Should_JoinLobbyByCode_When_Mounted", () => {
-  render(<LobbyRoom code="K7P3XM" hostId="u1" />);
+  renderRoom();
 
   expect(socket.emit).toHaveBeenCalledWith(
     "lobby:join",
@@ -33,34 +61,40 @@ test("Should_JoinLobbyByCode_When_Mounted", () => {
 });
 
 test("Should_ShowParticipantsAndMarkHost_When_ServerSendsList", () => {
-  render(<LobbyRoom code="K7P3XM" hostId="u1" />);
+  renderRoom();
 
-  act(() =>
-    handlers["lobby:participants"]({
-      participants: [
-        { id: "u1", username: "alex" },
-        { id: "u2", username: "Invité-123456" },
-      ],
-    }),
-  );
+  sendParticipants();
 
-  const items = within(screen.getByRole("list", { name: "Participants" })).getAllByRole(
-    "listitem",
-  );
-  expect(items.map((item) => item.textContent)).toEqual(["alex (hôte)", "Invité-123456"]);
+  expect(listedNames()).toEqual(["alex (hôte)", "Invité-123456"]);
+});
+
+test("Should_MarkHostInEnglish_When_LocaleIsEnglish", () => {
+  renderRoom("en");
+
+  sendParticipants();
+
+  expect(listedNames()).toEqual(["alex (host)", "Invité-123456"]);
 });
 
 test("Should_ShowError_When_JoinIsRefused", () => {
-  render(<LobbyRoom code="K7P3XM" hostId="u1" />);
+  renderRoom();
   const ack = socket.emit.mock.calls[0][2] as Handler;
 
-  act(() => ack({ ok: false, error: "Course introuvable" }));
+  act(() => ack({ ok: false, error: "lobbyNotFound" }));
 
   expect(screen.getByRole("alert").textContent).toBe("Course introuvable");
 });
 
+test("Should_ShowRawMessage_When_ConnectionErrorHasNoTranslation", () => {
+  renderRoom();
+
+  act(() => handlers["connect_error"](new Error("xhr poll error")));
+
+  expect(screen.getByRole("alert").textContent).toBe("xhr poll error");
+});
+
 test("Should_Disconnect_When_Unmounted", () => {
-  const { unmount } = render(<LobbyRoom code="K7P3XM" hostId="u1" />);
+  const { unmount } = renderRoom();
 
   unmount();
 

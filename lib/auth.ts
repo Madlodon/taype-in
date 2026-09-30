@@ -13,21 +13,19 @@ export const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 // Sous ce seuil, la session est prolongée de 30 jours à chaque utilisation.
 const RENEW_THRESHOLD_MS = 15 * 24 * 60 * 60 * 1000;
 
+// Les messages sont des clés de traduction (Auth.errors).
 export const credentialsSchema = z.object({
   username: z
     .string()
     .trim()
-    .min(3, "Le nom d'utilisateur doit avoir au moins 3 caractères.")
-    .max(20, "Le nom d'utilisateur doit avoir au plus 20 caractères.")
-    .regex(
-      /^[a-zA-Z0-9_]+$/,
-      "Seulement des lettres sans accent, des chiffres et _.",
-    ),
+    .min(3, "usernameTooShort")
+    .max(20, "usernameTooLong")
+    .regex(/^[a-zA-Z0-9_]+$/, "usernameInvalid"),
   password: z
     .string()
-    .min(12, "Le mot de passe doit avoir au moins 12 caractères.")
+    .min(12, "passwordTooShort")
     // Limite le coût du hachage.
-    .max(128, "Le mot de passe doit avoir au plus 128 caractères."),
+    .max(128, "passwordTooLong"),
 });
 
 export type User = typeof users.$inferSelect;

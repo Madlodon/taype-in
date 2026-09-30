@@ -1,0 +1,67 @@
+{
+  "Home": {
+    "loggedInAs": "Logged in as <strong>{username}</strong>",
+    "guest": "(guest)",
+    "startRace": "Start a race",
+    "logOut": "Log out",
+    "signUp": "Sign up",
+    "logIn": "Log in",
+    "playAsGuest": "Play as guest"
+  },
+  "Auth": {
+    "logInTitle": "Log in",
+    "logInSubmit": "Log in",
+    "signUpTitle": "Sign up",
+    "signUpSubmit": "Create account",
+    "noEmailWarning": "No email: a forgotten password cannot be recovered.",
+    "haveAccount": "I already have an account",
+    "createAccount": "Sign up",
+    "username": "Username",
+    "password": "Password",
+    "errors": {
+      "usernameTooShort": "Username must be at least 3 characters.",
+      "usernameTooLong": "Username must be at most 20 characters.",
+      "usernameInvalid": "Only unaccented letters, digits and _.",
+      "passwordTooShort": "Password must be at least 12 characters.",
+      "passwordTooLong": "Password must be at most 128 characters.",
+      "usernameTaken": "This username is already taken.",
+      "wrongCredentials": "Wrong username or password."
+    }
+  },
+  "Lobbies": {
+    "title": "Races",
+    "create": "Create a race",
+    "joinByCode": "Join with a code",
+    "publicRaces": "Public races",
+    "noPublicRaces": "No public races right now.",
+    "raceOf": "{host}'s race",
+    "participantCount": "{count, plural, one {# participant} other {# participants}}",
+    "code": "Race code",
+    "join": "Join",
+    "errors": {
+      "noOpenLobby": "No open race with this code."
+    }
+  },
+  "NewLobby": {
+    "title": "Create a race",
+    "visibility": "Visibility",
+    "public": "Public: shown in the race list",
+    "unlisted": "Unlisted: joined with the code",
+    "submit": "Create the race"
+  },
+  "LobbyRoom": {
+    "title": "Waiting room",
+    "code": "Race code:",
+    "participants": "Participants ({count})",
+    "participantsList": "Participants",
+    "host": "(host)",
+    "errors": {
+      "notLoggedIn": "Not logged in",
+      "invalidMessage": "Invalid message",
+      "lobbyNotFound": "Race not found"
+    }
+  },
+  "LocaleSwitcher": {
+    "label": "Language"
+  }
+}
