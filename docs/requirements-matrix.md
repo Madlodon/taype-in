@@ -142,7 +142,7 @@ Statut :
 | UI-1 | Interface en français et anglais  | E     | [#10][i10] | [#28][p28] | [locale.test.ts](../__tests__/locale.test.ts), [messages.test.ts](../__tests__/messages.test.ts), [locale-switcher.test.tsx](../__tests__/locale-switcher.test.tsx), [e2e/locale.spec.ts](../e2e/locale.spec.ts) | Fait     |
 | UI-2 | Responsive                        | E     | —          | —          | —                                                                                                                                                                       | À faire  |
 | UI-3 | Mode clair et mode sombre         | S     | [#11][i11] | [#29][p29] | [theme-switcher.test.tsx](../__tests__/theme-switcher.test.tsx), [e2e/theme.spec.ts](../e2e/theme.spec.ts)                                                             | Fait     |
-| UI-4 | Direction artistique              | S     | [#1][i1]   | —          | —                                                                                                                                                                       | En cours |
+| UI-4 | Direction artistique              | S     | [#1][i1]   | —          | [palette.test.ts](../__tests__/palette.test.ts), [e2e/home.spec.ts](../e2e/home.spec.ts)                                                                               | Partiel  |
 
 ## Technique (TECH)
 

@@ -4,24 +4,65 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Stade de jour. Contrastes vérifiés dans docs/art-direction.md. */
+  --background: #f2f5fa;
+  --foreground: #0b1426;
+  --surface: #ffffff;
+  --muted: #4a5670;
+  --border: #76839b;
+  --primary: #1a5fd0;
+  --primary-foreground: #ffffff;
+  --accent: #f57c00;
+  --accent-foreground: #0b1426;
+  --accent-strong: #b45309;
+  --correct: #15803d;
+  --wrong: #c62828;
+  --wrong-surface: #fde2e2;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-strong: var(--accent-strong);
+  --color-correct: var(--correct);
+  --color-wrong: var(--wrong);
+  --color-wrong-surface: var(--wrong-surface);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-russo-one);
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  /* Arène néon. */
+  --background: #0b1426;
+  --foreground: #e8eef9;
+  --surface: #14213d;
+  --muted: #9aa8c3;
+  --border: #6b7a99;
+  --primary: #4d94ff;
+  --primary-foreground: #0b1426;
+  --accent: #ff9a3c;
+  --accent-foreground: #0b1426;
+  --accent-strong: #ff9a3c;
+  --correct: #4ade80;
+  --wrong: #ff6b6b;
+  --wrong-surface: #4a1620;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
 }

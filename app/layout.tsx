@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, JetBrains_Mono, Russo_One } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -12,8 +12,16 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Texte à taper : lisible, accents français compris.
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+});
+
+// Titres : style arcade sportif.
+const russoOne = Russo_One({
+  variable: "--font-russo-one",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -23,10 +31,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const t = await getTranslations("Footer");
+
   return (
     <html
       lang={await getLocale()}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${jetBrainsMono.variable} ${russoOne.variable} h-full antialiased`}
       // next-themes ajoute la classe du thème avant l'hydratation.
       suppressHydrationWarning
     >
@@ -38,6 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <LocaleSwitcher />
             </header>
             {children}
+            <footer className="mt-auto p-4 text-center text-sm text-muted">{t("disclaimer")}</footer>
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>
