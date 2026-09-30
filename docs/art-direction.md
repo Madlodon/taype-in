@@ -6,9 +6,24 @@ Exigence UI-4 : direction artistique marquée et originale, avec des mécaniques
 
 **Soccer de voitures, ambiance arcade**, inspiré de Rocket League : arène, bleu contre orange, traînées de boost, explosions de but.
 
-- Chaque joueur a sa voie ; sa voiture pousse son ballon vers le but. Chaque mot tapé fait avancer la voiture ; le but marqué = texte terminé.
-  Idée de départ, pas encore finale (voir [Maquettes](#maquettes)).
-- La course reste individuelle (CRS-2, FIN-1, Q-7). Un mode par équipes (deux équipes au hasard, un ballon commun) fera l'objet d'une issue séparée.
+### Concept : la course dans l'arène
+
+Toutes les voitures suivent **le même parcours sinueux dans une arène**, vue en coupe comme une maison de poupée ([maquette 5](mockups/5-arena-run.html)) :
+coup d'envoi au centre, sol, montée du mur, plafond, puis **tir du plafond** dans le but. Chaque joueur pousse son propre ballon ; le but marqué = texte terminé.
+
+- **Taper fait avancer** la voiture sur le parcours.
+- **Série sans faute** : la traînée de boost grossit (boost, gros boost, supersonique).
+- **Faute** : la voiture dérape et le boost retombe à zéro.
+- On sent sa précision dans l'arène sans quitter le texte des yeux (CRS-3, CRS-8).
+
+La course reste individuelle, chacun pour soi (CRS-2, FIN-1, Q-7).
+
+Pour plus tard :
+
+- Mode par équipes, deux équipes au hasard et un ballon commun ([#33](https://github.com/Madlodon/taype-in/issues/33)).
+- Garage : choix de la carrosserie et de la couleur dans le lobby, purement esthétique ([#34](https://github.com/Madlodon/taype-in/issues/34)).
+- Récompenses : chapeaux et styles de boost débloqués par niveau ([#35](https://github.com/Madlodon/taype-in/issues/35)).
+- Autres caméras à essayer : vue du dessus avec les murs dépliés, ou caméra qui suit ta voiture avec une mini-carte.
 
 ### Rocket League : ce qu'on peut utiliser
 
@@ -92,7 +107,7 @@ Chargées avec `next/font` (aucune dépendance), licence OFL.
 
 ## Maquettes
 
-Quatre écrans de course statiques, avec de fausses données : 4 joueurs, dont toi en bleu.
+Écrans de course statiques, avec de fausses données : 4 joueurs, dont toi en bleu.
 On peut **taper pour vrai** : ta voiture avance et les bots roulent seuls ([`demo.js`](mockups/demo.js)).
 Pour les ouvrir : `python3 -m http.server 8123 -d docs/mockups`, puis http://localhost:8123.
 
@@ -102,8 +117,10 @@ Pour les ouvrir : `python3 -m http.server 8123 -d docs/mockups`, puis http://loc
 | [2 · Cartoon arcade](mockups/2-cartoon.html)     | Contours épais, couleurs saturées, rebonds      | Bloc de 3–4 lignes      | De côté, grande   |
 | [3 · 2.5D Blender](mockups/3-sprites-2-5d.html)  | Sprites de modèles low-poly, terrain incliné    | Une ligne qui défile    | 3/4, en diagonale |
 | [4 · Pixel art](mockups/4-pixel-top-down.html)   | Pixel art façon Pokémon Ranger, boîte de dialogue | Bloc de 3–4 lignes    | Vue de haut       |
+| [5 · Course dans l'arène](mockups/5-arena-run.html) | Arène néon, parcours sol → mur → plafond → but | Bouton : ligne ou bloc | En coupe          |
 
-**Choix** : à faire en essayant les quatre. S'il n'est pas tranché ici, il le sera dans l'issue de l'écran de course.
+**Choix : la maquette 5.** Les maquettes 1 à 4 restent comme exploration : leurs voies droites l'une sous l'autre ressemblaient trop à TypeRacer, peu importe le style.
+La mise en page du texte (une ligne ou un bloc) se décidera dans l'issue de l'écran de course.
 
 ### Modèles Blender
 
