@@ -2,6 +2,8 @@
 // Mode bloquant : une faute reste affichée sur la lettre courante jusqu'à la bonne touche.
 // Chaque maquette dessine la piste elle-même dans onProgress(players).
 // onRankChange(better) sert à l'indicateur de dépassement (CRS-3).
+// onType(correct) est appelé à chaque touche ; oneLine peut être une fonction pour changer de mise en page.
+// startDemo renvoie paint() pour redessiner le texte après un changement de mise en page.
 
 const TEXT =
   "Le ballon file vers le but adverse. Chaque mot tapé sans faute donne un coup de boost à ta voiture. " +
@@ -9,7 +11,7 @@ const TEXT =
 
 // Script classique chargé par les pages HTML : startDemo est global.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function startDemo({ textEl, oneLine, onProgress, onRankChange = () => {} }) {
+function startDemo({ textEl, oneLine, onProgress, onRankChange = () => {}, onType = () => {} }) {
   const players = [
     { name: "Toi", you: true, progress: 0 },
     { name: "Maya", speed: 0.0021, progress: 0 },
@@ -41,11 +43,13 @@ function startDemo({ textEl, oneLine, onProgress, onRankChange = () => {} }) {
     letters.forEach((span, i) => {
       span.className = i < index ? "done" : i === index ? (wrong ? "current wrong" : "current") : "";
     });
-    if (oneLine) {
+    if (typeof oneLine === "function" ? oneLine() : oneLine) {
       // Garde la lettre courante au tiers de la ligne : le texte défile vers la gauche.
       const current = letters[Math.min(index, letters.length - 1)];
       const shift = Math.max(0, current.offsetLeft - textEl.clientWidth / 3);
       track.style.transform = `translateX(${-shift}px)`;
+    } else {
+      track.style.transform = "";
     }
     players[0].progress = index / letters.length;
     update();
@@ -56,6 +60,7 @@ function startDemo({ textEl, oneLine, onProgress, onRankChange = () => {} }) {
     event.preventDefault();
     wrong = event.key !== TEXT[index];
     if (!wrong) index += 1;
+    onType(!wrong);
     paint();
   });
 
@@ -67,4 +72,5 @@ function startDemo({ textEl, oneLine, onProgress, onRankChange = () => {} }) {
   }, 100);
 
   paint();
+  return paint;
 }
