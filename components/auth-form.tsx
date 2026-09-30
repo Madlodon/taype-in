@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import type { AuthFormState } from "@/app/actions/auth";
 
@@ -10,12 +11,13 @@ type Props = {
 };
 
 export function AuthForm({ action, submitLabel, passwordAutoComplete }: Props) {
+  const t = useTranslations("Auth");
   const [state, formAction, pending] = useActionState(action, undefined);
 
   return (
     <form action={formAction} className="flex w-full max-w-xs flex-col gap-4">
       <label className="flex flex-col gap-1">
-        Nom d&apos;utilisateur
+        {t("username")}
         <input
           name="username"
           required
@@ -25,7 +27,7 @@ export function AuthForm({ action, submitLabel, passwordAutoComplete }: Props) {
         />
       </label>
       <label className="flex flex-col gap-1">
-        Mot de passe
+        {t("password")}
         <input
           name="password"
           type="password"
@@ -36,7 +38,7 @@ export function AuthForm({ action, submitLabel, passwordAutoComplete }: Props) {
       </label>
       {state?.error && (
         <p role="alert" className="text-red-600">
-          {state.error}
+          {t(`errors.${state.error}`)}
         </p>
       )}
       <button

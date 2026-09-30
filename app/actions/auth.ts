@@ -17,6 +17,7 @@ import {
   setSessionCookie,
 } from "@/lib/session-cookie";
 
+// error est une clé de traduction (Auth.errors).
 export type AuthFormState = {
   error?: string;
   username?: string;
@@ -42,7 +43,7 @@ export async function signUpAction(
 
   const user = await signUp(parsed.data.username, parsed.data.password);
   if (user === "taken") {
-    return { error: "Ce nom d'utilisateur est déjà pris.", username };
+    return { error: "usernameTaken", username };
   }
 
   await startSession(user.id);
@@ -64,7 +65,7 @@ export async function logInAction(
     : null;
   if (!user) {
     return {
-      error: "Nom d'utilisateur ou mot de passe incorrect.",
+      error: "wrongCredentials",
       username: String(formData.get("username") ?? ""),
     };
   }

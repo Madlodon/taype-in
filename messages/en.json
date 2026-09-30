@@ -7,5 +7,25 @@
     "signUp": "Sign up",
     "logIn": "Log in",
     "playAsGuest": "Play as guest"
+  },
+  "Auth": {
+    "logInTitle": "Log in",
+    "logInSubmit": "Log in",
+    "signUpTitle": "Sign up",
+    "signUpSubmit": "Create account",
+    "noEmailWarning": "No email: a forgotten password cannot be recovered.",
+    "haveAccount": "I already have an account",
+    "createAccount": "Sign up",
+    "username": "Username",
+    "password": "Password",
+    "errors": {
+      "usernameTooShort": "Username must be at least 3 characters.",
+      "usernameTooLong": "Username must be at most 20 characters.",
+      "usernameInvalid": "Only unaccented letters, digits and _.",
+      "passwordTooShort": "Password must be at least 12 characters.",
+      "passwordTooLong": "Password must be at most 128 characters.",
+      "usernameTaken": "This username is already taken.",
+      "wrongCredentials": "Wrong username or password."
+    }
   }
 }
