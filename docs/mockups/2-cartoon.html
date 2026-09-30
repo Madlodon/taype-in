@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette 2 · Cartoon arcade</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Russo+One&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Palette sombre de app/globals.css, en couleurs saturées avec contours épais. */
+      :root {
+        --background: #0b1426;
+        --foreground: #e8eef9;
+        --surface: #14213d;
+        --muted: #9aa8c3;
+        --primary: #4d94ff;
+        --accent: #ff9a3c;
+        --accent-strong: #ff9a3c;
+        --correct: #4ade80;
+        --wrong: #ff6b6b;
+        --wrong-surface: #4a1620;
+        --ink: #050a14;
+        --grass: #2fbf71;
+        --grass-dark: #26a862;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at 50% -20%, #22407a, var(--background) 60%);
+        color: var(--foreground);
+        font-family: system-ui, sans-serif;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: "Russo One", sans-serif;
+        font-size: 2rem;
+        color: var(--accent);
+        -webkit-text-stroke: 2px var(--ink);
+        paint-order: stroke fill;
+        text-shadow: 4px 4px 0 var(--ink);
+        transform: rotate(-3deg);
+        white-space: nowrap;
+      }
+
+      main {
+        display: grid;
+        gap: 1.5rem;
+        max-width: 60rem;
+        margin: 0 auto;
+        padding: 0 1rem 2rem;
+      }
+
+      .card {
+        border: 4px solid var(--ink);
+        border-radius: 1.25rem;
+        box-shadow: 6px 6px 0 var(--ink);
+      }
+
+      /* Terrain de gazon rayé ; chaque joueur a sa voie et son but. */
+      .pitch {
+        position: relative;
+        overflow: hidden;
+        padding: 0.75rem 4.5rem 0.75rem 0.75rem;
+        background: repeating-linear-gradient(90deg, var(--grass) 0 3rem, var(--grass-dark) 3rem 6rem);
+      }
+
+      .pitch::after {
+        content: "";
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        bottom: 0.75rem;
+        width: 3rem;
+        border: 4px solid var(--ink);
+        border-radius: 0.75rem;
+        background:
+          repeating-linear-gradient(0deg, transparent 0 8px, #ffffff99 8px 10px),
+          repeating-linear-gradient(90deg, transparent 0 8px, #ffffff99 8px 10px),
+          var(--accent);
+      }
+
+      .lane {
+        position: relative;
+        height: 4.5rem;
+        border-bottom: 3px dashed #ffffffaa;
+      }
+
+      .lane:last-child {
+        border-bottom: 0;
+      }
+
+      .tag {
+        position: absolute;
+        top: 0.3rem;
+        left: 0.3rem;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--ink);
+        padding: 0 0.6rem;
+        font-family: "Russo One", sans-serif;
+        font-size: 0.8rem;
+      }
+
+      .you .tag {
+        background: var(--primary);
+      }
+
+      .runner {
+        position: absolute;
+        bottom: 0.4rem;
+        left: 0;
+        display: flex;
+        align-items: flex-end;
+        transition: left 0.2s cubic-bezier(0.3, 1.6, 0.5, 1);
+      }
+
+      .runner svg {
+        width: 5rem;
+        height: 2.75rem;
+        overflow: visible;
+        animation: bounce 0.4s ease-in-out infinite alternate;
+      }
+
+      @keyframes bounce {
+        to {
+          transform: translateY(-3px) rotate(-2deg);
+        }
+      }
+
+      .ball {
+        width: 2rem;
+        height: 2rem;
+        margin-left: -4px;
+        border: 3px solid var(--ink);
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 50% 50%, var(--ink) 0 22%, transparent 23%),
+          radial-gradient(circle at 30% 30%, #fff, #dfe6f2);
+        animation: roll 0.5s linear infinite;
+      }
+
+      @keyframes roll {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Bloc de texte sur plusieurs lignes. */
+      .text {
+        background: var(--surface);
+        padding: 1.5rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.5rem;
+        line-height: 1.9;
+      }
+
+      .done {
+        color: var(--muted);
+      }
+
+      .current {
+        box-shadow: -4px 0 0 var(--accent-strong);
+        animation: blink 1s steps(1) infinite;
+      }
+
+      .wrong {
+        color: var(--wrong);
+        background: var(--wrong-surface);
+        text-decoration: underline wavy;
+        animation: none;
+      }
+
+      @keyframes blink {
+        50% {
+          box-shadow: none;
+        }
+      }
+
+      .flash {
+        position: fixed;
+        top: 40%;
+        left: 50%;
+        margin: 0;
+        border: 4px solid var(--ink);
+        border-radius: 1rem;
+        padding: 0.5rem 1.25rem;
+        font-family: "Russo One", sans-serif;
+        font-size: 1.5rem;
+        color: var(--ink);
+        box-shadow: 5px 5px 0 var(--ink);
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+      }
+
+      .flash.up {
+        background: var(--correct);
+      }
+
+      .flash.down {
+        background: var(--wrong);
+      }
+
+      .flash.show {
+        animation: pop 0.9s ease-out;
+      }
+
+      @keyframes pop {
+        0% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(0.4) rotate(-8deg);
+        }
+        30% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1.15) rotate(3deg);
+        }
+        80% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .hint {
+        margin: 0;
+        color: var(--muted);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Taype-in</h1>
+    </header>
+    <main>
+      <div class="pitch card" id="pitch"></div>
+      <div class="text card" id="text"></div>
+      <p class="hint">Tape le texte : ta voiture (bleue) pousse ton ballon vers le but.</p>
+    </main>
+    <p class="flash" id="flash" aria-live="polite"></p>
+
+    <svg width="0" height="0" aria-hidden="true">
+      <!-- Voiture cartoon vue de côté, contour épais, orientée vers la droite. -->
+      <symbol id="car" viewBox="0 0 80 44">
+        <g stroke="#050a14" stroke-width="3" stroke-linejoin="round">
+          <path d="M6 32 Q4 20 16 18 L30 16 Q36 4 50 5 Q62 6 66 17 L74 20 Q78 24 76 32 Z" fill="currentColor" />
+          <path d="M36 16 Q40 9 50 9 Q58 10 60 16 Z" fill="#bfe3ff" />
+          <path d="M3 12 L18 10 L18 16 L6 18 Z" fill="currentColor" />
+          <circle cx="22" cy="33" r="8" fill="#1d2433" />
+          <circle cx="62" cy="33" r="8" fill="#1d2433" />
+          <circle cx="22" cy="33" r="3" fill="#fff" />
+          <circle cx="62" cy="33" r="3" fill="#fff" />
+        </g>
+      </symbol>
+    </svg>
+
+    <script src="demo.js"></script>
+    <script>
+      const pitch = document.getElementById("pitch");
+      const flash = document.getElementById("flash");
+      const lanes = new Map();
+
+      startDemo({
+        textEl: document.getElementById("text"),
+        oneLine: false,
+        onProgress(players) {
+          for (const player of players) {
+            if (!lanes.has(player.name)) {
+              const lane = document.createElement("div");
+              lane.className = player.you ? "lane you" : "lane";
+              const color = player.you ? "var(--primary)" : "var(--accent)";
+              lane.innerHTML = `<span class="tag">${player.name}</span>
+                <div class="runner"><svg style="color:${color}"><use href="#car" /></svg><div class="ball"></div></div>`;
+              pitch.append(lane);
+              lanes.set(player.name, lane.querySelector(".runner"));
+            }
+            const runner = lanes.get(player.name);
+            const room = pitch.clientWidth - 5.25 * 16 - runner.offsetWidth;
+            runner.style.left = `${player.progress * room}px`;
+          }
+        },
+        onRankChange(better) {
+          flash.textContent = better ? "Dépassement !" : "Oh non, dépassé !";
+          flash.className = `flash show ${better ? "up" : "down"}`;
+          flash.addEventListener("animationend", () => (flash.className = `flash ${better ? "up" : "down"}`), {
+            once: true,
+          });
+        },
+      });
+    </script>
+  </body>
+</html>
