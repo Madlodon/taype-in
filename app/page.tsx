@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { guestAction, logOutAction } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/session-cookie";
 
 export default async function Home() {
   const user = await getCurrentUser();
+  const t = await getTranslations("Home");
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
@@ -11,35 +13,38 @@ export default async function Home() {
       {user ? (
         <>
           <p>
-            Connecté en tant que <strong>{user.username}</strong>
-            {user.isGuest && " (invité)"}
+            {t.rich("loggedInAs", {
+              username: user.username,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
+            {user.isGuest && ` ${t("guest")}`}
           </p>
           <Link
             href="/lobbies"
             className="rounded bg-foreground px-8 py-4 text-xl font-semibold text-background"
           >
-            Démarrer une course
+            {t("startRace")}
           </Link>
           <form action={logOutAction}>
             <button type="submit" className="underline">
-              Se déconnecter
+              {t("logOut")}
             </button>
           </form>
         </>
       ) : (
         <div className="flex flex-col items-center gap-4">
           <Link href="/signup" className="underline">
-            Créer un compte
+            {t("signUp")}
           </Link>
           <Link href="/login" className="underline">
-            Se connecter
+            {t("logIn")}
           </Link>
           <form action={guestAction}>
             <button
               type="submit"
               className="rounded bg-foreground px-4 py-2 text-background"
             >
-              Jouer en invité
+              {t("playAsGuest")}
             </button>
           </form>
         </div>

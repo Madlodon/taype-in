@@ -1,1 +1,11 @@
-{}
+{
+  "Home": {
+    "loggedInAs": "Logged in as <strong>{username}</strong>",
+    "guest": "(guest)",
+    "startRace": "Start a race",
+    "logOut": "Log out",
+    "signUp": "Sign up",
+    "logIn": "Log in",
+    "playAsGuest": "Play as guest"
+  }
+}

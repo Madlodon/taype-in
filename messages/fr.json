@@ -1,1 +1,11 @@
-{}
+{
+  "Home": {
+    "loggedInAs": "Connecté en tant que <strong>{username}</strong>",
+    "guest": "(invité)",
+    "startRace": "Démarrer une course",
+    "logOut": "Se déconnecter",
+    "signUp": "Créer un compte",
+    "logIn": "Se connecter",
+    "playAsGuest": "Jouer en invité"
+  }
+}
