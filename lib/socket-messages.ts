@@ -9,3 +9,8 @@ export type JoinLobbyMessage = z.infer<typeof joinLobbySchema>;
 
 // Réponse (ack) du serveur à un message du client.
 export type Ack = { ok: true } | { ok: false; error: string };
+
+// Envoyé à toute la salle quand quelqu'un arrive ou part.
+export type ParticipantsMessage = {
+  participants: { id: string; username: string }[];
+};
