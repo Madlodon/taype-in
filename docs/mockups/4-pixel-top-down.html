@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maquette 4 · Pixel art vu de haut</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <!-- Press Start 2P : police pixel pour l'essai seulement, le texte à taper reste en JetBrains Mono. -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Palette sombre de app/globals.css. */
+      :root {
+        --background: #0b1426;
+        --foreground: #e8eef9;
+        --surface: #14213d;
+        --muted: #9aa8c3;
+        --primary: #4d94ff;
+        --accent: #ff9a3c;
+        --accent-strong: #ff9a3c;
+        --correct: #4ade80;
+        --wrong: #ff6b6b;
+        --wrong-surface: #4a1620;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: system-ui, sans-serif;
+      }
+
+      header {
+        padding: 1.25rem 1rem 1rem;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: "Press Start 2P", monospace;
+        font-size: 1.25rem;
+        color: var(--accent);
+        text-shadow: 3px 3px 0 #000;
+      }
+
+      main {
+        display: grid;
+        gap: 1.25rem;
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 0 1rem 2rem;
+      }
+
+      /* Cadre de console portable autour du terrain. */
+      .screen {
+        position: relative;
+        border: 6px solid #000;
+        border-radius: 4px;
+        box-shadow:
+          0 0 0 4px var(--muted),
+          0 0 0 8px #000;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        image-rendering: pixelated;
+      }
+
+      .names {
+        position: absolute;
+        inset: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        pointer-events: none;
+      }
+
+      .names li {
+        position: absolute;
+        left: 1.5%;
+        font-family: "Press Start 2P", monospace;
+        font-size: clamp(0.4rem, 1.2vw, 0.6rem);
+        color: #fff;
+        text-shadow: 1px 1px 0 #000;
+      }
+
+      .names .you {
+        color: #bfe0ff;
+      }
+
+      /* Boîte de dialogue façon jeu de DS : le texte à taper, sur plusieurs lignes. */
+      .dialog {
+        border: 4px solid #fff;
+        border-radius: 8px;
+        outline: 4px solid #000;
+        background: var(--surface);
+        padding: 1.25rem 1.5rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.4rem;
+        line-height: 1.8;
+      }
+
+      .done {
+        color: var(--muted);
+      }
+
+      .current {
+        box-shadow: -3px 0 0 var(--accent-strong);
+        animation: blink 1s steps(1) infinite;
+      }
+
+      .wrong {
+        color: var(--wrong);
+        background: var(--wrong-surface);
+        text-decoration: underline wavy;
+        animation: none;
+      }
+
+      @keyframes blink {
+        50% {
+          box-shadow: none;
+        }
+      }
+
+      .flash {
+        min-height: 1rem;
+        margin: 0;
+        font-family: "Press Start 2P", monospace;
+        font-size: 0.75rem;
+        text-align: center;
+        visibility: hidden;
+      }
+
+      .flash.show {
+        visibility: visible;
+        animation: blinkText 0.2s steps(1) 5;
+      }
+
+      .flash.up {
+        color: var(--correct);
+      }
+
+      .flash.down {
+        color: var(--wrong);
+      }
+
+      @keyframes blinkText {
+        50% {
+          visibility: hidden;
+        }
+      }
+
+      .hint {
+        margin: 0;
+        color: var(--muted);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>TAYPE-IN</h1>
+    </header>
+    <main>
+      <div class="screen">
+        <canvas id="pitch" width="200" height="72"></canvas>
+        <ul class="names" id="names"></ul>
+      </div>
+      <p class="flash" id="flash" aria-live="polite"></p>
+      <div class="dialog" id="text"></div>
+      <p class="hint">Terrain vu de haut, sprites dessinés pixel par pixel. Tape le texte pour avancer.</p>
+    </main>
+
+    <script src="demo.js"></script>
+    <script>
+      const canvas = document.getElementById("pitch");
+      const ctx = canvas.getContext("2d");
+      const names = document.getElementById("names");
+      const flash = document.getElementById("flash");
+      const W = canvas.width;
+      const LANE = 16;
+      const TOP = 4;
+      const GOAL = 10;
+
+      // Sprites vus de haut, orientés vers la droite. B = couleur de l'équipe.
+      const CAR = [
+        ".TT....TT...",
+        "KKKKKKKKKKK.",
+        "KBBBBWWBBBBK",
+        "KBBBBWWBBBBY",
+        "KBBBBWWBBBBK",
+        "KKKKKKKKKKK.",
+        ".TT....TT...",
+      ];
+      const BALL = [".WWW.", "WWKWW", "WKKKW", "WWKWW", ".WWW."];
+      const COLORS = { K: "#0b1426", T: "#1d2433", W: "#e8eef9", Y: "#fff6a8" };
+
+      function sprite(rows, x, y, body) {
+        rows.forEach((row, j) =>
+          [...row].forEach((c, i) => {
+            if (c === ".") return;
+            ctx.fillStyle = c === "B" ? body : COLORS[c];
+            ctx.fillRect(Math.round(x) + i, Math.round(y) + j, 1, 1);
+          }),
+        );
+      }
+
+      function field(count) {
+        for (let x = 0; x < W; x += 10) {
+          ctx.fillStyle = (x / 10) % 2 ? "#2f9e5a" : "#38b267";
+          ctx.fillRect(x, 0, 10, canvas.height);
+        }
+        ctx.fillStyle = "#e8eef9";
+        ctx.fillRect(0, TOP - 1, W, 1);
+        ctx.fillRect(0, TOP + count * LANE, W, 1);
+        for (let lane = 1; lane < count; lane++) {
+          for (let x = 0; x < W; x += 6) ctx.fillRect(x, TOP + lane * LANE, 3, 1);
+        }
+        // Buts : filet orange à droite de chaque voie.
+        for (let lane = 0; lane < count; lane++) {
+          const y = TOP + lane * LANE + 2;
+          ctx.fillStyle = "#ff9a3c";
+          ctx.fillRect(W - GOAL, y, GOAL, LANE - 4);
+          ctx.fillStyle = "#ffd3a8";
+          for (let gx = W - GOAL + 1; gx < W; gx += 2) {
+            for (let gy = y + 1; gy < y + LANE - 5; gy += 2) ctx.fillRect(gx, gy, 1, 1);
+          }
+        }
+      }
+
+      let tick = 0;
+      startDemo({
+        textEl: document.getElementById("text"),
+        oneLine: false,
+        onProgress(players) {
+          if (!names.children.length) {
+            canvas.height = TOP * 2 + players.length * LANE;
+            players.forEach((player, i) => {
+              const li = Object.assign(document.createElement("li"), { textContent: player.name });
+              if (player.you) li.className = "you";
+              li.style.top = `${((TOP + i * LANE + 1) / canvas.height) * 100}%`;
+              names.append(li);
+            });
+          }
+          tick += 1;
+          field(players.length);
+          const room = W - GOAL - 20;
+          players.forEach((player, i) => {
+            const x = 2 + player.progress * room;
+            const y = TOP + i * LANE + 6;
+            // Traînée de boost qui clignote derrière la voiture.
+            if (tick % 2) {
+              ctx.fillStyle = "#ff9a3c";
+              ctx.fillRect(Math.round(x) - 2, y + 3, 2, 1);
+            }
+            sprite(CAR, x, y, player.you ? "#4d94ff" : "#ff9a3c");
+            sprite(BALL, x + 13, y + 1);
+          });
+        },
+        onRankChange(better) {
+          flash.textContent = better ? "DÉPASSEMENT !" : "DÉPASSÉ...";
+          flash.className = `flash show ${better ? "up" : "down"}`;
+          flash.addEventListener("animationend", () => (flash.className = "flash"), { once: true });
+        },
+      });
+    </script>
+  </body>
+</html>
