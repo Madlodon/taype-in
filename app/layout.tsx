@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, JetBrains_Mono, Russo_One } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -31,6 +31,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const t = await getTranslations("Footer");
+
   return (
     <html
       lang={await getLocale()}
@@ -46,6 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <LocaleSwitcher />
             </header>
             {children}
+            <footer className="mt-auto p-4 text-center text-sm text-muted">{t("disclaimer")}</footer>
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

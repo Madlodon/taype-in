@@ -69,5 +69,8 @@
     "light": "Clair",
     "dark": "Sombre",
     "system": "Système"
+  },
+  "Footer": {
+    "disclaimer": "Projet de fan inspiré de Rocket League. Non affilié à Epic Games ni à Psyonix, ni approuvé par eux."
   }
 }

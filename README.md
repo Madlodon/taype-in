@@ -4,6 +4,8 @@ Jeu de course de dactylographie multijoueur en temps réel.
 
 En ligne : https://laniproject.dev
 
+> Projet de fan inspiré de Rocket League. Non affilié à Epic Games ni à Psyonix, ni approuvé par eux.
+
 ## Installation locale
 
 ### Prérequis
