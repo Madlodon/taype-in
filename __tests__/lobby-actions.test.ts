@@ -90,13 +90,13 @@ test("Should_ReturnErrorAndKeepCode_When_NoOpenLobbyHasThisCode", async () => {
 
   const state = await joinLobbyAction(undefined, form({ code: "ZZZZZZ" }));
 
-  expect(state).toEqual({ error: "Aucune course ouverte avec ce code.", code: "ZZZZZZ" });
+  expect(state).toEqual({ error: "noOpenLobby", code: "ZZZZZZ" });
   expect(redirect).not.toHaveBeenCalled();
 });
 
 test("Should_ReturnErrorWithoutLookup_When_CodeIsBlank", async () => {
   const state = await joinLobbyAction(undefined, form({ code: "   " }));
 
-  expect(state?.error).toBe("Aucune course ouverte avec ce code.");
+  expect(state?.error).toBe("noOpenLobby");
   expect(lobbies.findOpenLobby).not.toHaveBeenCalled();
 });

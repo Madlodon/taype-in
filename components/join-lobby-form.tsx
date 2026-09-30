@@ -1,15 +1,17 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { joinLobbyAction } from "@/app/actions/lobbies";
 
 export function JoinLobbyForm() {
+  const t = useTranslations("Lobbies");
   const [state, formAction, pending] = useActionState(joinLobbyAction, undefined);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <label className="flex flex-col gap-1">
-        Code de la course
+        {t("code")}
         <input
           name="code"
           required
@@ -21,7 +23,7 @@ export function JoinLobbyForm() {
       </label>
       {state?.error && (
         <p role="alert" className="text-red-600">
-          {state.error}
+          {t(`errors.${state.error}`)}
         </p>
       )}
       <button
@@ -29,7 +31,7 @@ export function JoinLobbyForm() {
         disabled={pending}
         className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
       >
-        Rejoindre
+        {t("join")}
       </button>
     </form>
   );

@@ -27,5 +27,38 @@
       "usernameTaken": "This username is already taken.",
       "wrongCredentials": "Wrong username or password."
     }
+  },
+  "Lobbies": {
+    "title": "Races",
+    "create": "Create a race",
+    "joinByCode": "Join with a code",
+    "publicRaces": "Public races",
+    "noPublicRaces": "No public races right now.",
+    "raceOf": "{host}'s race",
+    "participantCount": "{count, plural, one {# participant} other {# participants}}",
+    "code": "Race code",
+    "join": "Join",
+    "errors": {
+      "noOpenLobby": "No open race with this code."
+    }
+  },
+  "NewLobby": {
+    "title": "Create a race",
+    "visibility": "Visibility",
+    "public": "Public: shown in the race list",
+    "unlisted": "Unlisted: joined with the code",
+    "submit": "Create the race"
+  },
+  "LobbyRoom": {
+    "title": "Waiting room",
+    "code": "Race code:",
+    "participants": "Participants ({count})",
+    "participantsList": "Participants",
+    "host": "(host)",
+    "errors": {
+      "notLoggedIn": "Not logged in",
+      "invalidMessage": "Invalid message",
+      "lobbyNotFound": "Race not found"
+    }
   }
 }

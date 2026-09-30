@@ -86,7 +86,7 @@ describe("connexion", () => {
 
     const error = await new Promise<Error>((resolve) => client.on("connect_error", resolve));
 
-    expect(error.message).toBe("Non connecté");
+    expect(error.message).toBe("notLoggedIn");
   });
 });
 
@@ -111,7 +111,7 @@ describe("lobby:join", () => {
 
     expect(await join(client, { code: "ZZZZZZZ" })).toEqual({
       ok: false,
-      error: "Course introuvable",
+      error: "lobbyNotFound",
     });
   });
 
@@ -125,7 +125,7 @@ describe("lobby:join", () => {
   ])("Should_AckError_When_%s", async (_, payload) => {
     const client = await newClient();
 
-    expect(await join(client, payload)).toEqual({ ok: false, error: "Message invalide" });
+    expect(await join(client, payload)).toEqual({ ok: false, error: "invalidMessage" });
   });
 
   test("Should_SendParticipantListToEveryone_When_PlayerJoins", async () => {

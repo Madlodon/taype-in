@@ -39,7 +39,7 @@ export function createSocketServer(httpServer: HttpServer): Server {
   io.use(async (socket, next) => {
     const token = readCookie(socket.handshake.headers.cookie, SESSION_COOKIE);
     const user = token ? await validateSessionToken(token) : null;
-    if (!user) return next(new Error("Non connecté"));
+    if (!user) return next(new Error("notLoggedIn"));
     socket.data.user = user;
     next();
   });
@@ -49,13 +49,13 @@ export function createSocketServer(httpServer: HttpServer): Server {
     socket.on("lobby:join", async (payload: unknown, ack?: (response: Ack) => void) => {
       const result = joinLobbySchema.safeParse(payload);
       if (!result.success) {
-        ack?.({ ok: false, error: "Message invalide" });
+        ack?.({ ok: false, error: "invalidMessage" });
         return;
       }
 
       const lobby = await findOpenLobby(result.data.code);
       if (!lobby) {
-        ack?.({ ok: false, error: "Course introuvable" });
+        ack?.({ ok: false, error: "lobbyNotFound" });
         return;
       }
 

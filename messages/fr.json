@@ -27,5 +27,38 @@
       "usernameTaken": "Ce nom d'utilisateur est déjà pris.",
       "wrongCredentials": "Nom d'utilisateur ou mot de passe incorrect."
     }
+  },
+  "Lobbies": {
+    "title": "Courses",
+    "create": "Créer une course",
+    "joinByCode": "Rejoindre avec un code",
+    "publicRaces": "Courses publiques",
+    "noPublicRaces": "Aucune course publique pour le moment.",
+    "raceOf": "Course de {host}",
+    "participantCount": "{count, plural, one {# participant} other {# participants}}",
+    "code": "Code de la course",
+    "join": "Rejoindre",
+    "errors": {
+      "noOpenLobby": "Aucune course ouverte avec ce code."
+    }
+  },
+  "NewLobby": {
+    "title": "Créer une course",
+    "visibility": "Visibilité",
+    "public": "Publique : visible dans la liste des courses",
+    "unlisted": "Non répertoriée : on la rejoint avec le code",
+    "submit": "Créer la course"
+  },
+  "LobbyRoom": {
+    "title": "Salle d'attente",
+    "code": "Code de la course :",
+    "participants": "Participants ({count})",
+    "participantsList": "Participants",
+    "host": "(hôte)",
+    "errors": {
+      "notLoggedIn": "Non connecté",
+      "invalidMessage": "Message invalide",
+      "lobbyNotFound": "Course introuvable"
+    }
   }
 }
