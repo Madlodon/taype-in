@@ -63,5 +63,11 @@
   },
   "LocaleSwitcher": {
     "label": "Langue"
+  },
+  "ThemeSwitcher": {
+    "label": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système"
   }
 }
