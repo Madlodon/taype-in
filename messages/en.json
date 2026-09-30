@@ -60,5 +60,8 @@
       "invalidMessage": "Invalid message",
       "lobbyNotFound": "Race not found"
     }
+  },
+  "LocaleSwitcher": {
+    "label": "Language"
   }
 }

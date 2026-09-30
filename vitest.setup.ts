@@ -5,6 +5,7 @@ vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
   const messages = (await import("./messages/fr.json")).default;
   return {
+    getLocale: async () => "fr",
     getTranslations: async (namespace?: string) =>
       createTranslator({ locale: "fr", messages, namespace: namespace as never }),
   };
