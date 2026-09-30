@@ -49,6 +49,24 @@ test("Should_ShowUsernameAndLogOut_When_UserIsLoggedIn", async () => {
   expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeDefined();
 });
 
+test("Should_LinkToLobbies_When_UserIsLoggedIn", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(aUser);
+
+  render(await Page());
+
+  expect(
+    screen.getByRole("link", { name: "Démarrer une course" }).getAttribute("href"),
+  ).toBe("/lobbies");
+});
+
+test("Should_NotOfferRace_When_NobodyIsLoggedIn", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+  render(await Page());
+
+  expect(screen.queryByRole("link", { name: "Démarrer une course" })).toBeNull();
+});
+
 test("Should_ShowGuestLabel_When_GuestIsLoggedIn", async () => {
   vi.mocked(getCurrentUser).mockResolvedValue({
     ...aUser,
