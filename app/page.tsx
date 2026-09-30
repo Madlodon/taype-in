@@ -14,6 +14,12 @@ export default async function Home() {
             Connecté en tant que <strong>{user.username}</strong>
             {user.isGuest && " (invité)"}
           </p>
+          <Link
+            href="/lobbies"
+            className="rounded bg-foreground px-8 py-4 text-xl font-semibold text-background"
+          >
+            Démarrer une course
+          </Link>
           <form action={logOutAction}>
             <button type="submit" className="underline">
               Se déconnecter

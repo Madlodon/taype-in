@@ -6,6 +6,9 @@ import { z } from "zod";
 import { db } from "../db/index.ts";
 import { sessions, users } from "../db/schema.ts";
 
+// Nom du cookie qui porte le jeton ; lu aussi par le serveur Socket.IO.
+export const SESSION_COOKIE = "session";
+
 export const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 // Sous ce seuil, la session est prolongée de 30 jours à chaque utilisation.
 const RENEW_THRESHOLD_MS = 15 * 24 * 60 * 60 * 1000;

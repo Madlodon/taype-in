@@ -1,9 +1,9 @@
 // Cookie httpOnly qui porte le jeton de session (AUTH-6).
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { validateSessionToken, type User } from "./auth.ts";
+import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
 
-export const SESSION_COOKIE = "session";
+export { SESSION_COOKIE };
 
 export const sessionCookieOptions = {
   httpOnly: true,
