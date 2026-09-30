@@ -37,7 +37,7 @@ export function AuthForm({ action, submitLabel, passwordAutoComplete }: Props) {
         />
       </label>
       {state?.error && (
-        <p role="alert" className="text-red-600">
+        <p role="alert" className="text-red-600 dark:text-red-400">
           {t(`errors.${state.error}`)}
         </p>
       )}
