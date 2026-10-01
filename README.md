@@ -68,6 +68,7 @@ flowchart LR
 
 ### Documentation
 
+- [Cahier des charges v1.1](docs/cahier-des-charges.pdf) ([docx](docs/cahier-des-charges.docx))
 - [Modèle de données](docs/modele-de-donnees.md)
 - [Machines à états](docs/machines-a-etats.md)
 - [ADR 0001 : temps réel](docs/adr/0001-realtime.md)
