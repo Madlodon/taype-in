@@ -132,7 +132,16 @@ La mise en page du texte (une ligne ou un bloc) se décidera dans l'issue de l'�
 
 ## Logo
 
-Deux pistes à retravailler par Nicolas ; elles ne sont pas encore dans l'application.
+**Logo final : notre voiture Blender avec une traînée de boost.** La couleur suit le thème du site : voiture bleue et boost blanc en sombre, voiture orange et boost noir en clair.
+Le boost est dessiné par nous (flamme puis bouffées qui s'effacent), dans l'esprit de Rocket League sans copier ses images.
+
+| Thème sombre                              | Thème clair                                 |
+| ----------------------------------------- | ------------------------------------------- |
+| ![Logo sombre](../public/logo-dark.svg)   | ![Logo clair](../public/logo-light.svg)     |
+
+Le favicon ([`app/icon.svg`](../app/icon.svg)) garde la voiture et la flamme seulement. Il suit le thème du navigateur, car le thème choisi sur le site ne lui est pas accessible.
+
+Les deux pistes de départ, écartées :
 
 | Concept b : boost sur le « y »                     | Concept c : touche-voiture                               |
 | -------------------------------------------------- | -------------------------------------------------------- |
