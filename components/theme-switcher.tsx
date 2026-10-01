@@ -15,14 +15,14 @@ export function ThemeSwitcher() {
   const t = useTranslations("ThemeSwitcher");
 
   return (
-    <div role="group" aria-label={t("label")} className="flex gap-2 text-sm">
+    <div role="group" aria-label={t("label")} className="segmented-control">
       {themes.map((name) => (
         <button
           key={name}
           type="button"
           onClick={() => setTheme(name)}
           aria-pressed={mounted && theme === name}
-          className="aria-pressed:font-bold aria-[pressed=false]:underline"
+          className="theme-option"
         >
           {t(name)}
         </button>
