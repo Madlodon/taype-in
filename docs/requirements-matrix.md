@@ -24,8 +24,13 @@ Statut :
 [i11]: https://github.com/Madlodon/taype-in/issues/11
 [i12]: https://github.com/Madlodon/taype-in/issues/12
 [i13]: https://github.com/Madlodon/taype-in/issues/13
+[i14]: https://github.com/Madlodon/taype-in/issues/14
 [i15]: https://github.com/Madlodon/taype-in/issues/15
 [i26]: https://github.com/Madlodon/taype-in/issues/26
+[i39]: https://github.com/Madlodon/taype-in/issues/39
+[i40]: https://github.com/Madlodon/taype-in/issues/40
+[i41]: https://github.com/Madlodon/taype-in/issues/41
+[i42]: https://github.com/Madlodon/taype-in/issues/42
 [p16]: https://github.com/Madlodon/taype-in/pull/16
 [p17]: https://github.com/Madlodon/taype-in/pull/17
 [p18]: https://github.com/Madlodon/taype-in/pull/18
@@ -38,6 +43,15 @@ Statut :
 [p28]: https://github.com/Madlodon/taype-in/pull/28
 [p29]: https://github.com/Madlodon/taype-in/pull/29
 [p30]: https://github.com/Madlodon/taype-in/pull/30
+[p31]: https://github.com/Madlodon/taype-in/pull/31
+[p32]: https://github.com/Madlodon/taype-in/pull/32
+[p37]: https://github.com/Madlodon/taype-in/pull/37
+[p44]: https://github.com/Madlodon/taype-in/pull/44
+[p46]: https://github.com/Madlodon/taype-in/pull/46
+[p47]: https://github.com/Madlodon/taype-in/pull/47
+[p48]: https://github.com/Madlodon/taype-in/pull/48
+[p49]: https://github.com/Madlodon/taype-in/pull/49
+[p50]: https://github.com/Madlodon/taype-in/pull/50
 
 ## Authentification (AUTH)
 
@@ -137,21 +151,21 @@ Statut :
 
 ## Interface (UI)
 
-| ID   | Exigence                          | Prio. | Issue      | PR         | Tests                                                                                                                                                                   | Statut   |
-| ---- | --------------------------------- | ----- | ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| UI-1 | Interface en français et anglais  | E     | [#10][i10] | [#28][p28] | [locale.test.ts](../__tests__/locale.test.ts), [messages.test.ts](../__tests__/messages.test.ts), [locale-switcher.test.tsx](../__tests__/locale-switcher.test.tsx), [e2e/locale.spec.ts](../e2e/locale.spec.ts) | Fait     |
-| UI-2 | Responsive                        | E     | —          | —          | —                                                                                                                                                                       | À faire  |
-| UI-3 | Mode clair et mode sombre         | S     | [#11][i11] | [#29][p29] | [theme-switcher.test.tsx](../__tests__/theme-switcher.test.tsx), [e2e/theme.spec.ts](../e2e/theme.spec.ts)                                                             | Fait     |
-| UI-4 | Direction artistique              | S     | [#1][i1]   | —          | [palette.test.ts](../__tests__/palette.test.ts), [e2e/home.spec.ts](../e2e/home.spec.ts)                                                                               | Partiel  |
+| ID   | Exigence                         | Prio. | Issue                            | PR                                                         | Tests                                                                                                                                                                                                                                       | Statut |
+| ---- | -------------------------------- | ----- | -------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| UI-1 | Interface en français et anglais | E     | [#10][i10]                       | [#28][p28]                                                 | [locale.test.ts](../__tests__/locale.test.ts), [messages.test.ts](../__tests__/messages.test.ts), [locale-switcher.test.tsx](../__tests__/locale-switcher.test.tsx), [e2e/locale.spec.ts](../e2e/locale.spec.ts)                            | Fait   |
+| UI-2 | Responsive                       | E     | —                                | [#49][p49]                                                 | [e2e/design.spec.ts](../e2e/design.spec.ts) (375, 768 et 1440 px)                                                                                                                                                                           | Fait   |
+| UI-3 | Mode clair et mode sombre        | S     | [#11][i11]                       | [#29][p29]                                                 | [theme-switcher.test.tsx](../__tests__/theme-switcher.test.tsx), [e2e/theme.spec.ts](../e2e/theme.spec.ts)                                                                                                                                  | Fait   |
+| UI-4 | Direction artistique             | S     | [#1][i1], [#39][i39], [#41][i41] | [#37][p37], [#46][p46], [#47][p47], [#48][p48], [#49][p49] | [palette.test.ts](../__tests__/palette.test.ts), [e2e/home.spec.ts](../e2e/home.spec.ts), [e2e/logo.spec.ts](../e2e/logo.spec.ts), [e2e/design.spec.ts](../e2e/design.spec.ts)                                                              | Fait   |
 
 ## Technique (TECH)
 
-| ID     | Exigence                                   | Prio. | Issue                              | PR                                   | Tests                                                                                                                                         | Statut   |
-| ------ | ------------------------------------------ | ----- | ---------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| TECH-1 | React + Next.js + TypeScript + Tailwind    | E     | [#7][i7]                           | [#23][p23]                           | Toute la suite (build dans la CI)                                                                                                             | Fait     |
-| TECH-2 | PostgreSQL                                 | E     | [#5][i5], [#2][i2]                 | [#17][p17], [#19][p19]               | [schema.test.ts](../__tests__/db/schema.test.ts), [migrate.test.ts](../__tests__/db/migrate.test.ts)                                          | Fait     |
-| TECH-3 | Hébergé en HTTPS                           | E     | [#13][i13]                         | [#18][p18]                           | Vérifié à la main (https://laniproject.dev)                                                                                                   | Fait     |
-| TECH-4 | Temps réel auto-hébergé (WebSocket)        | E     | [#4][i4], [#7][i7]                 | [#21][p21], [#23][p23]               | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait     |
-| TECH-5 | Progression validée par le serveur         | S     | —                                  | —                                    | —                                                                                                                                             | À faire  |
-| TECH-6 | Tests unitaires et End-to-End              | E     | [#6][i6], [#12][i12]               | [#16][p16], [#30][p30]               | Vitest + Playwright, lancés par la CI                                                                                                         | Fait     |
-| TECH-7 | Code sur GitHub avec documentation         | E     | [#15][i15]                         | —                                    | —                                                                                                                                             | Fait     |
+| ID     | Exigence                                | Prio. | Issue                              | PR                                 | Tests                                                                                                                                                               | Statut  |
+| ------ | --------------------------------------- | ----- | ---------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| TECH-1 | React + Next.js + TypeScript + Tailwind | E     | [#7][i7]                           | [#23][p23]                         | Toute la suite (build dans la CI)                                                                                                                                   | Fait    |
+| TECH-2 | PostgreSQL                              | E     | [#5][i5], [#2][i2]                 | [#17][p17], [#19][p19]             | [schema.test.ts](../__tests__/db/schema.test.ts), [migrate.test.ts](../__tests__/db/migrate.test.ts)                                                                | Fait    |
+| TECH-3 | Hébergé en HTTPS                        | E     | [#13][i13]                         | [#18][p18]                         | Vérifié à la main (https://laniproject.dev)                                                                                                                         | Fait    |
+| TECH-4 | Temps réel auto-hébergé (WebSocket)     | E     | [#4][i4], [#7][i7]                 | [#21][p21], [#23][p23]             | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait    |
+| TECH-5 | Progression validée par le serveur      | S     | —                                  | —                                  | —                                                                                                                                                                   | À faire |
+| TECH-6 | Tests unitaires et End-to-End           | E     | [#6][i6], [#12][i12], [#40][i40]   | [#16][p16], [#30][p30], [#44][p44] | Vitest (avec PostgreSQL) et Playwright (Chromium), lancés par la [CI](../.github/workflows/ci.yml) sur chaque PR                                                    | Fait    |
+| TECH-7 | Code sur GitHub avec documentation      | E     | [#14][i14], [#15][i15], [#42][i42] | [#31][p31], [#32][p32], [#50][p50] | Aucun (documentation)                                                                                                                                               | Fait    |
