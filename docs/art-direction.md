@@ -25,6 +25,14 @@ Pour plus tard :
 - Récompenses : chapeaux et styles de boost débloqués par niveau ([#35](https://github.com/Madlodon/taype-in/issues/35)).
 - Autres caméras à essayer : vue du dessus avec les murs dépliés, ou caméra qui suit ta voiture avec une mini-carte.
 
+### Interface de l’application
+
+Toutes les pages partagent la navigation, les surfaces, les accents bleu/orange et les illustrations du stade. Les formulaires et les salles gardent les mêmes repères en français et en anglais, sur mobile comme sur ordinateur.
+
+La route `/race` propose un **aperçu jouable en solo** : texte localisé, voiture et ballon sur le parcours, progression, précision, vitesse et but final. Les erreurs doivent être corrigées pour avancer. Le bouton Recommencer remet la course à zéro.
+
+Cet aperçu ne sauvegarde aucun résultat et n’est pas connecté aux salles multijoueurs. Les salles affichent les participants en direct et expliquent cette limite. Le boost selon les séries, les adversaires et les effets de but restent à implémenter dans la course multijoueur.
+
 ### Rocket League
 
 - **Obligatoire** : l'avis « Projet de fan inspiré de Rocket League. Non affilié à Epic Games ni à Psyonix, ni approuvé par eux. » dans le pied de page de chaque page (FR/EN) et dans le README.

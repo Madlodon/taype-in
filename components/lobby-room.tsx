@@ -30,18 +30,18 @@ export function LobbyRoom({ code, hostId }: Props) {
   // Une erreur de transport n'a pas de clé de traduction : son message est affiché tel quel.
   if (error) {
     return (
-      <p role="alert" className="text-red-600 dark:text-red-400">
+      <p role="alert" className="form-error">
         {t.has(`errors.${error}`) ? t(`errors.${error}`) : error}
       </p>
     );
   }
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className="panel">
       <h2 className="text-xl font-semibold">
         {t("participants", { count: participants.length })}
       </h2>
-      <ul aria-label={t("participantsList")} className="flex flex-col gap-1">
+      <ul aria-label={t("participantsList")} className="participants">
         {participants.map((participant) => (
           <li key={participant.id}>
             {participant.username}

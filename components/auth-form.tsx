@@ -15,36 +15,36 @@ export function AuthForm({ action, submitLabel, passwordAutoComplete }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
 
   return (
-    <form action={formAction} className="flex w-full max-w-xs flex-col gap-4">
-      <label className="flex flex-col gap-1">
+    <form action={formAction} className="form-stack">
+      <label className="field">
         {t("username")}
         <input
           name="username"
           required
           autoComplete="username"
           defaultValue={state?.username}
-          className="rounded border px-2 py-1"
+
         />
       </label>
-      <label className="flex flex-col gap-1">
+      <label className="field">
         {t("password")}
         <input
           name="password"
           type="password"
           required
           autoComplete={passwordAutoComplete}
-          className="rounded border px-2 py-1"
+
         />
       </label>
       {state?.error && (
-        <p role="alert" className="text-red-600 dark:text-red-400">
+        <p role="alert" className="form-error">
           {t(`errors.${state.error}`)}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+        className="btn btn-primary"
       >
         {submitLabel}
       </button>

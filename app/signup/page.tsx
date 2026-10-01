@@ -1,25 +1,31 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { signUpAction } from "@/app/actions/auth";
+import { Arena } from "@/components/arena";
 import { AuthForm } from "@/components/auth-form";
 
 export default async function SignUpPage() {
   const t = await getTranslations("Auth");
+  const d = await getTranslations("Design");
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-semibold">{t("signUpTitle")}</h1>
-      <AuthForm
-        action={signUpAction}
-        submitLabel={t("signUpSubmit")}
-        passwordAutoComplete="new-password"
-      />
-      <p className="text-sm">
-        {t("noEmailWarning")}
-      </p>
-      <Link href="/login" className="underline">
-        {t("haveAccount")}
-      </Link>
+    <main id="main" className="page-shell auth-layout">
+      <section className="auth-story">
+        <p className="eyebrow">{d("heroTag")}</p>
+        <h2>{d("authHeadline")}</h2>
+        <p className="description">{d("authDescription")}</p>
+        <Arena />
+      </section>
+      <section className="panel panel-accent auth-card">
+        <p className="eyebrow">{d("newDriver")}</p>
+        <h1 className="page-title">{t("signUpTitle")}</h1>
+        <p className="description">{d("signUpDescription")}</p>
+        <AuthForm action={signUpAction} submitLabel={t("signUpSubmit")} passwordAutoComplete="new-password" />
+        <p className="form-note">{t("noEmailWarning")}</p>
+        <div className="auth-switch">
+          <Link href="/login" className="text-link">{t("haveAccount")}</Link>
+        </div>
+      </section>
     </main>
   );
 }

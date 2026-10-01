@@ -7,6 +7,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,6 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const t = await getTranslations("Footer");
+  const d = await getTranslations("Design");
 
   return (
     <html
@@ -45,17 +47,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" disableTransitionOnChange>
           <NextIntlClientProvider>
-            <header className="flex items-center gap-6 p-4">
-              {/* Octane orange et boost blanc en sombre, bleu et boost noir en clair. */}
-              <Link href="/" className="mr-auto">
-                <Image src="/octane-light.png" alt="Taype-in" width={128} height={72} className="dark:hidden" />
-                <Image src="/octane-dark.png" alt="Taype-in" width={128} height={72} className="hidden dark:block" />
+            <a href="#main" className="skip-link">{d("skip")}</a>
+            <header className="site-header">
+              <Link href="/" className="brand" aria-label="Taype-in">
+                <Image src="/octane-light.png" alt="Taype-in" width={88} height={50} className="dark:hidden" />
+                <Image src="/octane-dark.png" alt="Taype-in" width={88} height={50} className="hidden dark:block" />
+                <span aria-hidden="true">taype<span className="text-primary">-in</span><small>{d("brandTag")}</small></span>
               </Link>
-              <ThemeSwitcher />
-              <LocaleSwitcher />
+              <SiteNav />
+              <div className="header-settings"><ThemeSwitcher /><LocaleSwitcher /></div>
             </header>
             {children}
-            <footer className="mt-auto p-4 text-center text-sm text-muted">{t("disclaimer")}</footer>
+            <footer className="site-footer">{t("disclaimer")}</footer>
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

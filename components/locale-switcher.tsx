@@ -10,7 +10,7 @@ export async function LocaleSwitcher() {
   const t = await getTranslations("LocaleSwitcher");
 
   return (
-    <form action={setLocaleAction} aria-label={t("label")} className="flex gap-2 text-sm">
+    <form action={setLocaleAction} aria-label={t("label")} className="segmented-control">
       {locales.map((locale) => (
         <button
           key={locale}
@@ -20,7 +20,7 @@ export async function LocaleSwitcher() {
           lang={locale}
           aria-label={names[locale]}
           aria-pressed={locale === current}
-          className="uppercase aria-pressed:font-bold aria-[pressed=false]:underline"
+          className="uppercase"
         >
           {locale}
         </button>
