@@ -25,12 +25,8 @@ Pour plus tard :
 - Récompenses : chapeaux et styles de boost débloqués par niveau ([#35](https://github.com/Madlodon/taype-in/issues/35)).
 - Autres caméras à essayer : vue du dessus avec les murs dépliés, ou caméra qui suit ta voiture avec une mini-carte.
 
-### Rocket League : ce qu'on peut utiliser
+### Rocket League
 
-Taype-in est un projet de fan, gratuit et non commercial, ce que permet la [politique de contenu de fan d'Epic Games](https://legal.epicgames.com/epicgames/fan-art-policy), à ces conditions :
-
-- **Oui** : reprendre le style (arène, couleurs, caméra, boost, ballon), avec nos propres modèles, sprites et polices, ou des ressources libres.
-- **Non** : le nom ou le logo Rocket League comme image de marque, des modèles extraits du jeu (interdit par le contrat de licence d'Epic), les polices du jeu (commerciales), ou laisser croire qu'Epic approuve le projet.
 - **Obligatoire** : l'avis « Projet de fan inspiré de Rocket League. Non affilié à Epic Games ni à Psyonix, ni approuvé par eux. » dans le pied de page de chaque page (FR/EN) et dans le README.
 
 ## Palette
