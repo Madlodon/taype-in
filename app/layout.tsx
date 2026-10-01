@@ -46,10 +46,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider attribute="class" disableTransitionOnChange>
           <NextIntlClientProvider>
             <header className="flex items-center gap-6 p-4">
-              {/* Voiture bleue et boost blanc en sombre, voiture orange et boost noir en clair. */}
+              {/* Octane orange et boost blanc en sombre, bleu et boost noir en clair. */}
               <Link href="/" className="mr-auto">
-                <Image src="/logo-light.svg" alt="Taype-in" width={129} height={56} className="dark:hidden" />
-                <Image src="/logo-dark.svg" alt="Taype-in" width={129} height={56} className="hidden dark:block" />
+                <Image src="/octane-light.png" alt="Taype-in" width={128} height={72} className="dark:hidden" />
+                <Image src="/octane-dark.png" alt="Taype-in" width={128} height={72} className="hidden dark:block" />
               </Link>
               <ThemeSwitcher />
               <LocaleSwitcher />
