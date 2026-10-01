@@ -9,8 +9,8 @@ export function JoinLobbyForm() {
   const [state, formAction, pending] = useActionState(joinLobbyAction, undefined);
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
-      <label className="flex flex-col gap-1">
+    <form action={formAction} className="form-stack">
+      <label className="field">
         {t("code")}
         <input
           name="code"
@@ -18,18 +18,18 @@ export function JoinLobbyForm() {
           maxLength={16}
           autoComplete="off"
           defaultValue={state?.code}
-          className="rounded border px-2 py-1 uppercase"
+          className="uppercase font-mono tracking-widest"
         />
       </label>
       {state?.error && (
-        <p role="alert" className="text-red-600 dark:text-red-400">
+        <p role="alert" className="form-error">
           {t(`errors.${state.error}`)}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+        className="btn btn-primary"
       >
         {t("join")}
       </button>
