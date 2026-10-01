@@ -19,3 +19,13 @@ test("Should_GoHome_When_ClickingLogo", async ({ page }) => {
 
   await expect(page).toHaveURL("/");
 });
+
+test("Should_ReplaceDefaultMetadata_When_VisitingAnyPage", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveTitle("Taype-in");
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /Courses de dactylo/);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg/);
+
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /Typing races/);
+});

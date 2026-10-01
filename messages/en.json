@@ -72,5 +72,8 @@
   },
   "Footer": {
     "disclaimer": "Fan project inspired by Rocket League. Not affiliated with or endorsed by Epic Games or Psyonix."
+  },
+  "Metadata": {
+    "description": "Typing races between friends, inspired by Rocket League."
   }
 }

@@ -72,5 +72,8 @@
   },
   "Footer": {
     "disclaimer": "Projet de fan inspiré de Rocket League. Non affilié à Epic Games ni à Psyonix, ni approuvé par eux."
+  },
+  "Metadata": {
+    "description": "Courses de dactylo entre amis, inspirées de Rocket League."
   }
 }
