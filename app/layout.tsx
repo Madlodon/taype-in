@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import { Geist, JetBrains_Mono, Russo_One } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -43,7 +45,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" disableTransitionOnChange>
           <NextIntlClientProvider>
-            <header className="flex justify-end gap-6 p-4">
+            <header className="flex items-center gap-6 p-4">
+              {/* Voiture bleue et boost blanc en sombre, voiture orange et boost noir en clair. */}
+              <Link href="/" className="mr-auto">
+                <Image src="/logo-light.svg" alt="Taype-in" width={129} height={56} className="dark:hidden" />
+                <Image src="/logo-dark.svg" alt="Taype-in" width={129} height={56} className="hidden dark:block" />
+              </Link>
               <ThemeSwitcher />
               <LocaleSwitcher />
             </header>
