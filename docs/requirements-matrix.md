@@ -1,6 +1,6 @@
 # Matrice des exigences
 
-Chaque exigence du cahier des charges (v1.1) → issue → PR → tests → statut.
+Chaque exigence du [cahier des charges (v1.1)](cahier-des-charges.pdf) → issue → PR → tests → statut.
 
 Priorité : **E** essentiel, **S** souhaitable, **M** moins prioritaire.
 
