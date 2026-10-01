@@ -135,7 +135,7 @@ Les deux images sont générées par IA (fond transparent), à partir d'une imag
 | ------------------------------------------- | --------------------------------------------- |
 | ![Logo sombre](../public/octane-dark.png)   | ![Logo clair](../public/octane-light.png)     |
 
-Le favicon ([`app/icon.svg`](../app/icon.svg)) garde la voiture et la flamme seulement. Il suit le thème du navigateur, car le thème choisi sur le site ne lui est pas accessible.
+Le favicon ([`app/icon.svg`](../app/icon.svg)) reprend la même Octane, recadrée sur la voiture. Il suit le thème du navigateur, car le thème choisi sur le site ne lui est pas accessible.
 
 Les deux pistes de départ, écartées :
 
