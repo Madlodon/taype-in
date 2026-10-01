@@ -132,12 +132,12 @@ La mise en page du texte (une ligne ou un bloc) se décidera dans l'issue de l'�
 
 ## Logo
 
-**Logo final : notre voiture Blender avec une traînée de boost.** La couleur suit le thème du site : voiture bleue et boost blanc en sombre, voiture orange et boost noir en clair.
-Le boost est dessiné par nous (flamme puis bouffées qui s'effacent), dans l'esprit de Rocket League sans copier ses images.
+**Logo final : une Octane illustrée avec une traînée de boost.** La couleur suit le thème du site : voiture orange et boost blanc en sombre, voiture bleue et boost noir en clair.
+Les deux images sont générées par IA (fond transparent), à partir d'une image de référence de l'Octane.
 
-| Thème sombre                              | Thème clair                                 |
-| ----------------------------------------- | ------------------------------------------- |
-| ![Logo sombre](../public/logo-dark.svg)   | ![Logo clair](../public/logo-light.svg)     |
+| Thème sombre                                | Thème clair                                   |
+| ------------------------------------------- | --------------------------------------------- |
+| ![Logo sombre](../public/octane-dark.png)   | ![Logo clair](../public/octane-light.png)     |
 
 Le favicon ([`app/icon.svg`](../app/icon.svg)) garde la voiture et la flamme seulement. Il suit le thème du navigateur, car le thème choisi sur le site ne lui est pas accessible.
 
