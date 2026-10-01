@@ -156,6 +156,13 @@ Les deux pistes de départ, écartées :
 Liens seulement : les images de ces sources sont protégées par le droit d'auteur et ne sont pas copiées dans le dépôt.
 Les captures de référence vont sur le [tableau Miro](https://miro.com/app/board/uXjVHgaNzVI=/) (privé), avec la palette, les logos et les sprites.
 
+Export du tableau Miro (seulement nos propres images) :
+
+![Références](moodboard/references.jpg)
+![Palette](moodboard/palette.jpg)
+![Typographie](moodboard/typography.jpg)
+![Maquettes](moodboard/mockups.jpg)
+
 | Référence                                                                    | Ce qu'on en retient                                                  |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | [Rocket League](https://www.rocketleague.com)                                | Bleu contre orange, arène néon, boost, explosions de but, ballon     |
