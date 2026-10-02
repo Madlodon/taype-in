@@ -5,6 +5,7 @@ import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
 import {
   addParticipant,
   canEnterLobby,
+  closeLobby,
   findOpenLobby,
   listParticipants,
   removeParticipant,
@@ -25,7 +26,10 @@ function readCookie(header: string | undefined, name: string): string | undefine
 export function createSocketServer(httpServer: HttpServer): Server {
   const io = new Server<
     Record<string, never>,
-    { "lobby:participants": (message: ParticipantsMessage) => void },
+    {
+      "lobby:participants": (message: ParticipantsMessage) => void;
+      "lobby:closed": () => void;
+    },
     Record<string, never>,
     SocketData
   >(httpServer);
@@ -65,6 +69,23 @@ export function createSocketServer(httpServer: HttpServer): Server {
       await addParticipant(lobby.id, socket.data.user.id);
       await socket.join(lobby.code);
       await sendParticipants(lobby);
+      ack?.({ ok: true });
+    });
+
+    // Seul l'hôte ferme le lobby ; tous les participants sont renvoyés à la liste (LOB-10).
+    socket.on("lobby:close", async (ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      if (!lobby) {
+        ack?.({ ok: false, error: "lobbyNotFound" });
+        return;
+      }
+      if (lobby.hostId !== user.id) {
+        ack?.({ ok: false, error: "notHost" });
+        return;
+      }
+
+      await closeLobby(lobby.id);
+      io.to(lobby.code).emit("lobby:closed");
       ack?.({ ok: true });
     });
 
