@@ -1,8 +1,8 @@
-// Création des lobbys et participants connectés (LOB-1, LOB-2, LOB-4, LOB-5).
-import { randomInt } from "node:crypto";
+// Création des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7).
+import { randomBytes, randomInt } from "node:crypto";
 import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.ts";
-import { lobbies, lobbyParticipants, users } from "../db/schema.ts";
+import { lobbies, lobbyInvites, lobbyParticipants, users } from "../db/schema.ts";
 
 export type Lobby = typeof lobbies.$inferSelect;
 export type Participant = { id: string; username: string };
@@ -10,6 +10,8 @@ export type Participant = { id: string; username: string };
 // Sans 0/O, 1/I/L : le code se dicte et se recopie sans confusion.
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const CODE_LENGTH = 6;
+// Un lien par participant possible (LOB-6 : 300 au maximum).
+export const MAX_INVITES = 300;
 
 export function generateLobbyCode(): string {
   let code = "";
@@ -26,7 +28,7 @@ export function normalizeCode(input: string): string {
 
 export async function createLobby(
   hostId: string,
-  visibility: "public" | "unlisted",
+  visibility: Lobby["visibility"],
 ): Promise<Lobby> {
   // On réessaie en cas de collision avec un code existant.
   for (;;) {
@@ -45,6 +47,63 @@ export async function findOpenLobby(code: string): Promise<Lobby | null> {
     .from(lobbies)
     .where(and(eq(lobbies.code, normalizeCode(code)), isNull(lobbies.closedAt)));
   return lobby ?? null;
+}
+
+// Une course privée n'est accessible qu'à l'hôte et à ceux qui ont utilisé un lien.
+export async function canEnterLobby(lobby: Lobby, userId: string): Promise<boolean> {
+  if (lobby.visibility !== "private" || lobby.hostId === userId) return true;
+  const [invite] = await db
+    .select({ token: lobbyInvites.token })
+    .from(lobbyInvites)
+    .where(and(eq(lobbyInvites.lobbyId, lobby.id), eq(lobbyInvites.usedBy, userId)));
+  return Boolean(invite);
+}
+
+export async function createInvites(lobbyId: string, count: number): Promise<string[]> {
+  const rows = Array.from({ length: count }, () => ({
+    token: randomBytes(16).toString("base64url"),
+    lobbyId,
+  }));
+  await db.insert(lobbyInvites).values(rows);
+  return rows.map((row) => row.token);
+}
+
+export async function listInvites(
+  lobbyId: string,
+): Promise<{ token: string; used: boolean }[]> {
+  const rows = await db
+    .select({ token: lobbyInvites.token, usedBy: lobbyInvites.usedBy })
+    .from(lobbyInvites)
+    .where(eq(lobbyInvites.lobbyId, lobbyId))
+    .orderBy(asc(lobbyInvites.createdAt));
+  return rows.map((row) => ({ token: row.token, used: row.usedBy !== null }));
+}
+
+// Lien valide pour cet utilisateur : lobby ouvert, et lien libre ou déjà à lui.
+export async function findInviteLobby(token: string, userId?: string): Promise<Lobby | null> {
+  const [row] = await db
+    .select({ lobby: lobbies, usedBy: lobbyInvites.usedBy })
+    .from(lobbyInvites)
+    .innerJoin(lobbies, eq(lobbyInvites.lobbyId, lobbies.id))
+    .where(and(eq(lobbyInvites.token, token), isNull(lobbies.closedAt)));
+  if (!row || (row.usedBy !== null && row.usedBy !== userId)) return null;
+  return row.lobby;
+}
+
+// Réserve le lien pour l'utilisateur et renvoie le lobby, ou null si le lien n'est plus valide.
+export async function claimInvite(token: string, userId: string): Promise<Lobby | null> {
+  const lobby = await findInviteLobby(token, userId);
+  if (!lobby) return null;
+  // Déjà admis (hôte ou autre lien) : on ne gaspille pas ce lien.
+  if (await canEnterLobby(lobby, userId)) return lobby;
+
+  // La condition sur used_by empêche deux personnes de prendre le même lien en même temps.
+  const [taken] = await db
+    .update(lobbyInvites)
+    .set({ usedBy: userId })
+    .where(and(eq(lobbyInvites.token, token), isNull(lobbyInvites.usedBy)))
+    .returning();
+  return taken ? lobby : null;
 }
 
 // Courses publiques ouvertes où quelqu'un est connecté, les plus récentes d'abord.
