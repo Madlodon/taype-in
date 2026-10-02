@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createLobbyAction } from "@/app/actions/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
+import { TEXT_LENGTHS } from "@/lib/texts";
 import { Arena } from "@/components/arena";
 
 export default async function NewLobbyPage() {
   if (!(await getCurrentUser())) redirect("/");
+  const locale = await getLocale();
   const t = await getTranslations("NewLobby");
   const d = await getTranslations("Design");
   return (
@@ -30,6 +32,21 @@ export default async function NewLobbyPage() {
                 <input type="radio" name="visibility" value="unlisted" />{t("unlisted")}</label>
               <label className="radio-option">
                 <input type="radio" name="visibility" value="private" />{t("private")}</label>
+            </fieldset>
+            <fieldset>
+              <legend className="text-sm font-semibold">{t("textLanguage")}</legend>
+              <label className="radio-option">
+                <input type="radio" name="textLanguage" value="fr" defaultChecked={locale === "fr"} />{t("french")}</label>
+              <label className="radio-option">
+                <input type="radio" name="textLanguage" value="en" defaultChecked={locale === "en"} />{t("english")}</label>
+            </fieldset>
+            <fieldset>
+              <legend className="text-sm font-semibold">{t("textLength")}</legend>
+              {TEXT_LENGTHS.map((length) => (
+                <label key={length} className="radio-option">
+                  <input type="radio" name="textLength" value={length} defaultChecked={length === 100} />
+                  {t("words", { count: length })}</label>
+              ))}
             </fieldset>
             <button type="submit" className="btn btn-primary">{t("submit")}<span aria-hidden="true">↗</span>
             </button>

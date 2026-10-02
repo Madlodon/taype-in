@@ -41,6 +41,8 @@ const aLobby = {
   code: "K7P3XM",
   visibility: "unlisted" as const,
   hostId: "user-1",
+  textLanguage: "fr" as const,
+  textLength: 100,
   createdAt: new Date(),
   closedAt: null,
 };
@@ -77,7 +79,7 @@ test("Should_MakeGuestHostAndOpenLobby_When_GuestCreatesLobby", async () => {
     "NEXT_REDIRECT",
   );
 
-  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "public");
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "public", expect.anything());
   expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
 });
 
@@ -86,7 +88,7 @@ test("Should_CreatePrivateLobby_When_VisibilityIsPrivate", async () => {
     "NEXT_REDIRECT",
   );
 
-  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "private");
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "private", expect.anything());
 });
 
 test.each([
@@ -97,7 +99,30 @@ test.each([
 
   await expect(createLobbyAction(form(fields))).rejects.toThrow("NEXT_REDIRECT");
 
-  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted");
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.anything());
+});
+
+test("Should_SaveTextSettings_When_HostPicksLanguageAndLength", async () => {
+  await expect(
+    createLobbyAction(form({ visibility: "public", textLanguage: "en", textLength: "200" })),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "public", {
+    textLanguage: "en",
+    textLength: 200,
+  });
+});
+
+test.each([
+  ["missing", {}],
+  ["unknown", { textLanguage: "es", textLength: "75" }],
+])("Should_UseFrenchAndHundredWords_When_TextSettingsAre_%s", async (_, fields) => {
+  await expect(createLobbyAction(form(fields))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", {
+    textLanguage: "fr",
+    textLength: 100,
+  });
 });
 
 test("Should_RedirectToLobby_When_CodeMatchesOpenLobby", async () => {

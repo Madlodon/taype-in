@@ -66,6 +66,21 @@ test("Should_MakeCreatorTheHost_When_CreatingLobby", async () => {
   expect(lobby.code).toMatch(/^[A-Z2-9]{6}$/);
 });
 
+test("Should_SaveTextSettings_When_CreatingLobbyWithThem", async () => {
+  const lobby = await createLobby((await newUser()).id, "public", {
+    textLanguage: "en",
+    textLength: 200,
+  });
+
+  expect(lobby).toMatchObject({ textLanguage: "en", textLength: 200 });
+});
+
+test("Should_UseFrenchAndHundredWords_When_CreatingLobbyWithoutTextSettings", async () => {
+  const lobby = await createLobby((await newUser()).id, "public");
+
+  expect(lobby).toMatchObject({ textLanguage: "fr", textLength: 100 });
+});
+
 test("Should_FindLobby_When_CodeIsTypedInLowercase", async () => {
   const lobby = await createLobby((await newUser()).id, "unlisted");
 

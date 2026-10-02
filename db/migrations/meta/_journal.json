@@ -22,6 +22,20 @@
       "when": 1790901506583,
       "tag": "0002_invitations_privees",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790976939619,
+      "tag": "0003_banque_de_textes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790976948433,
+      "tag": "0004_reglages_texte",
+      "breakpoints": true
     }
   ]
 }

@@ -31,6 +31,7 @@ Statut :
 [i40]: https://github.com/Madlodon/taype-in/issues/40
 [i41]: https://github.com/Madlodon/taype-in/issues/41
 [i42]: https://github.com/Madlodon/taype-in/issues/42
+[i54]: https://github.com/Madlodon/taype-in/issues/54
 [p16]: https://github.com/Madlodon/taype-in/pull/16
 [p17]: https://github.com/Madlodon/taype-in/pull/17
 [p18]: https://github.com/Madlodon/taype-in/pull/18
@@ -107,9 +108,9 @@ Statut :
 
 | ID    | Exigence                                  | Prio. | Issue | PR | Tests | Statut  |
 | ----- | ----------------------------------------- | ----- | ----- | -- | ----- | ------- |
-| TXT-1 | Langue du texte (FR ou EN)                | E     | —     | —  | —     | À faire |
-| TXT-2 | Longueur du texte                         | E     | —     | —  | —     | À faire |
-| TXT-3 | Banque de textes pour 12-16 ans           | E     | —     | —  | —     | À faire |
+| TXT-1 | Langue du texte (FR ou EN)                | E     | [#54][i54] | —  | [texts.test.ts](../__tests__/texts.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | Fait |
+| TXT-2 | Longueur du texte                         | E     | [#54][i54] | —  | [texts.test.ts](../__tests__/texts.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | Fait |
+| TXT-3 | Banque de textes pour 12-16 ans           | E     | [#54][i54] | —  | [texts.test.ts](../__tests__/texts.test.ts) | Fait |
 | TXT-4 | Phrases suivies ou mots en désordre       | S     | —     | —  | —     | À faire |
 | TXT-5 | Caractères à inclure ou à cibler          | S     | —     | —  | —     | À faire |
 | TXT-6 | L'hôte écrit ou modifie le texte          | S     | —     | —  | —     | À faire |

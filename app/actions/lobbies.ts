@@ -13,6 +13,7 @@ import {
   MAX_INVITES,
 } from "@/lib/lobbies";
 import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
+import { TEXT_LENGTHS } from "@/lib/texts";
 
 // error est une clé de traduction (Lobbies.errors).
 export type JoinFormState = { error?: string; code?: string } | undefined;
@@ -26,7 +27,14 @@ export async function createLobbyAction(formData: FormData) {
     .enum(["public", "unlisted", "private"])
     .catch("unlisted")
     .parse(formData.get("visibility"));
-  const lobby = await createLobby(user.id, visibility);
+  // Langue du texte indépendante de celle de l'interface (TXT-1, TXT-2).
+  const textLanguage = z.enum(["fr", "en"]).catch("fr").parse(formData.get("textLanguage"));
+  const textLength = z.coerce
+    .number()
+    .pipe(z.union(TEXT_LENGTHS.map((length) => z.literal(length))))
+    .catch(100)
+    .parse(formData.get("textLength"));
+  const lobby = await createLobby(user.id, visibility, { textLanguage, textLength });
   redirect(`/lobbies/${lobby.code}`);
 }
 

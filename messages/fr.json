@@ -48,6 +48,11 @@
     "public": "Publique : visible dans la liste des courses",
     "unlisted": "Non répertoriée : on la rejoint avec le code",
     "private": "Privée : on la rejoint seulement avec un lien d'invitation à usage unique",
+    "textLanguage": "Langue du texte",
+    "french": "Français",
+    "english": "Anglais",
+    "textLength": "Longueur du texte",
+    "words": "{count} mots",
     "submit": "Créer la course"
   },
   "LobbyRoom": {
