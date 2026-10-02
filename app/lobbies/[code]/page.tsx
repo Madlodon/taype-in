@@ -31,7 +31,7 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
       <div className="split-layout">
         <div className="side-stack">
           <Arena progress={0} />
-          <LobbyRoom code={lobby.code} hostId={lobby.hostId} isHost={isHost} />
+          <LobbyRoom code={lobby.code} hostId={lobby.hostId} isHost={isHost} userId={user.id} />
         </div>
         <aside className="side-stack">
           {isHost && (lobby.visibility === "private" ? <InviteLinks lobby={lobby} /> :

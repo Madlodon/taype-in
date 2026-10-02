@@ -64,12 +64,20 @@
     "host": "(hôte)",
     "close": "Fermer la course",
     "confirmClose": "Fermer la course ? Tous les participants seront renvoyés à la liste des courses.",
+    "start": "Lancer la course",
+    "needMore": "Il faut au moins {count} participants pour lancer la course.",
+    "countdown": "Départ dans {seconds}",
+    "raceText": "Texte de la course",
+    "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
     "errors": {
       "notLoggedIn": "Non connecté",
       "invalidMessage": "Message invalide",
       "lobbyNotFound": "Course introuvable",
       "notHost": "Seul l'hôte peut faire ça",
-      "lobbyFull": "La course est pleine (300 participants)"
+      "lobbyFull": "La course est pleine (300 participants)",
+      "notEnoughParticipants": "Il faut au moins 2 participants",
+      "raceInProgress": "Une course est déjà en cours",
+      "noText": "Aucun texte disponible dans cette langue"
     }
   },
   "Invites": {

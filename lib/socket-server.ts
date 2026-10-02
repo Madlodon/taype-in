@@ -16,6 +16,7 @@ import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { createRace, markRaceStarted } from "./races.ts";
 import {
   joinLobbySchema,
+  MIN_RACERS,
   type Ack,
   type CountdownMessage,
   type ParticipantsMessage,
@@ -26,9 +27,6 @@ type SocketData = { user: User; lobby?: Lobby };
 
 // Course en cours d'un lobby ; un lobby absent de la liste est en attente.
 type LiveRace = { state: LobbyState; goAt: number } & RaceStartedMessage;
-
-// LOB-6 : au moins 2 participants pour démarrer.
-export const MIN_RACERS = 2;
 
 function readCookie(header: string | undefined, name: string): string | undefined {
   for (const part of header?.split(";") ?? []) {

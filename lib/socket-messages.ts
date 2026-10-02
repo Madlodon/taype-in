@@ -7,6 +7,9 @@ export const joinLobbySchema = z.object({
 
 export type JoinLobbyMessage = z.infer<typeof joinLobbySchema>;
 
+// LOB-6 : au moins 2 participants pour démarrer.
+export const MIN_RACERS = 2;
+
 // Réponse (ack) du serveur à un message du client ; error est une clé de traduction (LobbyRoom.errors).
 export type Ack = { ok: true } | { ok: false; error: string };
 

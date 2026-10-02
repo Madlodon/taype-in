@@ -20,10 +20,11 @@ vi.mock("socket.io-client", () => ({ io: () => socket }));
 const router = { replace: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
+// u1 est l'hôte ; l'utilisateur courant est u1 s'il est hôte, sinon u2.
 function renderRoom(locale: "fr" | "en" = "fr", isHost = false) {
   return render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} />
+      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} />
     </NextIntlClientProvider>,
   );
 }
@@ -52,6 +53,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 test("Should_JoinLobbyByCode_When_Mounted", () => {
@@ -146,4 +148,86 @@ test("Should_ReturnToLobbyListWithMessage_When_LobbyIsClosed", () => {
   act(() => handlers["lobby:closed"]());
 
   expect(router.replace).toHaveBeenCalledWith("/lobbies?closed=1");
+});
+
+const startButton = () => screen.queryByRole("button", { name: "Lancer la course" });
+
+test("Should_NotShowStartButton_When_UserIsNotHost", () => {
+  renderRoom();
+  sendParticipants();
+
+  expect(startButton()).toBeNull();
+});
+
+test("Should_DisableStartAndExplain_When_HostIsAlone", () => {
+  renderRoom("fr", true);
+
+  act(() => handlers["lobby:participants"]({ participants: [{ id: "u1", username: "alex" }] }));
+
+  expect(startButton()!.hasAttribute("disabled")).toBe(true);
+  expect(
+    screen.getByText("Il faut au moins 2 participants pour lancer la course."),
+  ).toBeTruthy();
+});
+
+test("Should_AskServerToStart_When_HostClicksStart", () => {
+  renderRoom("fr", true);
+  sendParticipants();
+
+  fireEvent.click(startButton()!);
+
+  expect(socket.emit).toHaveBeenCalledWith("race:start", expect.any(Function));
+});
+
+test("Should_ShowError_When_StartIsRefused", () => {
+  renderRoom("fr", true);
+  sendParticipants();
+  fireEvent.click(startButton()!);
+  const ack = socket.emit.mock.calls[1][1] as Handler;
+
+  act(() => ack({ ok: false, error: "notEnoughParticipants" }));
+
+  expect(screen.getByRole("alert").textContent).toBe("Il faut au moins 2 participants");
+});
+
+test("Should_ShowCountdownAndHideHostButtons_When_ServerSendsCountdown", () => {
+  renderRoom("fr", true);
+  sendParticipants();
+
+  act(() => handlers["race:countdown"]({ seconds: 5 }));
+
+  expect(screen.getByRole("timer").textContent).toBe("Départ dans 5");
+  expect(startButton()).toBeNull();
+  expect(screen.queryByRole("button", { name: "Fermer la course" })).toBeNull();
+});
+
+test("Should_CountDownEachSecondAndWaitAtOne_When_CountdownRuns", () => {
+  vi.useFakeTimers();
+  renderRoom();
+  act(() => handlers["race:countdown"]({ seconds: 3 }));
+
+  act(() => vi.advanceTimersByTime(1000));
+  expect(screen.getByRole("timer").textContent).toBe("Départ dans 2");
+
+  act(() => vi.advanceTimersByTime(5000));
+  expect(screen.getByRole("timer").textContent).toBe("Départ dans 1");
+});
+
+test("Should_ShowTextAndHideCountdown_When_RaceStarts", () => {
+  renderRoom();
+  act(() => handlers["race:countdown"]({ seconds: 5 }));
+
+  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u2"] }));
+
+  expect(screen.queryByRole("timer")).toBeNull();
+  expect(screen.getByText("Un texte court.")).toBeTruthy();
+  expect(screen.queryByText(/tu la regardes/)).toBeNull();
+});
+
+test("Should_SayUserIsWatching_When_UserIsNotARacer", () => {
+  renderRoom();
+
+  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u3"] }));
+
+  expect(screen.getByText(/tu la regardes/)).toBeTruthy();
 });
