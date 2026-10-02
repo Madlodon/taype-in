@@ -67,6 +67,9 @@ export const lobbies = pgTable("lobbies", {
   hostId: uuid("host_id")
     .notNull()
     .references(() => users.id),
+  // Langue et nombre de mots du texte, choisis à la création (TXT-1, TXT-2).
+  textLanguage: languageEnum("text_language").notNull().default("fr"),
+  textLength: integer("text_length").notNull().default(100),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
