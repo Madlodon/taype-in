@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
 import {
   addParticipant,
+  canEnterLobby,
   findOpenLobby,
   listParticipants,
   removeParticipant,
@@ -53,8 +54,9 @@ export function createSocketServer(httpServer: HttpServer): Server {
         return;
       }
 
+      // Une course privée sans invitation se comporte comme une course inexistante.
       const lobby = await findOpenLobby(result.data.code);
-      if (!lobby) {
+      if (!lobby || !(await canEnterLobby(lobby, socket.data.user.id))) {
         ack?.({ ok: false, error: "lobbyNotFound" });
         return;
       }

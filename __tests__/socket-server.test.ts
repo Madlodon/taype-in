@@ -9,7 +9,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { lobbies, users } from "../db/schema";
 import { createSession } from "../lib/auth";
-import { createLobby, listParticipants } from "../lib/lobbies";
+import { claimInvite, createInvites, createLobby, listParticipants } from "../lib/lobbies";
 import { createSocketServer } from "../lib/socket-server";
 import type { Ack, ParticipantsMessage } from "../lib/socket-messages";
 
@@ -113,6 +113,27 @@ describe("lobby:join", () => {
       ok: false,
       error: "lobbyNotFound",
     });
+  });
+
+  test("Should_AckError_When_LobbyIsPrivateAndUserHasNoInvite", async () => {
+    const lobby = await createLobby((await newUser()).id, "private");
+    const client = await newClient();
+
+    expect(await join(client, { code: lobby.code })).toEqual({
+      ok: false,
+      error: "lobbyNotFound",
+    });
+    expect(await listParticipants(lobby.id)).toEqual([]);
+  });
+
+  test("Should_AckOk_When_UserUsedAnInviteToPrivateLobby", async () => {
+    const lobby = await createLobby((await newUser()).id, "private");
+    const [token] = await createInvites(lobby.id, 1);
+    const student = await newUser();
+    await claimInvite(token, student.id);
+    const client = await newClient(student);
+
+    expect(await join(client, { code: lobby.code })).toEqual({ ok: true });
   });
 
   test.each([
