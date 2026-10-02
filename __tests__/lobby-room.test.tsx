@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { LobbyRoom } from "../components/lobby-room";
 import en from "../messages/en.json";
@@ -17,10 +17,13 @@ const socket = {
 
 vi.mock("socket.io-client", () => ({ io: () => socket }));
 
-function renderRoom(locale: "fr" | "en" = "fr") {
+const router = { replace: vi.fn() };
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
+
+function renderRoom(locale: "fr" | "en" = "fr", isHost = false) {
   return render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <LobbyRoom code="K7P3XM" hostId="u1" />
+      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} />
     </NextIntlClientProvider>,
   );
 }
@@ -48,6 +51,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 test("Should_JoinLobbyByCode_When_Mounted", () => {
@@ -99,4 +103,47 @@ test("Should_Disconnect_When_Unmounted", () => {
   unmount();
 
   expect(socket.disconnect).toHaveBeenCalled();
+});
+
+test("Should_NotShowCloseButton_When_UserIsNotHost", () => {
+  renderRoom();
+
+  expect(screen.queryByRole("button", { name: "Fermer la course" })).toBeNull();
+});
+
+test("Should_AskServerToClose_When_HostConfirms", () => {
+  vi.stubGlobal("confirm", vi.fn(() => true));
+  renderRoom("fr", true);
+
+  fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
+
+  expect(socket.emit).toHaveBeenCalledWith("lobby:close", expect.any(Function));
+});
+
+test("Should_NotClose_When_HostCancelsConfirmation", () => {
+  vi.stubGlobal("confirm", vi.fn(() => false));
+  renderRoom("fr", true);
+
+  fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
+
+  expect(socket.emit).not.toHaveBeenCalledWith("lobby:close", expect.anything());
+});
+
+test("Should_ShowError_When_CloseIsRefused", () => {
+  vi.stubGlobal("confirm", vi.fn(() => true));
+  renderRoom("fr", true);
+  fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
+  const ack = socket.emit.mock.calls[1][1] as Handler;
+
+  act(() => ack({ ok: false, error: "notHost" }));
+
+  expect(screen.getByRole("alert").textContent).toBe("Seul l'hôte peut faire ça");
+});
+
+test("Should_ReturnToLobbyListWithMessage_When_LobbyIsClosed", () => {
+  renderRoom();
+
+  act(() => handlers["lobby:closed"]());
+
+  expect(router.replace).toHaveBeenCalledWith("/lobbies?closed=1");
 });

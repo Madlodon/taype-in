@@ -38,6 +38,7 @@
     "participantCount": "{count, plural, one {# participant} other {# participants}}",
     "code": "Race code",
     "join": "Join",
+    "closed": "This race was closed by the host.",
     "errors": {
       "noOpenLobby": "No open race with this code."
     }
@@ -61,10 +62,13 @@
     "participants": "Participants ({count})",
     "participantsList": "Participants",
     "host": "(host)",
+    "close": "Close the race",
+    "confirmClose": "Close the race? Every participant will be sent back to the race list.",
     "errors": {
       "notLoggedIn": "Not logged in",
       "invalidMessage": "Invalid message",
-      "lobbyNotFound": "Race not found"
+      "lobbyNotFound": "Race not found",
+      "notHost": "Only the host can do this"
     }
   },
   "Invites": {

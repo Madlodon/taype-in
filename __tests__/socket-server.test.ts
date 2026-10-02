@@ -9,7 +9,13 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { lobbies, users } from "../db/schema";
 import { createSession } from "../lib/auth";
-import { claimInvite, createInvites, createLobby, listParticipants } from "../lib/lobbies";
+import {
+  claimInvite,
+  createInvites,
+  createLobby,
+  findOpenLobby,
+  listParticipants,
+} from "../lib/lobbies";
 import { createSocketServer } from "../lib/socket-server";
 import type { Ack, ParticipantsMessage } from "../lib/socket-messages";
 
@@ -184,6 +190,58 @@ describe("lobby:join", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(notified).toBe(false);
+  });
+});
+
+describe("lobby:close", () => {
+  test("Should_CloseLobbyAndNotifyEveryone_When_HostCloses", async () => {
+    const host = await newUser();
+    const lobby = await createLobby(host.id, "public");
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: lobby.code });
+    const guestClient = await newClient();
+    await join(guestClient, { code: lobby.code });
+    const hostNotified = new Promise((resolve) => hostClient.once("lobby:closed", resolve));
+    const guestNotified = new Promise((resolve) => guestClient.once("lobby:closed", resolve));
+
+    expect(await hostClient.emitWithAck("lobby:close")).toEqual({ ok: true });
+
+    await Promise.all([hostNotified, guestNotified]);
+    expect(await findOpenLobby(lobby.code)).toBeNull();
+  });
+
+  test("Should_RefuseJoin_When_LobbyWasClosed", async () => {
+    const host = await newUser();
+    const lobby = await createLobby(host.id, "unlisted");
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: lobby.code });
+    await hostClient.emitWithAck("lobby:close");
+
+    expect(await join(await newClient(), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "lobbyNotFound",
+    });
+  });
+
+  test("Should_AckErrorAndKeepLobbyOpen_When_PlayerIsNotHost", async () => {
+    const lobby = await createLobby((await newUser()).id, "unlisted");
+    const guestClient = await newClient();
+    await join(guestClient, { code: lobby.code });
+
+    expect(await guestClient.emitWithAck("lobby:close")).toEqual({
+      ok: false,
+      error: "notHost",
+    });
+    expect(await findOpenLobby(lobby.code)).not.toBeNull();
+  });
+
+  test("Should_AckError_When_SocketHasNotJoinedALobby", async () => {
+    const client = await newClient();
+
+    expect(await client.emitWithAck("lobby:close")).toEqual({
+      ok: false,
+      error: "lobbyNotFound",
+    });
   });
 });
 
