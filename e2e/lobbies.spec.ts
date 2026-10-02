@@ -188,3 +188,23 @@ test("Should_SendEveryoneBackToListAndForgetCode_When_HostClosesRace", async ({ 
     "Aucune course ouverte avec ce code.",
   );
 });
+
+test("Should_ShowSameCountdownThenSameText_When_HostStartsRace", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const start = host.page.getByRole("button", { name: "Lancer la course" });
+  await expect(start).toBeDisabled();
+
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await expect(player.page.getByRole("button", { name: "Lancer la course" })).toHaveCount(0);
+  await start.click();
+
+  for (const { page } of [host, player]) {
+    await expect(page.getByRole("timer")).toHaveText(/^Départ dans [1-5]$/);
+  }
+  const hostText = host.page.locator(".typing-text");
+  await expect(hostText).toBeVisible({ timeout: 8000 });
+  await expect(player.page.locator(".typing-text")).toHaveText((await hostText.textContent())!);
+});
