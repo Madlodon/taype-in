@@ -1,17 +1,33 @@
 // @vitest-environment node
-import { beforeEach, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { createLobbyAction, joinLobbyAction } from "../app/actions/lobbies";
+import {
+  createInvitesAction,
+  createLobbyAction,
+  joinInviteAction,
+  joinLobbyAction,
+} from "../app/actions/lobbies";
+import * as auth from "../lib/auth";
 import * as lobbies from "../lib/lobbies";
-import { getCurrentUser } from "../lib/session-cookie";
+import { getCurrentUser, setSessionCookie } from "../lib/session-cookie";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(() => {
     throw new Error("NEXT_REDIRECT");
   }),
 }));
-vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn() }));
-vi.mock("../lib/lobbies", () => ({ createLobby: vi.fn(), findOpenLobby: vi.fn() }));
+vi.mock("next/cache", () => ({ refresh: vi.fn() }));
+vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn(), setSessionCookie: vi.fn() }));
+vi.mock("../lib/auth", () => ({ createGuest: vi.fn(), createSession: vi.fn() }));
+vi.mock("../lib/lobbies", () => ({
+  MAX_INVITES: 300,
+  canEnterLobby: vi.fn(),
+  claimInvite: vi.fn(),
+  createInvites: vi.fn(),
+  createLobby: vi.fn(),
+  findOpenLobby: vi.fn(),
+}));
 
 const aGuest = {
   id: "user-1",
@@ -28,6 +44,7 @@ const aLobby = {
   createdAt: new Date(),
   closedAt: null,
 };
+const aPrivateLobby = { ...aLobby, visibility: "private" as const };
 
 function form(fields: Record<string, string>) {
   const data = new FormData();
@@ -37,7 +54,9 @@ function form(fields: Record<string, string>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getCurrentUser).mockResolvedValue(aGuest);
   vi.mocked(lobbies.createLobby).mockResolvedValue(aLobby);
+  vi.mocked(lobbies.canEnterLobby).mockResolvedValue(true);
 });
 
 test("Should_RedirectHomeWithoutCreating_When_NobodyIsLoggedIn", async () => {
@@ -62,9 +81,16 @@ test("Should_MakeGuestHostAndOpenLobby_When_GuestCreatesLobby", async () => {
   expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
 });
 
+test("Should_CreatePrivateLobby_When_VisibilityIsPrivate", async () => {
+  await expect(createLobbyAction(form({ visibility: "private" }))).rejects.toThrow(
+    "NEXT_REDIRECT",
+  );
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "private");
+});
+
 test.each([
   ["missing", {}],
-  ["private (not offered yet)", { visibility: "private" }],
   ["unknown", { visibility: "secret" }],
 ])("Should_CreateUnlistedLobby_When_VisibilityIs_%s", async (_, fields) => {
   vi.mocked(getCurrentUser).mockResolvedValue(aGuest);
@@ -99,4 +125,121 @@ test("Should_ReturnErrorWithoutLookup_When_CodeIsBlank", async () => {
 
   expect(state?.error).toBe("noOpenLobby");
   expect(lobbies.findOpenLobby).not.toHaveBeenCalled();
+});
+
+test("Should_ReturnError_When_CodeIsForPrivateLobbyWithoutInvite", async () => {
+  vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aPrivateLobby);
+  vi.mocked(lobbies.canEnterLobby).mockResolvedValue(false);
+
+  const state = await joinLobbyAction(undefined, form({ code: "K7P3XM" }));
+
+  expect(state).toEqual({ error: "noOpenLobby", code: "K7P3XM" });
+  expect(lobbies.canEnterLobby).toHaveBeenCalledWith(aPrivateLobby, "user-1");
+  expect(redirect).not.toHaveBeenCalled();
+});
+
+test("Should_RedirectHome_When_JoiningByCodeWhileLoggedOut", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+  await expect(joinLobbyAction(undefined, form({ code: "K7P3XM" }))).rejects.toThrow(
+    "NEXT_REDIRECT",
+  );
+
+  expect(redirect).toHaveBeenCalledWith("/");
+});
+
+describe("createInvitesAction", () => {
+  beforeEach(() => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aPrivateLobby);
+  });
+
+  test("Should_CreateRequestedNumberOfLinksAndRefresh_When_HostAsks", async () => {
+    await createInvitesAction(form({ code: "K7P3XM", count: "30" }));
+
+    expect(lobbies.createInvites).toHaveBeenCalledWith("lobby-1", 30);
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  test("Should_CreateNoLink_When_UserIsNotHost", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ ...aGuest, id: "user-2" });
+
+    await createInvitesAction(form({ code: "K7P3XM", count: "30" }));
+
+    expect(lobbies.createInvites).not.toHaveBeenCalled();
+  });
+
+  test("Should_CreateNoLink_When_LobbyIsNotPrivate", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
+
+    await createInvitesAction(form({ code: "K7P3XM", count: "30" }));
+
+    expect(lobbies.createInvites).not.toHaveBeenCalled();
+  });
+
+  test("Should_CreateNoLink_When_LobbyIsClosedOrMissing", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue(null);
+
+    await createInvitesAction(form({ code: "K7P3XM", count: "30" }));
+
+    expect(lobbies.createInvites).not.toHaveBeenCalled();
+  });
+
+  test.each([["0"], ["-3"], ["301"], ["2.5"], ["abc"], [""]])(
+    "Should_CreateNoLink_When_CountIs_%s",
+    async (count) => {
+      await createInvitesAction(form({ code: "K7P3XM", count }));
+
+      expect(lobbies.createInvites).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([["1"], ["300"]])("Should_CreateLinks_When_CountIsAtBound_%s", async (count) => {
+    await createInvitesAction(form({ code: "K7P3XM", count }));
+
+    expect(lobbies.createInvites).toHaveBeenCalledWith("lobby-1", Number(count));
+  });
+
+  test("Should_RedirectHome_When_NobodyIsLoggedIn", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+    await expect(
+      createInvitesAction(form({ code: "K7P3XM", count: "30" })),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.createInvites).not.toHaveBeenCalled();
+  });
+});
+
+describe("joinInviteAction", () => {
+  test("Should_ClaimLinkAndOpenLobby_When_UserIsLoggedIn", async () => {
+    vi.mocked(lobbies.claimInvite).mockResolvedValue(aPrivateLobby);
+
+    await expect(joinInviteAction(form({ token: "abc" }))).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.claimInvite).toHaveBeenCalledWith("abc", "user-1");
+    expect(auth.createGuest).not.toHaveBeenCalled();
+    expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
+  });
+
+  test("Should_PlayAsGuest_When_NobodyIsLoggedIn", async () => {
+    const expiresAt = new Date();
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+    vi.mocked(auth.createGuest).mockResolvedValue({ ...aGuest, id: "guest-9" });
+    vi.mocked(auth.createSession).mockResolvedValue({ token: "jeton", expiresAt });
+    vi.mocked(lobbies.claimInvite).mockResolvedValue(aPrivateLobby);
+
+    await expect(joinInviteAction(form({ token: "abc" }))).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(setSessionCookie).toHaveBeenCalledWith("jeton", expiresAt);
+    expect(lobbies.claimInvite).toHaveBeenCalledWith("abc", "guest-9");
+    expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
+  });
+
+  test("Should_ReturnToInvitePage_When_LinkIsNoLongerValid", async () => {
+    vi.mocked(lobbies.claimInvite).mockResolvedValue(null);
+
+    await expect(joinInviteAction(form({ token: "abc" }))).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirect).toHaveBeenCalledWith("/invite/abc");
+  });
 });

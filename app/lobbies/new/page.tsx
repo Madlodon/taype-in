@@ -28,6 +28,8 @@ export default async function NewLobbyPage() {
                 <input type="radio" name="visibility" value="public" defaultChecked />{t("public")}</label>
               <label className="radio-option">
                 <input type="radio" name="visibility" value="unlisted" />{t("unlisted")}</label>
+              <label className="radio-option">
+                <input type="radio" name="visibility" value="private" />{t("private")}</label>
             </fieldset>
             <button type="submit" className="btn btn-primary">{t("submit")}<span aria-hidden="true">↗</span>
             </button>

@@ -557,7 +557,7 @@ a, button, input {
   font-weight: 600;
 }
 
-.field input, .typing-input {
+.field input, .field textarea, .typing-input {
   width: 100%;
   min-height: 48px;
   padding: 12px 14px;
@@ -568,8 +568,14 @@ a, button, input {
   font-size: 14px;
 }
 
-.field input:focus, .typing-input:focus {
+.field input:focus, .field textarea:focus, .typing-input:focus {
   outline-offset: 2px;
+}
+
+.field textarea {
+  font-size: 12px;
+  resize: vertical;
+  white-space: pre;
 }
 
 .form-stack {

@@ -1,15 +1,20 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
+import { InviteLinks } from "@/components/invite-links";
 import { LobbyRoom } from "@/components/lobby-room";
 import { Arena } from "@/components/arena";
-import { findOpenLobby } from "@/lib/lobbies";
+import { canEnterLobby, findOpenLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 
 export default async function LobbyPage({ params }: { params: Promise<{ code: string }> }) {
-  if (!(await getCurrentUser())) redirect("/");
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
   const lobby = await findOpenLobby((await params).code);
-  if (!lobby) notFound();
+  // Une course privée reste introuvable pour qui n'a pas d'invitation (LOB-3).
+  if (!lobby || !(await canEnterLobby(lobby, user.id))) notFound();
+  // Seul l'hôte invite, par le code ou par des liens (LOB-7).
+  const isHost = lobby.hostId === user.id;
   const t = await getTranslations("LobbyRoom");
   const d = await getTranslations("Design");
   return (
@@ -29,11 +34,12 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
           <LobbyRoom code={lobby.code} hostId={lobby.hostId} />
         </div>
         <aside className="side-stack">
-          <section className="panel panel-accent">
-            <p className="room-code">{t("code")}<strong>{lobby.code}</strong>
-            </p>
-            <p className="description">{d("shareCode")}</p>
-          </section>
+          {isHost && (lobby.visibility === "private" ? <InviteLinks lobby={lobby} /> :
+            <section className="panel panel-accent">
+              <p className="room-code">{t("code")}<strong>{lobby.code}</strong>
+              </p>
+              <p className="description">{d("shareCode")}</p>
+            </section>)}
           <section className="panel">
             <h2>{d("nextUp")}</h2>
             <p className="description">{d("raceComing")}</p>

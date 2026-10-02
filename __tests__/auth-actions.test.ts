@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, expect, test, vi } from "vitest";
+import { redirect } from "next/navigation";
 import {
   guestAction,
   logInAction,
@@ -126,4 +127,39 @@ test("Should_InvalidateSessionAndDeleteCookie_When_LoggingOut", async () => {
 
   expect(auth.invalidateSession).toHaveBeenCalledWith("jeton");
   expect(cookieStore.delete).toHaveBeenCalledWith("session");
+});
+
+test("Should_ReturnToInvite_When_LogInComesFromInviteLink", async () => {
+  vi.mocked(auth.logIn).mockResolvedValue(aUser);
+  const data = form("alex", "motdepasse123");
+  data.set("next", "/invite/abc");
+
+  await expect(logInAction(undefined, data)).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(redirect).toHaveBeenCalledWith("/invite/abc");
+});
+
+test("Should_ReturnToInvite_When_SignUpComesFromInviteLink", async () => {
+  vi.mocked(auth.signUp).mockResolvedValue(aUser);
+  const data = form("alex", "motdepasse123");
+  data.set("next", "/invite/abc");
+
+  await expect(signUpAction(undefined, data)).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(redirect).toHaveBeenCalledWith("/invite/abc");
+});
+
+test.each([
+  ["another site", "https://evil.example"],
+  ["protocol-relative URL", "//evil.example"],
+  ["backslash trick", "/\\evil.example"],
+  ["relative path", "invite/abc"],
+])("Should_RedirectHome_When_NextIs_%s", async (_, next) => {
+  vi.mocked(auth.logIn).mockResolvedValue(aUser);
+  const data = form("alex", "motdepasse123");
+  data.set("next", next);
+
+  await expect(logInAction(undefined, data)).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(redirect).toHaveBeenCalledWith("/");
 });

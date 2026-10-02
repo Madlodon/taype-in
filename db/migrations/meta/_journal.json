@@ -15,6 +15,13 @@
       "when": 1790702411568,
       "tag": "0001_modele_de_donnees",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790901506583,
+      "tag": "0002_invitations_privees",
+      "breakpoints": true
     }
   ]
 }

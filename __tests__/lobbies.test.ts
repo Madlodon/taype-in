@@ -6,9 +6,14 @@ import { db } from "../db";
 import { lobbies, users } from "../db/schema";
 import {
   addParticipant,
+  canEnterLobby,
+  claimInvite,
+  createInvites,
   createLobby,
+  findInviteLobby,
   findOpenLobby,
   generateLobbyCode,
+  listInvites,
   listParticipants,
   listPublicLobbies,
   normalizeCode,
@@ -136,4 +141,111 @@ test("Should_ShowHostNameAndCount_When_ListingPublicLobbies", async () => {
   const listed = (await listPublicLobbies()).find((l) => l.code === lobby.code);
 
   expect(listed).toEqual({ code: lobby.code, hostName: host.username, participantCount: 2 });
+});
+
+test("Should_NotListLobby_When_LobbyIsPrivate", async () => {
+  const host = await newUser();
+  const lobby = await createLobby(host.id, "private");
+  await addParticipant(lobby.id, host.id);
+
+  const codes = (await listPublicLobbies()).map((l) => l.code);
+
+  expect(codes).not.toContain(lobby.code);
+});
+
+test("Should_CreateDistinctUnusedLinks_When_HostGeneratesInvites", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+
+  const tokens = await createInvites(lobby.id, 30);
+
+  expect(new Set(tokens).size).toBe(30);
+  expect(await listInvites(lobby.id)).toHaveLength(30);
+  expect((await listInvites(lobby.id)).every((invite) => !invite.used)).toBe(true);
+});
+
+test("Should_LetEveryoneEnter_When_LobbyIsNotPrivate", async () => {
+  const lobby = await createLobby((await newUser()).id, "unlisted");
+
+  expect(await canEnterLobby(lobby, (await newUser()).id)).toBe(true);
+});
+
+test("Should_RefuseEntry_When_UserHasNoInviteToPrivateLobby", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+
+  expect(await canEnterLobby(lobby, (await newUser()).id)).toBe(false);
+});
+
+test("Should_LetHostEnter_When_LobbyIsPrivate", async () => {
+  const host = await newUser();
+  const lobby = await createLobby(host.id, "private");
+
+  expect(await canEnterLobby(lobby, host.id)).toBe(true);
+});
+
+test("Should_AdmitUserAndMarkLinkUsed_When_UserClaimsInvite", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+  const student = await newUser();
+
+  expect((await claimInvite(token, student.id))?.id).toBe(lobby.id);
+
+  expect(await canEnterLobby(lobby, student.id)).toBe(true);
+  expect(await listInvites(lobby.id)).toEqual([{ token, used: true }]);
+});
+
+test("Should_RefuseLink_When_AnotherUserAlreadyUsedIt", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+  await claimInvite(token, (await newUser()).id);
+  const other = await newUser();
+
+  expect(await claimInvite(token, other.id)).toBeNull();
+  expect(await findInviteLobby(token, other.id)).toBeNull();
+  expect(await canEnterLobby(lobby, other.id)).toBe(false);
+});
+
+test("Should_AcceptLinkAgain_When_SameUserReopensIt", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+  const student = await newUser();
+  await claimInvite(token, student.id);
+
+  expect((await claimInvite(token, student.id))?.id).toBe(lobby.id);
+});
+
+test("Should_GiveLinkToOnlyOneUser_When_TwoUsersClaimItAtOnce", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+  const [first, second] = [await newUser(), await newUser()];
+
+  const results = await Promise.all([
+    claimInvite(token, first.id),
+    claimInvite(token, second.id),
+  ]);
+
+  expect(results.filter(Boolean)).toHaveLength(1);
+});
+
+test("Should_KeepLinkUnused_When_UserCanAlreadyEnter", async () => {
+  const host = await newUser();
+  const lobby = await createLobby(host.id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+
+  expect((await claimInvite(token, host.id))?.id).toBe(lobby.id);
+
+  expect(await listInvites(lobby.id)).toEqual([{ token, used: false }]);
+});
+
+test("Should_RefuseLink_When_LobbyIsClosed", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+  await db.update(lobbies).set({ closedAt: new Date() }).where(eq(lobbies.id, lobby.id));
+
+  expect(await findInviteLobby(token)).toBeNull();
+  expect(await claimInvite(token, (await newUser()).id)).toBeNull();
+});
+
+test("Should_ReturnNull_When_LinkDoesNotExist", async () => {
+  expect(await findInviteLobby("inconnu")).toBeNull();
+  expect(await claimInvite("inconnu", (await newUser()).id)).toBeNull();
 });

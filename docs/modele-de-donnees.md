@@ -8,6 +8,8 @@ erDiagram
     users ||--o{ lobbies : "héberge"
     users ||--o{ lobby_participants : "rejoint"
     lobbies ||--o{ lobby_participants : "contient"
+    lobbies ||--o{ lobby_invites : "invite par"
+    users |o--o{ lobby_invites : "utilise"
     lobbies ||--o{ races : "enchaîne"
     texts |o--o{ races : "source de"
     races ||--o{ results : "produit"
@@ -51,6 +53,13 @@ erDiagram
         timestamptz joined_at
     }
 
+    lobby_invites {
+        text token PK
+        uuid lobby_id FK
+        uuid used_by FK "null : lien pas encore utilisé"
+        timestamptz created_at
+    }
+
     races {
         uuid id PK
         uuid lobby_id FK
@@ -84,6 +93,7 @@ erDiagram
 - **Lobby et course** : un lobby persiste entre plusieurs courses (LOB-9). Les paramètres choisis par l'hôte sont copiés dans chaque `races`, car ils peuvent changer d'une course à l'autre.
 - **Texte d'une course** : `races.content` garde le texte exact qui a été tapé (coupé à la longueur choisie ou écrit par l'hôte). `text_id` pointe vers la banque de textes quand il y a lieu ; supprimer un texte de la banque ne touche pas l'historique.
 - **Participants** : `lobby_participants` liste les membres d'un lobby. `joined_at` sert à passer le rôle d'hôte au plus ancien participant.
+- **Invitations** : une course privée se rejoint seulement par un lien `lobby_invites` (LOB-3). Le premier qui ouvre le lien le réserve (`used_by`) ; il peut le rouvrir, mais personne d'autre. Les liens ne marchent plus une fois le lobby fermé.
 - **Bots** : ils ne sont pas enregistrés. Ils occupent une place dans le classement, donc `results.rank` reste exact, mais seuls les humains ont une ligne dans `results`.
 - **Temps réel** : l'état d'une course en cours (positions, frappes) vit en mémoire sur le serveur. La base reçoit les résultats à la fin de la course.
 - **Suppressions** : supprimer un lobby supprime ses participants, ses courses et leurs résultats. On ne peut pas supprimer un utilisateur qui est hôte d'un lobby.

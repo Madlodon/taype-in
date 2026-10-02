@@ -92,6 +92,23 @@ export const lobbyParticipants = pgTable(
   (table) => [primaryKey({ columns: [table.lobbyId, table.userId] })],
 );
 
+// Liens d'invitation à usage unique d'une course privée (LOB-3).
+export const lobbyInvites = pgTable(
+  "lobby_invites",
+  {
+    token: text("token").primaryKey(),
+    lobbyId: uuid("lobby_id")
+      .notNull()
+      .references(() => lobbies.id, { onDelete: "cascade" }),
+    // Null tant que le lien n'a pas servi ; ensuite, seule cette personne peut l'utiliser.
+    usedBy: uuid("used_by").references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("lobby_invites_lobby_id_idx").on(table.lobbyId)],
+);
+
 // Une ligne par course ; porte les paramètres choisis par l'hôte (LOB-9).
 export const races = pgTable("races", {
   id: uuid("id").primaryKey().defaultRandom(),

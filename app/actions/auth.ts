@@ -23,6 +23,12 @@ export type AuthFormState = {
   username?: string;
 } | undefined;
 
+// Page où revenir après la connexion (ex. un lien d'invitation) ; seulement un chemin du site.
+function nextPath(formData: FormData): string {
+  const next = String(formData.get("next") ?? "");
+  return /^\/(?![/\\])/.test(next) ? next : "/";
+}
+
 async function startSession(userId: string) {
   const { token, expiresAt } = await createSession(userId);
   await setSessionCookie(token, expiresAt);
@@ -47,7 +53,7 @@ export async function signUpAction(
   }
 
   await startSession(user.id);
-  redirect("/");
+  redirect(nextPath(formData));
 }
 
 export async function logInAction(
@@ -71,7 +77,7 @@ export async function logInAction(
   }
 
   await startSession(user.id);
-  redirect("/");
+  redirect(nextPath(formData));
 }
 
 export async function guestAction() {

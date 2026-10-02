@@ -47,6 +47,7 @@
     "visibility": "Visibilité",
     "public": "Publique : visible dans la liste des courses",
     "unlisted": "Non répertoriée : on la rejoint avec le code",
+    "private": "Privée : on la rejoint seulement avec un lien d'invitation à usage unique",
     "submit": "Créer la course"
   },
   "LobbyRoom": {
@@ -60,6 +61,24 @@
       "invalidMessage": "Message invalide",
       "lobbyNotFound": "Course introuvable"
     }
+  },
+  "Invites": {
+    "title": "Liens d'invitation",
+    "description": "Chaque lien fait entrer une seule personne. Les liens ne marchent plus quand la course est fermée.",
+    "count": "Nombre de liens",
+    "generate": "Générer les liens",
+    "usage": "{used} sur {total} liens utilisés",
+    "unusedLinks": "Liens non utilisés (un par ligne)",
+    "none": "Aucun lien pour le moment."
+  },
+  "InvitePage": {
+    "title": "Invitation à une course",
+    "description": "Tu es invité à une course privée.",
+    "join": "Rejoindre la course",
+    "joinAsGuest": "Rejoindre en invité",
+    "haveAccount": "Tu as un compte ? Connecte-toi d'abord.",
+    "invalidTitle": "Lien non disponible",
+    "invalid": "Ce lien d'invitation est invalide ou déjà utilisé, ou la course est fermée."
   },
   "LocaleSwitcher": {
     "label": "Langue"
