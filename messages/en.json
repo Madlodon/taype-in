@@ -68,7 +68,8 @@
       "notLoggedIn": "Not logged in",
       "invalidMessage": "Invalid message",
       "lobbyNotFound": "Race not found",
-      "notHost": "Only the host can do this"
+      "notHost": "Only the host can do this",
+      "lobbyFull": "The race is full (300 participants)"
     }
   },
   "Invites": {

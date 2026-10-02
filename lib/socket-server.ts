@@ -8,6 +8,7 @@ import {
   closeLobby,
   findOpenLobby,
   listParticipants,
+  MAX_PARTICIPANTS,
   removeParticipant,
   type Lobby,
 } from "./lobbies.ts";
@@ -62,6 +63,16 @@ export function createSocketServer(httpServer: HttpServer): Server {
       const lobby = await findOpenLobby(result.data.code);
       if (!lobby || !(await canEnterLobby(lobby, socket.data.user.id))) {
         ack?.({ ok: false, error: "lobbyNotFound" });
+        return;
+      }
+
+      // Une place se libère quand quelqu'un part ; déjà présent (autre onglet), on entre (LOB-6).
+      const participants = await listParticipants(lobby.id);
+      if (
+        participants.length >= MAX_PARTICIPANTS &&
+        !participants.some((participant) => participant.id === socket.data.user.id)
+      ) {
+        ack?.({ ok: false, error: "lobbyFull" });
         return;
       }
 

@@ -68,7 +68,8 @@
       "notLoggedIn": "Non connecté",
       "invalidMessage": "Message invalide",
       "lobbyNotFound": "Course introuvable",
-      "notHost": "Seul l'hôte peut faire ça"
+      "notHost": "Seul l'hôte peut faire ça",
+      "lobbyFull": "La course est pleine (300 participants)"
     }
   },
   "Invites": {

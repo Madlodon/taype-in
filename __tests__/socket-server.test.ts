@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { lobbies, users } from "../db/schema";
+import { lobbies, lobbyParticipants, users } from "../db/schema";
 import { createSession } from "../lib/auth";
 import {
   claimInvite,
@@ -15,6 +15,7 @@ import {
   createLobby,
   findOpenLobby,
   listParticipants,
+  MAX_PARTICIPANTS,
 } from "../lib/lobbies";
 import { createSocketServer } from "../lib/socket-server";
 import type { Ack, ParticipantsMessage } from "../lib/socket-messages";
@@ -57,6 +58,21 @@ async function newUser() {
     .returning();
   createdIds.push(user.id);
   return user;
+}
+
+// Remplit un lobby jusqu'à `total` participants sans ouvrir de sockets.
+async function fillLobby(lobbyId: string, total: number) {
+  const rows = await db
+    .insert(users)
+    .values(
+      Array.from({ length: total }, () => ({
+        username: `t_${Math.random().toString(36).slice(2, 12)}`,
+      })),
+    )
+    .returning({ id: users.id });
+  createdIds.push(...rows.map((row) => row.id));
+  await db.insert(lobbyParticipants).values(rows.map((row) => ({ lobbyId, userId: row.id })));
+  return rows;
 }
 
 function open(cookie?: string): Socket {
@@ -153,6 +169,23 @@ describe("lobby:join", () => {
     const client = await newClient();
 
     expect(await join(client, payload)).toEqual({ ok: false, error: "invalidMessage" });
+  });
+
+  test("Should_AckLobbyFull_When_LobbyHasMaxParticipants", async () => {
+    const lobby = await createLobby((await newUser()).id, "unlisted");
+    await fillLobby(lobby.id, MAX_PARTICIPANTS);
+
+    expect(await join(await newClient(), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "lobbyFull",
+    });
+  });
+
+  test("Should_AckOk_When_LobbyIsFullButPlayerIsAlreadyIn", async () => {
+    const lobby = await createLobby((await newUser()).id, "unlisted");
+    const [first] = await fillLobby(lobby.id, MAX_PARTICIPANTS);
+
+    expect(await join(await newClient(first), { code: lobby.code })).toEqual({ ok: true });
   });
 
   test("Should_SendParticipantListToEveryone_When_PlayerJoins", async () => {
