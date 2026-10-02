@@ -165,3 +165,26 @@ test("Should_ReturnToInvite_When_SigningUpFromInviteLink", async ({ browser }) =
   await page.getByRole("button", { name: "Rejoindre la course" }).click();
   await expect(page).toHaveURL(`/lobbies/${code}`);
 });
+
+test("Should_SendEveryoneBackToListAndForgetCode_When_HostClosesRace", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Publique/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(player.page)).toHaveCount(2);
+  await expect(player.page.getByRole("button", { name: "Fermer la course" })).toHaveCount(0);
+
+  host.page.once("dialog", (dialog) => dialog.accept());
+  await host.page.getByRole("button", { name: "Fermer la course" }).click();
+
+  for (const page of [host.page, player.page]) {
+    await expect(page).toHaveURL("/lobbies?closed=1");
+    await expect(page.getByRole("status")).toHaveText("Cette course a été fermée par l'hôte.");
+    await expect(page.getByText(`Course de ${host.name}`)).toHaveCount(0);
+  }
+  await player.page.getByLabel("Code de la course").fill(code);
+  await player.page.getByRole("button", { name: "Rejoindre" }).click();
+  await expect(player.page.getByRole("alert").filter({ hasText: "code" })).toHaveText(
+    "Aucune course ouverte avec ce code.",
+  );
+});

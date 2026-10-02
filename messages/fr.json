@@ -38,6 +38,7 @@
     "participantCount": "{count, plural, one {# participant} other {# participants}}",
     "code": "Code de la course",
     "join": "Rejoindre",
+    "closed": "Cette course a été fermée par l'hôte.",
     "errors": {
       "noOpenLobby": "Aucune course ouverte avec ce code."
     }
@@ -56,10 +57,13 @@
     "participants": "Participants ({count})",
     "participantsList": "Participants",
     "host": "(hôte)",
+    "close": "Fermer la course",
+    "confirmClose": "Fermer la course ? Tous les participants seront renvoyés à la liste des courses.",
     "errors": {
       "notLoggedIn": "Non connecté",
       "invalidMessage": "Message invalide",
-      "lobbyNotFound": "Course introuvable"
+      "lobbyNotFound": "Course introuvable",
+      "notHost": "Seul l'hôte peut faire ça"
     }
   },
   "Invites": {
