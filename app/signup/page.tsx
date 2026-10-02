@@ -4,7 +4,8 @@ import { signUpAction } from "@/app/actions/auth";
 import { Arena } from "@/components/arena";
 import { AuthForm } from "@/components/auth-form";
 
-export default async function SignUpPage() {
+export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const { next } = await searchParams;
   const t = await getTranslations("Auth");
   const d = await getTranslations("Design");
 
@@ -20,10 +21,10 @@ export default async function SignUpPage() {
         <p className="eyebrow">{d("newDriver")}</p>
         <h1 className="page-title">{t("signUpTitle")}</h1>
         <p className="description">{d("signUpDescription")}</p>
-        <AuthForm action={signUpAction} submitLabel={t("signUpSubmit")} passwordAutoComplete="new-password" />
+        <AuthForm action={signUpAction} submitLabel={t("signUpSubmit")} passwordAutoComplete="new-password" next={next} />
         <p className="form-note">{t("noEmailWarning")}</p>
         <div className="auth-switch">
-          <Link href="/login" className="text-link">{t("haveAccount")}</Link>
+          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="text-link">{t("haveAccount")}</Link>
         </div>
       </section>
     </main>
