@@ -8,6 +8,7 @@ import {
   addParticipant,
   canEnterLobby,
   claimInvite,
+  closeLobby,
   createInvites,
   createLobby,
   findInviteLobby,
@@ -81,6 +82,28 @@ test("Should_ReturnNull_When_LobbyIsClosed", async () => {
   await db.update(lobbies).set({ closedAt: new Date() }).where(eq(lobbies.id, lobby.id));
 
   expect(await findOpenLobby(lobby.code)).toBeNull();
+});
+
+test("Should_HideLobbyFromCodeAndPublicList_When_HostClosesIt", async () => {
+  const host = await newUser();
+  const lobby = await createLobby(host.id, "public");
+  await addParticipant(lobby.id, host.id);
+
+  await closeLobby(lobby.id);
+
+  expect(await findOpenLobby(lobby.code)).toBeNull();
+  expect((await listPublicLobbies()).map((open) => open.code)).not.toContain(lobby.code);
+});
+
+test("Should_KeepFirstClosingTime_When_LobbyIsClosedTwice", async () => {
+  const lobby = await createLobby((await newUser()).id, "unlisted");
+  await closeLobby(lobby.id);
+  const [first] = await db.select().from(lobbies).where(eq(lobbies.id, lobby.id));
+
+  await closeLobby(lobby.id);
+
+  const [second] = await db.select().from(lobbies).where(eq(lobbies.id, lobby.id));
+  expect(second.closedAt).toEqual(first.closedAt);
 });
 
 test("Should_ListParticipantsInJoinOrder_When_UsersJoin", async () => {

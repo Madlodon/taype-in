@@ -1,4 +1,4 @@
-// Création des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7).
+// Création et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10).
 import { randomBytes, randomInt } from "node:crypto";
 import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.ts";
@@ -47,6 +47,14 @@ export async function findOpenLobby(code: string): Promise<Lobby | null> {
     .from(lobbies)
     .where(and(eq(lobbies.code, normalizeCode(code)), isNull(lobbies.closedAt)));
   return lobby ?? null;
+}
+
+// Un lobby fermé disparaît de la liste publique et son code ne fonctionne plus.
+export async function closeLobby(lobbyId: string) {
+  await db
+    .update(lobbies)
+    .set({ closedAt: new Date() })
+    .where(and(eq(lobbies.id, lobbyId), isNull(lobbies.closedAt)));
 }
 
 // Une course privée n'est accessible qu'à l'hôte et à ceux qui ont utilisé un lien.
