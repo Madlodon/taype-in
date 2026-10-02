@@ -168,5 +168,15 @@
     "finished": "Text complete. Ball in the net. Nicely done.",
     "track": "Stadium route",
     "typing": "On the pitch"
+  },
+  "ErrorPages": {
+    "notFoundTag": "Error 404",
+    "notFoundTitle": "Out of bounds.",
+    "notFoundDescription": "This page doesn’t exist, or this race code doesn’t lead to any race.",
+    "backHome": "Back to home",
+    "serverErrorTag": "Server error",
+    "serverErrorTitle": "Engine failure.",
+    "serverErrorDescription": "Something went wrong on our side. Try again in a moment.",
+    "tryAgain": "Try again"
   }
 }

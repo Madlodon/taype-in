@@ -168,5 +168,15 @@
     "finished": "Texte terminé. Ballon au fond du filet. Bien joué.",
     "track": "Parcours dans le stade",
     "typing": "Sur le terrain"
+  },
+  "ErrorPages": {
+    "notFoundTag": "Erreur 404",
+    "notFoundTitle": "Hors du terrain.",
+    "notFoundDescription": "Cette page n’existe pas, ou ce code de course ne mène à aucune course.",
+    "backHome": "Retour à l’accueil",
+    "serverErrorTag": "Erreur serveur",
+    "serverErrorTitle": "Panne de moteur.",
+    "serverErrorDescription": "Un problème est survenu de notre côté. Réessaie dans un instant.",
+    "tryAgain": "Réessayer"
   }
 }
