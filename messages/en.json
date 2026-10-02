@@ -47,6 +47,7 @@
     "visibility": "Visibility",
     "public": "Public: shown in the race list",
     "unlisted": "Unlisted: joined with the code",
+    "private": "Private: joined only with single-use invite links",
     "submit": "Create the race"
   },
   "LobbyRoom": {
@@ -60,6 +61,24 @@
       "invalidMessage": "Invalid message",
       "lobbyNotFound": "Race not found"
     }
+  },
+  "Invites": {
+    "title": "Invite links",
+    "description": "Each link lets one person in. Links stop working when the race closes.",
+    "count": "Number of links",
+    "generate": "Generate links",
+    "usage": "{used} of {total} links used",
+    "unusedLinks": "Unused links (one per line)",
+    "none": "No links yet."
+  },
+  "InvitePage": {
+    "title": "Race invitation",
+    "description": "You are invited to a private race.",
+    "join": "Join the race",
+    "joinAsGuest": "Join as guest",
+    "haveAccount": "Have an account? Log in first.",
+    "invalidTitle": "Link unavailable",
+    "invalid": "This invite link is invalid or already used, or the race is closed."
   },
   "LocaleSwitcher": {
     "label": "Language"

@@ -71,3 +71,97 @@ test("Should_RedirectHome_When_NotLoggedIn", async ({ page }) => {
 
   await expect(page).toHaveURL("/");
 });
+
+test("Should_ShowCodeOnlyToHost_When_RaceIsUnlisted", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  await expect(host.page.getByText("Code de la course :")).toBeVisible();
+
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+
+  await expect(participants(player.page)).toHaveCount(2);
+  await expect(player.page.getByText("Code de la course :")).toHaveCount(0);
+});
+
+async function generateInvites(page: Page, count: number): Promise<string[]> {
+  await page.getByLabel("Nombre de liens").fill(String(count));
+  await page.getByRole("button", { name: "Générer les liens" }).click();
+  const links = page.getByLabel("Liens non utilisés (un par ligne)");
+  await expect(links).toBeVisible();
+  return (await links.inputValue()).split("\n");
+}
+
+test("Should_JoinPrivateRaceOnlyByInviteLink_When_HostGeneratesLinks", async ({
+  browser,
+}) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Privée/);
+  await expect(host.page.getByText("Code de la course :")).toHaveCount(0);
+
+  const links = await generateInvites(host.page, 3);
+  expect(links).toHaveLength(3);
+  expect(new Set(links).size).toBe(3);
+  await expect(host.page.getByText("0 sur 3 liens utilisés")).toBeVisible();
+
+  // Ni dans la liste, ni par le code, ni par l'adresse directe.
+  const outsider = await newGuest(browser);
+  await outsider.page.goto("/lobbies");
+  await expect(outsider.page.getByText(`Course de ${host.name}`)).toHaveCount(0);
+  await outsider.page.getByLabel("Code de la course").fill(code);
+  await outsider.page.getByRole("button", { name: "Rejoindre" }).click();
+  await expect(outsider.page.getByRole("alert").filter({ hasText: "code" })).toHaveText(
+    "Aucune course ouverte avec ce code.",
+  );
+  expect((await outsider.page.goto(`/lobbies/${code}`))?.status()).toBe(404);
+
+  const student = await newGuest(browser);
+  await student.page.goto(links[0]);
+  await student.page.getByRole("button", { name: "Rejoindre la course" }).click();
+  await expect(student.page).toHaveURL(`/lobbies/${code}`);
+  const expected = [`${host.name} (hôte)`, student.name];
+  await expect(participants(student.page)).toHaveText(expected);
+  await expect(participants(host.page)).toHaveText(expected);
+
+  // Le lien sert une seule fois : un autre élève ne peut plus l'utiliser.
+  await outsider.page.goto(links[0]);
+  await expect(outsider.page.getByRole("heading", { name: "Lien non disponible" })).toBeVisible();
+
+  await host.page.reload();
+  await expect(host.page.getByText("1 sur 3 liens utilisés")).toBeVisible();
+  expect(
+    (await host.page.getByLabel("Liens non utilisés (un par ligne)").inputValue()).split("\n"),
+  ).toEqual(links.slice(1));
+});
+
+test("Should_JoinAsGuest_When_OpeningInviteLinkWhileLoggedOut", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Privée/);
+  const [link] = await generateInvites(host.page, 1);
+
+  const page = await (await browser.newContext()).newPage();
+  await page.goto(link);
+  await page.getByRole("button", { name: "Rejoindre en invité" }).click();
+
+  await expect(page).toHaveURL(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+});
+
+test("Should_ReturnToInvite_When_SigningUpFromInviteLink", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Privée/);
+  const [link] = await generateInvites(host.page, 1);
+
+  const page = await (await browser.newContext()).newPage();
+  await page.goto(link);
+  await page.getByRole("link", { name: "Tu as un compte ? Connecte-toi d'abord." }).click();
+  await page.getByRole("link", { name: "Créer un compte" }).click();
+  await expect(page.getByRole("heading", { name: "Créer un compte" })).toBeVisible();
+  await page.getByLabel("Nom d'utilisateur").fill(`e2e_${Date.now().toString(36)}`);
+  await page.getByLabel("Mot de passe").fill("motdepasse-solide");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+
+  await expect(page).toHaveURL(new URL(link).pathname);
+  await page.getByRole("button", { name: "Rejoindre la course" }).click();
+  await expect(page).toHaveURL(`/lobbies/${code}`);
+});
