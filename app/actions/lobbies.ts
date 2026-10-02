@@ -1,9 +1,18 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createLobby, findOpenLobby } from "@/lib/lobbies";
-import { getCurrentUser } from "@/lib/session-cookie";
+import { createGuest, createSession } from "@/lib/auth";
+import {
+  canEnterLobby,
+  claimInvite,
+  createInvites,
+  createLobby,
+  findOpenLobby,
+  MAX_INVITES,
+} from "@/lib/lobbies";
+import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
 
 // error est une clé de traduction (Lobbies.errors).
 export type JoinFormState = { error?: string; code?: string } | undefined;
@@ -14,7 +23,7 @@ export async function createLobbyAction(formData: FormData) {
   if (!user) redirect("/");
 
   const visibility = z
-    .enum(["public", "unlisted"])
+    .enum(["public", "unlisted", "private"])
     .catch("unlisted")
     .parse(formData.get("visibility"));
   const lobby = await createLobby(user.id, visibility);
@@ -25,10 +34,48 @@ export async function joinLobbyAction(
   _state: JoinFormState,
   formData: FormData,
 ): Promise<JoinFormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
   const code = String(formData.get("code") ?? "");
   const lobby = code.trim() ? await findOpenLobby(code) : null;
-  if (!lobby) {
+  // Le code seul ne suffit pas pour une course privée (LOB-3).
+  if (!lobby || !(await canEnterLobby(lobby, user.id))) {
     return { error: "noOpenLobby", code };
   }
   redirect(`/lobbies/${lobby.code}`);
+}
+
+// L'hôte génère d'un coup le nombre de liens voulu (LOB-3, LOB-7).
+export async function createInvitesAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
+  const lobby = await findOpenLobby(String(formData.get("code") ?? ""));
+  const count = z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_INVITES)
+    .safeParse(formData.get("count"));
+  if (!lobby || lobby.hostId !== user.id || lobby.visibility !== "private" || !count.success) {
+    return;
+  }
+  await createInvites(lobby.id, count.data);
+  refresh();
+}
+
+// Sans session, ouvrir un lien fait jouer en invité.
+export async function joinInviteAction(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  let user = await getCurrentUser();
+  if (!user) {
+    user = await createGuest();
+    const session = await createSession(user.id);
+    await setSessionCookie(session.token, session.expiresAt);
+  }
+
+  const lobby = await claimInvite(token, user.id);
+  // Lien pris entre-temps : la page d'invitation affiche qu'il n'est plus valide.
+  redirect(lobby ? `/lobbies/${lobby.code}` : `/invite/${encodeURIComponent(token)}`);
 }
