@@ -48,6 +48,11 @@
     "public": "Public: shown in the race list",
     "unlisted": "Unlisted: joined with the code",
     "private": "Private: joined only with single-use invite links",
+    "textLanguage": "Text language",
+    "french": "French",
+    "english": "English",
+    "textLength": "Text length",
+    "words": "{count} words",
     "submit": "Create the race"
   },
   "LobbyRoom": {
