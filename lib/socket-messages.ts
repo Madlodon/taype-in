@@ -14,3 +14,9 @@ export type Ack = { ok: true } | { ok: false; error: string };
 export type ParticipantsMessage = {
   participants: { id: string; username: string }[];
 };
+
+// Envoyé à toute la salle quand l'hôte lance la course ; le texte reste caché jusqu'au « Go ».
+export type CountdownMessage = { seconds: number };
+
+// Le « Go » : même texte pour tous ; racerIds = ceux qui courent (arrivés après : spectateurs).
+export type RaceStartedMessage = { content: string; racerIds: string[] };
