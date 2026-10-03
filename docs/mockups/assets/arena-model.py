@@ -116,9 +116,10 @@ def curves(name, paths, radius, mat):
     return obj
 
 
-def ring(extra=0, z=0):
+def ring(extra=0, z=0, end_offset=0):
     points = []
-    for cx, cy, start in ((41, 23, 0), (-41, 23, 90), (-41, -23, 180), (41, -23, 270)):
+    end = 41 + end_offset
+    for cx, cy, start in ((end, 23, 0), (-end, 23, 90), (-end, -23, 180), (end, -23, 270)):
         for i in range(25):
             a = math.radians(start + i * 90 / 24)
             points.append((cx + (12 + extra) * math.cos(a), cy + (12 + extra) * math.sin(a), z))
@@ -142,8 +143,8 @@ def band(name, inner, outer, mat, front=True, goals=False):
 
 outline = ring()
 mesh("Playing field", outline, [tuple(range(len(outline)))], turf)
-band("Floating stadium plinth", ring(22, -3), ring(22, -1), steel)
-mesh("Foundation", ring(22, -1), [tuple(range(100))], steel)
+band("Floating stadium plinth", ring(22, -3, end_offset=12), ring(22, -1, end_offset=12), steel)
+mesh("Foundation", ring(22, -1, end_offset=12), [tuple(range(100))], steel)
 
 # A quarter-pipe joins the grass to the side wall, including the curved corners.
 for step in range(12):
@@ -158,13 +159,13 @@ for team, sign in ((blue_light, -1), (orange_light, 1)):
              and not (abs(rim[i][0]) > 52 and abs(rim[i][1]) < 11)]
     curves("Blue wall rim" if sign < 0 else "Orange wall rim", paths, .13, team)
 
-# Bowl seating is kept open at the front so the cars remain visible in the cutaway.
+# Set the end stands behind the goals; keep the front open for the race camera.
 for tier in range(10):
     extra = 6 + tier * 1.35
     z = 4 + tier * .83
-    band("Seating terrace", ring(extra, z), ring(extra + 1.3, z), concrete, front=False)
-    band("Terrace riser", ring(extra + 1.3, z), ring(extra + 1.3, z + .8), steel, front=False)
-    points = ring(extra + .6, z + .3)
+    band("Seating terrace", ring(extra, z, end_offset=12), ring(extra + 1.3, z, end_offset=12), concrete, front=False)
+    band("Terrace riser", ring(extra + 1.3, z, end_offset=12), ring(extra + 1.3, z + .8, end_offset=12), steel, front=False)
+    points = ring(extra + .6, z + .3, end_offset=12)
     for i in range(100):
         p, q = Vector(points[i]), Vector(points[(i + 1) % 100])
         if (p.y + q.y) / 2 < -20:
@@ -193,7 +194,7 @@ for sign, accent, paint in ((-1, blue_light, blue), (1, orange_light, orange)):
         paths.append([(xx * sign, -10, 0), (xx * sign, -10, 6.3), (xx * sign, -8.3, 8.4), (xx * sign, 8.3, 8.4), (xx * sign, 10, 6.3), (xx * sign, 10, 0)])
     curves("Goal net", paths, .035, net)
 
-# Regulation-inspired markings and diagonal corner hatching.
+# Regulation-inspired field markings.
 curves("Touchline", [ring(-1, .04) + [ring(-1, .04)[0]]], .1, white)
 curves("Halfway line", [[(0, -34, .05), (0, 34, .05)]], .12, white)
 circle = [(10 * math.cos(t * math.tau / 96), 10 * math.sin(t * math.tau / 96), .06) for t in range(97)]
@@ -201,7 +202,6 @@ curves("Center circle", [circle], .14, white)
 for sign, paint in ((-1, blue), (1, orange)):
     curves("Goal area", [[(52 * sign, -17, .07), (36 * sign, -17, .07), (33 * sign, -14, .07), (33 * sign, 14, .07), (36 * sign, 17, .07), (52 * sign, 17, .07)]], .24, paint)
     curves("Goal box paint", [[(52 * sign, -13, .08), (44 * sign, -13, .08), (44 * sign, 13, .08), (52 * sign, 13, .08)]], .1, white)
-    curves("End zone stripes", [[(sign * (43 + i * 1.1), -25, .07), (sign * (40 + i * 1.1), -30, .07)] for i in range(5)], .22, paint)
 
 for x, y, big in [(-39, -24, True), (-39, 24, True), (39, -24, True), (39, 24, True),
                    (0, -27, True), (0, 27, True)] + [(x, y, False) for x in (-25, 0, 25) for y in (-12, 12)]:
@@ -282,8 +282,8 @@ camera.data.type = "ORTHO"
 scene.camera = camera
 
 for name, location, target, scale in [
-    ("arena-broadcast", (5, -170, 85), (0, 3, 7), 161),
-    ("arena-diorama", (115, -140, 135), (0, 0, 7), 185),
+    ("arena-broadcast", (5, -170, 85), (0, 3, 7), 187),
+    ("arena-diorama", (115, -140, 135), (0, 0, 7), 205),
 ]:
     camera.location = location
     camera.rotation_euler = (Vector(target) - camera.location).to_track_quat("-Z", "Y").to_euler()
