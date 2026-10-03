@@ -34,6 +34,7 @@ bun run dev                 # http://localhost:3000
 | `bun run lint`        | ESLint                                                  |
 | `bun run test`        | Tests unitaires et d'intégration (Vitest, base requise) |
 | `bun run test:e2e`    | Tests de bout en bout (Playwright, lance `dev`)         |
+| `bun run test:load`   | Test de charge : 300 participants dans une course       |
 | `bun run db:generate` | Génère une migration après un changement du schéma     |
 | `bun run db:migrate`  | Applique les migrations                                 |
 
@@ -73,6 +74,18 @@ flowchart LR
 - [Machines à états](docs/machines-a-etats.md)
 - [ADR 0001 : temps réel](docs/adr/0001-realtime.md)
 - [Matrice des exigences](docs/requirements-matrix.md)
+
+### Test de charge
+
+`bun run test:load` vérifie qu'une course tient 300 participants (LOB-6). Le script [`scripts/load-test.ts`](scripts/load-test.ts) lance son propre serveur Socket.IO avec la base locale, crée 300 utilisateurs temporaires, les fait rejoindre un même lobby puis taper une frappe toutes les 200 ms pendant 10 s (environ 60 mots par minute). Pour chaque frappe, il mesure le délai jusqu'à ce que chaque client la reçoive dans `race:positions`. Il échoue (code 1) si le 95e centile dépasse 500 ms (positions envoyées toutes les 250 ms, plus une marge). Les utilisateurs et le lobby sont supprimés à la fin. On peut passer un autre nombre de participants : `bun run test:load 50`.
+
+Résultat du 2 octobre 2026 (MacBook, serveur et 300 clients dans le même processus Node) :
+
+| Participants | `race:positions` reçus | Frappes mesurées | p50    | p95    | Max    |
+| ------------ | ---------------------- | ---------------- | ------ | ------ | ------ |
+| 300          | 12 600                 | 4 500 000        | 142 ms | 250 ms | 300 ms |
+
+Le délai vient surtout de l'intervalle de 250 ms entre deux envois de positions.
 
 ### Intégration continue
 
