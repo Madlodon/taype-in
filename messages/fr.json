@@ -117,7 +117,22 @@
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
     "notFinished": "Non terminé",
-    "you": "(toi)"
+    "you": "(toi)",
+    "level": "Niveau",
+    "rankName": "{tier} {subRank} · Div. {division}",
+    "rankUp": "monte d'une division",
+    "rankDown": "descend d'une division",
+    "rankSame": "aucun changement",
+    "tiers": {
+      "bronze": "Bronze",
+      "silver": "Argent",
+      "gold": "Or",
+      "platinum": "Platine",
+      "diamond": "Diamant",
+      "champion": "Champion",
+      "grandChampion": "Grand champion",
+      "supersonicLegend": "Légende supersonique"
+    }
   },
   "RaceTyping": {
     "label": "Tape le texte",

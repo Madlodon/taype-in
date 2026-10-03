@@ -65,7 +65,15 @@ test("Should_ShowEveryPlayerWithStats_When_RaceIsOver", () => {
   ]);
 
   expect(rows()).toHaveLength(4);
-  expect(rows()[0]).toEqual(["1", "joueur1", "53", "97 %", "41,3 s", "2"]);
+  expect(rows()[0]).toEqual([
+    "1",
+    "joueur1",
+    "53",
+    "97 %",
+    "41,3 s",
+    "2",
+    "Bronze I · Div. I =aucun changement",
+  ]);
 });
 
 test("Should_ShowPenalty_When_ModeIsTolerant", () => {
@@ -97,6 +105,32 @@ test("Should_ShowResultsInEnglish_When_LocaleIsEnglish", () => {
   renderResults([result(1, { durationMs: 41_250, accuracy: 97.4, finished: false })], "en");
 
   expect(screen.getByRole("heading", { name: "Results" })).toBeTruthy();
-  expect(rows()[0]).toEqual(["1", "joueur1", "59", "97%", "Not finished", "0"]);
+  expect(rows()[0]).toEqual([
+    "1",
+    "joueur1",
+    "59",
+    "97%",
+    "Not finished",
+    "0",
+    "Bronze I · Div. I =no change",
+  ]);
   expect(podium()).toEqual(["joueur159 WPM1"]);
+});
+
+test("Should_ShowNewRankWithUpArrow_When_PlayerGainedADivision", () => {
+  renderResults([result(1, { rankLevel: 30, rankChange: 1 })]);
+
+  expect(rows()[0][6]).toBe("Or II · Div. III ▲monte d'une division");
+});
+
+test("Should_ShowDownArrow_When_PlayerLostADivision", () => {
+  renderResults([result(1), result(2, { rankLevel: 4, rankChange: -1 })]);
+
+  expect(rows()[1][6]).toBe("Bronze II · Div. I ▼descend d'une division");
+});
+
+test("Should_ShowSupersonicLegendWithoutDivision_When_PlayerIsAtTheTop", () => {
+  renderResults([result(1, { rankLevel: 84, rankChange: 1 })], "en");
+
+  expect(rows()[0][6]).toBe("Supersonic Legend ▲up a division");
 });
