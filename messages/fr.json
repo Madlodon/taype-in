@@ -204,7 +204,8 @@
     "shareCode": "Partage ce code avec tes amis. Ils peuvent le saisir dans la liste des courses.",
     "nextUp": "Sur la ligne de départ",
     "raceComing": "Vous pouvez déjà vous retrouver ici. La course multijoueur est encore en développement.",
-    "previewSeparate": "Envie de tester le concept ? L’aperçu solo est indépendant de cette salle."
+    "previewSeparate": "Envie de tester le concept ? L’aperçu solo est indépendant de cette salle.",
+    "garage": "Garage"
   },
   "Race": {
     "title": "Voici ta nouvelle piste.",
