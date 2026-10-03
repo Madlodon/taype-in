@@ -20,6 +20,7 @@ const alex = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  rankLevel: 0,
   createdAt: new Date(),
 };
 const sam = { ...alex, id: "2", username: "sam" };
