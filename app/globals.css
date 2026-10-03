@@ -1163,8 +1163,13 @@ a, button, input {
     font-size: 9px;
     padding: 7px 5px;
   }
+  /* Avec le garage et le profil, le menu ne tient plus sur une ligne. */
+  .site-nav {
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
   .site-nav a[aria-current]::after {
-    bottom: -17px;
+    bottom: -6px;
   }
   .hero h1 {
     font-size: 42px;
