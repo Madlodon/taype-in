@@ -83,6 +83,13 @@
       "noText": "Aucun texte disponible dans cette langue"
     }
   },
+  "RaceTyping": {
+    "label": "Tape le texte",
+    "blocking": "Mode bloquant : un mauvais caractère t'arrête jusqu'à ce que tu tapes le bon.",
+    "tolerant": "Mode tolérant : continue et corrige avec Retour arrière. Chaque faute compte, même corrigée.",
+    "errors": "{count, plural, =0 {Aucune faute} one {# faute} other {# fautes}}",
+    "finished": "Terminé ! {count, plural, =0 {Aucune faute.} one {# faute.} other {# fautes.}}"
+  },
   "Invites": {
     "title": "Liens d'invitation",
     "description": "Chaque lien fait entrer une seule personne. Les liens ne marchent plus quand la course est fermée.",

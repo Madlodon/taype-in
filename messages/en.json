@@ -83,6 +83,13 @@
       "noText": "No text available in this language"
     }
   },
+  "RaceTyping": {
+    "label": "Type the text",
+    "blocking": "Blocking mode: a wrong character stops you until you type the right one.",
+    "tolerant": "Tolerant mode: keep going and fix with Backspace. Every mistake counts, even fixed.",
+    "errors": "{count, plural, =0 {No errors} one {# error} other {# errors}}",
+    "finished": "Finished! {count, plural, =0 {No errors.} one {# error.} other {# errors.}}"
+  },
   "Invites": {
     "title": "Invite links",
     "description": "Each link lets one person in. Links stop working when the race closes.",
