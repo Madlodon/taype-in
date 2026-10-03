@@ -7,10 +7,14 @@ export const joinLobbySchema = z.object({
 
 export type JoinLobbyMessage = z.infer<typeof joinLobbySchema>;
 
-// Envoyé par un coureur à chaque frappe : position = nombre de caractères tapés.
+// Envoyé par un coureur à chaque frappe : tout ce qu'il a tapé et ses fautes,
+// pour qu'il reprenne exactement là où il était s'il revient (CRS-6).
 export const progressSchema = z.object({
-  position: z.number().int().min(0),
+  typed: z.string().max(10_000),
+  errors: z.number().int().min(0),
 });
+
+export type ProgressMessage = z.infer<typeof progressSchema>;
 
 // LOB-6 : au moins 2 participants pour démarrer.
 export const MIN_RACERS = 2;
@@ -28,11 +32,13 @@ export type CountdownMessage = { seconds: number };
 
 // Le « Go » : même texte et même mode d'erreur pour tous ; racerIds = ceux qui courent (arrivés après : spectateurs).
 // secondsLeft = temps restant à la minuterie, null sans minuterie (CRS-4).
+// mine : envoyé seulement à un coureur qui revient, pour reprendre où il était (CRS-6) ou rester spectateur s'il a abandonné (CRS-7).
 export type RaceStartedMessage = {
   content: string;
   errorMode: "blocking" | "tolerant";
   racerIds: string[];
   secondsLeft: number | null;
+  mine?: ProgressMessage & { gaveUp: boolean };
 };
 
 // Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5).

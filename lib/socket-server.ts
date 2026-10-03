@@ -13,6 +13,7 @@ import {
   type Lobby,
 } from "./lobbies.ts";
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
+import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
 import {
   joinLobbySchema,
@@ -21,11 +22,15 @@ import {
   type Ack,
   type CountdownMessage,
   type ParticipantsMessage,
+  type ProgressMessage,
   type RaceEndedMessage,
   type RaceStartedMessage,
 } from "./socket-messages.ts";
 
 type SocketData = { user: User; lobby?: Lobby };
+
+// Un coureur et ce qu'il a tapé, gardé pour qu'il reprenne où il était (CRS-6).
+type Player = ProgressMessage & { state: PlayerState };
 
 // Course en cours d'un lobby ; un lobby absent de la liste est en attente.
 type LiveRace = {
@@ -38,7 +43,7 @@ type LiveRace = {
   timeLimitSeconds: number | null;
   // Fin prévue par la minuterie (ms) ; null sans minuterie.
   endsAt: number | null;
-  finishedIds: Set<string>;
+  players: Map<string, Player>;
   endTimer?: NodeJS.Timeout;
   idleTimer?: NodeJS.Timeout;
   endReason?: RaceEndedMessage["reason"];
@@ -112,6 +117,14 @@ export function createSocketServer(
     }
   });
 
+  // La course finit quand plus personne ne court : un absent compte encore, il peut revenir (CRS-6).
+  async function endIfNobodyRacing(lobby: Lobby, live: LiveRace) {
+    const states = [...live.players.values()].map((player) => player.state);
+    if (states.every((state) => state === "finished" || state === "abandoned")) {
+      await endRace(lobby, live, "allFinished");
+    }
+  }
+
   async function sendParticipants(lobby: Lobby) {
     io.to(lobby.code).emit("lobby:participants", {
       participants: await listParticipants(lobby.id),
@@ -158,8 +171,12 @@ export function createSocketServer(
       await socket.join(lobby.code);
       await sendParticipants(lobby);
 
-      // Arrivé pendant le compte à rebours ou la course : il voit la suite sans courir.
+      // Un coureur qui revient reprend la course (CRS-6) ; un autre la regarde sans courir.
       const race = liveRaces.get(lobby.id);
+      const player = race?.players.get(socket.data.user.id);
+      if (player?.state === "disconnected" && race?.state !== "finished") {
+        player.state = nextPlayerState(player.state, "reconnect");
+      }
       if (race?.state === "countdown") {
         socket.emit("race:countdown", {
           seconds: Math.ceil((race.goAt - Date.now()) / 1000),
@@ -170,6 +187,11 @@ export function createSocketServer(
           errorMode: race.errorMode,
           racerIds: race.racerIds,
           secondsLeft: secondsLeft(race),
+          mine: player && {
+            typed: player.typed,
+            errors: player.errors,
+            gaveUp: player.state === "abandoned",
+          },
         });
       } else if (race?.endReason) {
         socket.emit("race:ended", { reason: race.endReason });
@@ -207,7 +229,12 @@ export function createSocketServer(
         racerIds: participants.map((participant) => participant.id),
         timeLimitSeconds: null,
         endsAt: null,
-        finishedIds: new Set(),
+        players: new Map(
+          participants.map((participant) => [
+            participant.id,
+            { state: "connected", typed: "", errors: 0 },
+          ]),
+        ),
       };
       liveRaces.set(lobby.id, live);
 
@@ -257,22 +284,49 @@ export function createSocketServer(
         ack?.({ ok: false, error: "raceNotRunning" });
         return;
       }
-      if (!live.racerIds.includes(user.id)) {
+      const player = live.players.get(user.id);
+      if (!player || player.state === "abandoned") {
         ack?.({ ok: false, error: "notRacer" });
         return;
       }
-      if (result.data.position > live.content.length) {
+      if (result.data.typed.length > live.content.length) {
         ack?.({ ok: false, error: "invalidMessage" });
         return;
       }
 
       resetIdleTimer(lobby, live);
-      if (result.data.position === live.content.length) {
-        live.finishedIds.add(user.id);
-        if (live.finishedIds.size === live.racerIds.length) {
-          await endRace(lobby, live, "allFinished");
+      // Une fois fini, sa saisie ne change plus (ex. renvoyée après une reconnexion).
+      if (player.state === "connected") {
+        player.typed = result.data.typed;
+        player.errors = result.data.errors;
+        if (player.typed.length === live.content.length) {
+          player.state = nextPlayerState(player.state, "finish");
+          await endIfNobodyRacing(lobby, live);
         }
       }
+      ack?.({ ok: true });
+    });
+
+    // Le coureur abandonne et devient spectateur ; la course continue sans lui (CRS-7).
+    socket.on("race:giveUp", async (ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      const live = lobby && liveRaces.get(lobby.id);
+      if (!lobby || live?.state !== "racing") {
+        ack?.({ ok: false, error: "raceNotRunning" });
+        return;
+      }
+      const player = live.players.get(user.id);
+      if (!player) {
+        ack?.({ ok: false, error: "notRacer" });
+        return;
+      }
+      if (player.state !== "connected") {
+        ack?.({ ok: false, error: "cannotGiveUp" });
+        return;
+      }
+
+      player.state = nextPlayerState(player.state, "abandon");
+      await endIfNobodyRacing(lobby, live);
       ack?.({ ok: true });
     });
 
@@ -306,6 +360,13 @@ export function createSocketServer(
       // Le même utilisateur peut avoir un autre onglet ouvert dans ce lobby.
       const others = await io.in(lobby.code).fetchSockets();
       if (others.some((other) => other.data.user.id === user.id)) return;
+
+      // Un coureur qui perd la connexion garde sa place ; la course continue sans lui (CRS-6).
+      const live = liveRaces.get(lobby.id);
+      const player = live?.players.get(user.id);
+      if (player?.state === "connected" && live?.state !== "finished") {
+        player.state = nextPlayerState(player.state, "disconnect");
+      }
 
       await removeParticipant(lobby.id, user.id);
       await sendParticipants(lobby);
