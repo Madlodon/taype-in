@@ -13,20 +13,36 @@ import {
   type Lobby,
 } from "./lobbies.ts";
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
-import { createRace, markRaceStarted } from "./races.ts";
+import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
 import {
   joinLobbySchema,
   MIN_RACERS,
+  progressSchema,
   type Ack,
   type CountdownMessage,
   type ParticipantsMessage,
+  type RaceEndedMessage,
   type RaceStartedMessage,
 } from "./socket-messages.ts";
 
 type SocketData = { user: User; lobby?: Lobby };
 
 // Course en cours d'un lobby ; un lobby absent de la liste est en attente.
-type LiveRace = { state: LobbyState; goAt: number } & RaceStartedMessage;
+type LiveRace = {
+  state: LobbyState;
+  raceId: string;
+  goAt: number;
+  content: string;
+  errorMode: RaceStartedMessage["errorMode"];
+  racerIds: string[];
+  timeLimitSeconds: number | null;
+  // Fin prévue par la minuterie (ms) ; null sans minuterie.
+  endsAt: number | null;
+  finishedIds: Set<string>;
+  endTimer?: NodeJS.Timeout;
+  idleTimer?: NodeJS.Timeout;
+  endReason?: RaceEndedMessage["reason"];
+};
 
 function readCookie(header: string | undefined, name: string): string | undefined {
   for (const part of header?.split(";") ?? []) {
@@ -38,7 +54,8 @@ function readCookie(header: string | undefined, name: string): string | undefine
 
 export function createSocketServer(
   httpServer: HttpServer,
-  { countdownMs = 5000 } = {},
+  // CRS-5 : la course s'arrête après 2 min sans aucune frappe.
+  { countdownMs = 5000, idleMs = 2 * 60 * 1000 } = {},
 ): Server {
   const io = new Server<
     Record<string, never>,
@@ -47,6 +64,7 @@ export function createSocketServer(
       "lobby:closed": () => void;
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
+      "race:ended": (message: RaceEndedMessage) => void;
     },
     Record<string, never>,
     SocketData
@@ -64,6 +82,35 @@ export function createSocketServer(
       return false;
     }
   }
+
+  function secondsLeft(live: LiveRace): number | null {
+    return live.endsAt === null ? null : Math.max(0, Math.ceil((live.endsAt - Date.now()) / 1000));
+  }
+
+  async function endRace(lobby: Lobby, live: LiveRace, reason: RaceEndedMessage["reason"]) {
+    // Une seule fin, même si deux conditions arrivent en même temps.
+    if (live.state !== "racing") return;
+    live.state = nextLobbyState(live.state, "end");
+    live.endReason = reason;
+    clearTimeout(live.endTimer);
+    clearTimeout(live.idleTimer);
+    await markRaceEnded(live.raceId);
+    io.to(lobby.code).emit("race:ended", { reason });
+  }
+
+  // Chaque frappe repousse la fin pour inactivité.
+  function resetIdleTimer(lobby: Lobby, live: LiveRace) {
+    clearTimeout(live.idleTimer);
+    live.idleTimer = setTimeout(() => endRace(lobby, live, "idle"), idleMs);
+  }
+
+  // Serveur arrêté : les minuteries des courses en cours ne doivent plus se déclencher.
+  httpServer.on("close", () => {
+    for (const live of liveRaces.values()) {
+      clearTimeout(live.endTimer);
+      clearTimeout(live.idleTimer);
+    }
+  });
 
   async function sendParticipants(lobby: Lobby) {
     io.to(lobby.code).emit("lobby:participants", {
@@ -122,7 +169,10 @@ export function createSocketServer(
           content: race.content,
           errorMode: race.errorMode,
           racerIds: race.racerIds,
+          secondsLeft: secondsLeft(race),
         });
+      } else if (race?.endReason) {
+        socket.emit("race:ended", { reason: race.endReason });
       }
       ack?.({ ok: true });
     });
@@ -150,10 +200,14 @@ export function createSocketServer(
       }
       const live: LiveRace = {
         state: nextLobbyState("waiting", "start"),
+        raceId: "",
         goAt: Date.now() + countdownMs,
         content: "",
         errorMode: lobby.errorMode,
         racerIds: participants.map((participant) => participant.id),
+        timeLimitSeconds: null,
+        endsAt: null,
+        finishedIds: new Set(),
       };
       liveRaces.set(lobby.id, live);
 
@@ -163,7 +217,9 @@ export function createSocketServer(
         ack?.({ ok: false, error: "noText" });
         return;
       }
+      live.raceId = race.id;
       live.content = race.content;
+      live.timeLimitSeconds = race.timeLimitSeconds;
 
       io.to(lobby.code).emit("race:countdown", { seconds: Math.ceil(countdownMs / 1000) });
       ack?.({ ok: true });
@@ -171,12 +227,53 @@ export function createSocketServer(
       setTimeout(async () => {
         live.state = nextLobbyState(live.state, "countdownEnd");
         await markRaceStarted(race.id);
+        if (live.timeLimitSeconds !== null) {
+          live.endsAt = Date.now() + live.timeLimitSeconds * 1000;
+          live.endTimer = setTimeout(
+            () => endRace(lobby, live, "timeUp"),
+            live.timeLimitSeconds * 1000,
+          );
+        }
+        resetIdleTimer(lobby, live);
         io.to(lobby.code).emit("race:started", {
           content: live.content,
           errorMode: live.errorMode,
           racerIds: live.racerIds,
+          secondsLeft: secondsLeft(live),
         });
       }, countdownMs);
+    });
+
+    // Progression d'un coureur ; la course finit quand tous ont tapé tout le texte (CRS-5).
+    socket.on("race:progress", async (payload: unknown, ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      const result = progressSchema.safeParse(payload);
+      if (!result.success) {
+        ack?.({ ok: false, error: "invalidMessage" });
+        return;
+      }
+      const live = lobby && liveRaces.get(lobby.id);
+      if (!lobby || live?.state !== "racing") {
+        ack?.({ ok: false, error: "raceNotRunning" });
+        return;
+      }
+      if (!live.racerIds.includes(user.id)) {
+        ack?.({ ok: false, error: "notRacer" });
+        return;
+      }
+      if (result.data.position > live.content.length) {
+        ack?.({ ok: false, error: "invalidMessage" });
+        return;
+      }
+
+      resetIdleTimer(lobby, live);
+      if (result.data.position === live.content.length) {
+        live.finishedIds.add(user.id);
+        if (live.finishedIds.size === live.racerIds.length) {
+          await endRace(lobby, live, "allFinished");
+        }
+      }
+      ack?.({ ok: true });
     });
 
     // Seul l'hôte ferme le lobby ; tous les participants sont renvoyés à la liste (LOB-10).

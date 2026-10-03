@@ -9,10 +9,16 @@ async function newGuest(browser: Browser): Promise<{ page: Page; name: string }>
   return { page, name };
 }
 
-async function createRace(page: Page, visibility: RegExp): Promise<string> {
+// settings remplit les autres réglages du formulaire avant l'envoi.
+async function createRace(
+  page: Page,
+  visibility: RegExp,
+  settings?: (page: Page) => Promise<void>,
+): Promise<string> {
   await page.getByRole("link", { name: "Démarrer une course" }).click();
   await page.getByRole("link", { name: "Créer une course" }).click();
   await page.getByLabel(visibility).check();
+  await settings?.(page);
   await page.getByRole("button", { name: "Créer la course" }).click();
   await expect(page).toHaveURL(/\/lobbies\/[A-Z2-9]{6}$/);
   return page.url().split("/").pop()!;
@@ -189,9 +195,13 @@ test("Should_SendEveryoneBackToListAndForgetCode_When_HostClosesRace", async ({ 
   );
 });
 
-test("Should_ShowSameCountdownThenSameText_When_HostStartsRace", async ({ browser }) => {
+test("Should_ShowSameCountdownThenSameTextAndTimeLeft_When_HostStartsRace", async ({
+  browser,
+}) => {
   const host = await newGuest(browser);
-  const code = await createRace(host.page, /Non répertoriée/);
+  const code = await createRace(host.page, /Non répertoriée/, (page) =>
+    page.getByLabel(/Durée en minutes/).fill("2"),
+  );
   const start = host.page.getByRole("button", { name: "Lancer la course" });
   await expect(start).toBeDisabled();
 
@@ -207,6 +217,24 @@ test("Should_ShowSameCountdownThenSameText_When_HostStartsRace", async ({ browse
   const hostText = host.page.locator(".typing-text");
   await expect(hostText).toBeVisible({ timeout: 8000 });
   await expect(player.page.locator(".typing-text")).toHaveText((await hostText.textContent())!);
+  for (const { page } of [host, player]) {
+    await expect(page.getByRole("timer")).toHaveText(/^Temps restant : (2:00|1:5\d)$/);
+  }
+});
+
+test("Should_ShowNoTimeLeft_When_HostChoosesNoTimer", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/, (page) =>
+    page.getByLabel("Pas de minuterie").check(),
+  );
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+
+  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+
+  await expect(player.page.locator(".typing-text")).toBeVisible({ timeout: 8000 });
+  await expect(player.page.getByRole("timer")).toHaveCount(0);
 });
 
 test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser }) => {

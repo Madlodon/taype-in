@@ -9,8 +9,10 @@ import {
   claimInvite,
   createInvites,
   createLobby,
+  DEFAULT_TIMER_MINUTES,
   findOpenLobby,
   MAX_INVITES,
+  MAX_TIMER_MINUTES,
 } from "@/lib/lobbies";
 import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
 import { TEXT_LENGTHS } from "@/lib/texts";
@@ -36,7 +38,21 @@ export async function createLobbyAction(formData: FormData) {
     .parse(formData.get("textLength"));
   // Bloquant : la saisie s'arrête jusqu'au bon caractère ; tolérant : on continue (ERR-1).
   const errorMode = z.enum(["blocking", "tolerant"]).catch("blocking").parse(formData.get("errorMode"));
-  const lobby = await createLobby(user.id, visibility, { textLanguage, textLength, errorMode });
+  // Durée en minutes, ou aucune minuterie (CRS-4).
+  const timerMinutes = z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_TIMER_MINUTES)
+    .catch(DEFAULT_TIMER_MINUTES)
+    .parse(formData.get("timerMinutes"));
+  const timeLimitSeconds = formData.get("noTimer") ? null : timerMinutes * 60;
+  const lobby = await createLobby(user.id, visibility, {
+    textLanguage,
+    textLength,
+    errorMode,
+    timeLimitSeconds,
+  });
   redirect(`/lobbies/${lobby.code}`);
 }
 

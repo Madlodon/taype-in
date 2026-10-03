@@ -7,6 +7,11 @@ export const joinLobbySchema = z.object({
 
 export type JoinLobbyMessage = z.infer<typeof joinLobbySchema>;
 
+// Envoyé par un coureur à chaque frappe : position = nombre de caractères tapés.
+export const progressSchema = z.object({
+  position: z.number().int().min(0),
+});
+
 // LOB-6 : au moins 2 participants pour démarrer.
 export const MIN_RACERS = 2;
 
@@ -22,8 +27,13 @@ export type ParticipantsMessage = {
 export type CountdownMessage = { seconds: number };
 
 // Le « Go » : même texte et même mode d'erreur pour tous ; racerIds = ceux qui courent (arrivés après : spectateurs).
+// secondsLeft = temps restant à la minuterie, null sans minuterie (CRS-4).
 export type RaceStartedMessage = {
   content: string;
   errorMode: "blocking" | "tolerant";
   racerIds: string[];
+  secondsLeft: number | null;
 };
+
+// Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5).
+export type RaceEndedMessage = { reason: "allFinished" | "timeUp" | "idle" };

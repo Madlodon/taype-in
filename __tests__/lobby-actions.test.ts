@@ -22,6 +22,8 @@ vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn(), setSessionCoo
 vi.mock("../lib/auth", () => ({ createGuest: vi.fn(), createSession: vi.fn() }));
 vi.mock("../lib/lobbies", () => ({
   MAX_INVITES: 300,
+  DEFAULT_TIMER_MINUTES: 5,
+  MAX_TIMER_MINUTES: 1440,
   canEnterLobby: vi.fn(),
   claimInvite: vi.fn(),
   createInvites: vi.fn(),
@@ -44,6 +46,7 @@ const aLobby = {
   textLanguage: "fr" as const,
   textLength: 100,
   errorMode: "blocking" as const,
+  timeLimitSeconds: 300,
   createdAt: new Date(),
   closedAt: null,
 };
@@ -112,6 +115,7 @@ test("Should_SaveTextSettings_When_HostPicksLanguageAndLength", async () => {
     textLanguage: "en",
     textLength: 200,
     errorMode: "blocking",
+    timeLimitSeconds: 300,
   });
 });
 
@@ -125,6 +129,7 @@ test.each([
     textLanguage: "fr",
     textLength: 100,
     errorMode: "blocking",
+    timeLimitSeconds: 300,
   });
 });
 
@@ -145,6 +150,45 @@ test("Should_UseBlockingMode_When_ErrorModeIsUnknown", async () => {
     "user-1",
     "unlisted",
     expect.objectContaining({ errorMode: "blocking" }),
+  );
+});
+
+test.each([
+  ["1", 60],
+  ["90", 5400],
+  ["1440", 86400],
+])("Should_SaveTimerInSeconds_When_HostPicks_%s_Minutes", async (timerMinutes, seconds) => {
+  await expect(createLobbyAction(form({ timerMinutes }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ timeLimitSeconds: seconds }),
+  );
+});
+
+test.each([["0"], ["1441"], ["-5"], ["2.5"], ["abc"]])(
+  "Should_UseFiveMinutes_When_TimerIs_%s",
+  async (timerMinutes) => {
+    await expect(createLobbyAction(form({ timerMinutes }))).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.createLobby).toHaveBeenCalledWith(
+      "user-1",
+      "unlisted",
+      expect.objectContaining({ timeLimitSeconds: 300 }),
+    );
+  },
+);
+
+test("Should_SaveNoTimer_When_HostChecksNoTimer", async () => {
+  await expect(
+    createLobbyAction(form({ timerMinutes: "10", noTimer: "on" })),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ timeLimitSeconds: null }),
   );
 });
 

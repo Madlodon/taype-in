@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createLobbyAction } from "@/app/actions/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
+import { DEFAULT_TIMER_MINUTES, MAX_TIMER_MINUTES } from "@/lib/lobbies";
 import { TEXT_LENGTHS } from "@/lib/texts";
 import { Arena } from "@/components/arena";
 
@@ -54,6 +55,15 @@ export default async function NewLobbyPage() {
                 <input type="radio" name="errorMode" value="blocking" defaultChecked />{t("blocking")}</label>
               <label className="radio-option">
                 <input type="radio" name="errorMode" value="tolerant" />{t("tolerant")}</label>
+            </fieldset>
+            <fieldset>
+              <legend className="text-sm font-semibold">{t("timer")}</legend>
+              <label className="field">
+                {t("timerMinutes", { max: MAX_TIMER_MINUTES })}
+                <input name="timerMinutes" type="number" min={1} max={MAX_TIMER_MINUTES} defaultValue={DEFAULT_TIMER_MINUTES} required />
+              </label>
+              <label className="radio-option">
+                <input type="checkbox" name="noTimer" />{t("noTimer")}</label>
             </fieldset>
             <button type="submit" className="btn btn-primary">{t("submit")}<span aria-hidden="true">↗</span>
             </button>

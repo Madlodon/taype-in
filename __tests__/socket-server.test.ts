@@ -22,6 +22,7 @@ import type {
   Ack,
   CountdownMessage,
   ParticipantsMessage,
+  RaceEndedMessage,
   RaceStartedMessage,
 } from "../lib/socket-messages";
 
@@ -35,12 +36,16 @@ beforeAll(async () => {
   await migrate(db, { migrationsFolder: "db/migrations" });
 });
 
-beforeEach(async () => {
+// Compte à rebours raccourci pour garder les tests rapides.
+async function startServer(options: { idleMs?: number } = {}) {
   const httpServer = createServer();
-  // Compte à rebours raccourci pour garder les tests rapides.
-  io = createSocketServer(httpServer, { countdownMs: 100 });
+  io = createSocketServer(httpServer, { countdownMs: 100, ...options });
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
   url = `http://localhost:${(httpServer.address() as AddressInfo).port}`;
+}
+
+beforeEach(async () => {
+  await startServer();
 });
 
 afterEach(async () => {
@@ -379,11 +384,181 @@ describe("race:start", () => {
 
     await join(late, { code: lobby.code });
 
-    expect(await lateSees).toEqual({
+    expect(await lateSees).toMatchObject({
       content,
       errorMode: "blocking",
       racerIds: [host.id, guest.id],
     });
+  });
+});
+
+// Lance la course et attend le « Go ».
+async function startRace(hostClient: Socket): Promise<RaceStartedMessage> {
+  const started = next<RaceStartedMessage>(hostClient, "race:started");
+  await hostClient.emitWithAck("race:start");
+  return started;
+}
+
+function progress(client: Socket, payload: unknown): Promise<Ack> {
+  return client.emitWithAck("race:progress", payload);
+}
+
+async function savedRace(lobbyId: string) {
+  const [race] = await db.select().from(races).where(eq(races.lobbyId, lobbyId));
+  return race;
+}
+
+describe("race end", () => {
+  test("Should_SendTimeLeft_When_RaceStartsWithTimer", async () => {
+    const { hostClient } = await lobbyWithTwo({ timeLimitSeconds: 600 });
+
+    expect((await startRace(hostClient)).secondsLeft).toBe(600);
+  });
+
+  test("Should_SendNoTimeLeft_When_RaceHasNoTimer", async () => {
+    const { hostClient } = await lobbyWithTwo({ timeLimitSeconds: null });
+
+    expect((await startRace(hostClient)).secondsLeft).toBeNull();
+  });
+
+  test("Should_EndRaceForEveryone_When_EveryRacerFinishes", async () => {
+    const { lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const hostSees = next<RaceEndedMessage>(hostClient, "race:ended");
+    const guestSees = next<RaceEndedMessage>(guestClient, "race:ended");
+
+    expect(await progress(hostClient, { position: content.length })).toEqual({ ok: true });
+    await progress(guestClient, { position: content.length });
+
+    expect(await hostSees).toEqual({ reason: "allFinished" });
+    expect(await guestSees).toEqual({ reason: "allFinished" });
+    expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
+  });
+
+  test("Should_KeepRacing_When_OnlySomeRacersFinished", async () => {
+    const { lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    let ended = false;
+    guestClient.on("race:ended", () => (ended = true));
+
+    await progress(hostClient, { position: content.length });
+    await progress(guestClient, { position: content.length - 1 });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(ended).toBe(false);
+    expect((await savedRace(lobby.id)).endedAt).toBeNull();
+  });
+
+  test("Should_EndRace_When_TimerRunsOut", async () => {
+    const { lobby, hostClient, guestClient } = await lobbyWithTwo({ timeLimitSeconds: 1 });
+    await startRace(hostClient);
+    const guestSees = next<RaceEndedMessage>(guestClient, "race:ended");
+
+    expect(await guestSees).toEqual({ reason: "timeUp" });
+    expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
+  });
+
+  test("Should_EndRace_When_NobodyTypesForIdleLimit", async () => {
+    await io.close();
+    await startServer({ idleMs: 200 });
+    const { lobby, hostClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+
+    expect(await next<RaceEndedMessage>(hostClient, "race:ended")).toEqual({ reason: "idle" });
+    expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
+  });
+
+  test("Should_PostponeIdleEnd_When_ARacerTypes", async () => {
+    await io.close();
+    await startServer({ idleMs: 300 });
+    const { hostClient, guestClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+    let ended = false;
+    hostClient.on("race:ended", () => (ended = true));
+    const endedLater = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await progress(guestClient, { position: 1 });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    expect(ended).toBe(false);
+    expect(await endedLater).toEqual({ reason: "idle" });
+  });
+
+  test("Should_TellLatePlayerRaceIsOver_When_JoiningAfterEnd", async () => {
+    const { lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next(hostClient, "race:ended");
+    await progress(hostClient, { position: content.length });
+    await progress(guestClient, { position: content.length });
+    await ended;
+    const late = await newClient();
+    const lateSees = next<RaceEndedMessage>(late, "race:ended");
+
+    await join(late, { code: lobby.code });
+
+    expect(await lateSees).toEqual({ reason: "allFinished" });
+  });
+
+  test("Should_LetHostClose_When_RaceHasEnded", async () => {
+    const { lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next(hostClient, "race:ended");
+    await progress(hostClient, { position: content.length });
+    await progress(guestClient, { position: content.length });
+    await ended;
+
+    expect(await hostClient.emitWithAck("lobby:close")).toEqual({ ok: true });
+    expect(await findOpenLobby(lobby.code)).toBeNull();
+  });
+});
+
+describe("race:progress", () => {
+  test("Should_AckRaceNotRunning_When_RaceHasNotStarted", async () => {
+    const { hostClient } = await lobbyWithTwo();
+
+    expect(await progress(hostClient, { position: 1 })).toEqual({
+      ok: false,
+      error: "raceNotRunning",
+    });
+  });
+
+  test("Should_AckRaceNotRunning_When_SocketHasNotJoinedALobby", async () => {
+    expect(await progress(await newClient(), { position: 1 })).toEqual({
+      ok: false,
+      error: "raceNotRunning",
+    });
+  });
+
+  test("Should_AckNotRacer_When_PlayerJoinedDuringRace", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+    const late = await newClient();
+    await join(late, { code: lobby.code });
+
+    expect(await progress(late, { position: 1 })).toEqual({ ok: false, error: "notRacer" });
+  });
+
+  test("Should_AckInvalidMessage_When_PositionIsPastTheText", async () => {
+    const { hostClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+
+    expect(await progress(hostClient, { position: content.length + 1 })).toEqual({
+      ok: false,
+      error: "invalidMessage",
+    });
+  });
+
+  test.each([
+    ["no payload", undefined],
+    ["negative position", { position: -1 }],
+    ["decimal position", { position: 1.5 }],
+    ["position not a number", { position: "3" }],
+  ])("Should_AckInvalidMessage_When_%s", async (_, payload) => {
+    const { hostClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+
+    expect(await progress(hostClient, payload)).toEqual({ ok: false, error: "invalidMessage" });
   });
 });
 

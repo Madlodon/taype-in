@@ -72,6 +72,8 @@ export const lobbies = pgTable("lobbies", {
   textLength: integer("text_length").notNull().default(100),
   // Mode d'erreur choisi à la création, copié dans chaque course (ERR-1).
   errorMode: errorModeEnum("error_mode").notNull().default("blocking"),
+  // Minuterie de la course, 5 min par défaut ; null = pas de minuterie (CRS-4).
+  timeLimitSeconds: integer("time_limit_seconds").default(300),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

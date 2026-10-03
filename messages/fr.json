@@ -57,6 +57,9 @@
     "errorMode": "Erreurs de frappe",
     "blocking": "Bloquant : il faut taper le bon caractère pour continuer",
     "tolerant": "Tolérant : on continue et on peut corriger avec Retour arrière",
+    "timer": "Minuterie",
+    "timerMinutes": "Durée en minutes (jusqu'à {max})",
+    "noTimer": "Pas de minuterie",
     "submit": "Créer la course"
   },
   "LobbyRoom": {
@@ -71,6 +74,12 @@
     "needMore": "Il faut au moins {count} participants pour lancer la course.",
     "countdown": "Départ dans {seconds}",
     "raceText": "Texte de la course",
+    "timeLeft": "Temps restant : {time}",
+    "ended": {
+      "allFinished": "Course terminée : tout le monde a fini.",
+      "timeUp": "Course terminée : le temps est écoulé.",
+      "idle": "Course terminée : personne n'a tapé depuis 2 minutes."
+    },
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
     "errors": {
       "notLoggedIn": "Non connecté",
@@ -80,7 +89,9 @@
       "lobbyFull": "La course est pleine (300 participants)",
       "notEnoughParticipants": "Il faut au moins 2 participants",
       "raceInProgress": "Une course est déjà en cours",
-      "noText": "Aucun texte disponible dans cette langue"
+      "noText": "Aucun texte disponible dans cette langue",
+      "raceNotRunning": "Aucune course en cours",
+      "notRacer": "Tu ne cours pas dans cette course"
     }
   },
   "RaceTyping": {
