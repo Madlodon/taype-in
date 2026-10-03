@@ -49,5 +49,22 @@ export type RacePositionsMessage = {
   positions: { id: string; username: string; position: number }[];
 };
 
-// Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5).
-export type RaceEndedMessage = { reason: "allFinished" | "timeUp" | "idle" };
+// Résultat d'un coureur, du premier au dernier (FIN-2) ; accuracy en %, penaltyMs = +1 s par faute en mode tolérant.
+export type RaceResult = {
+  id: string;
+  username: string;
+  rank: number;
+  wpm: number;
+  accuracy: number;
+  durationMs: number;
+  penaltyMs: number;
+  errors: number;
+  finished: boolean;
+  keyErrors: Record<string, number>;
+};
+
+// Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5), avec le classement final.
+export type RaceEndedMessage = {
+  reason: "allFinished" | "timeUp" | "idle";
+  results: RaceResult[];
+};
