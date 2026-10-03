@@ -226,10 +226,18 @@ function startRace(
   racerIds: string[],
   errorMode = "blocking",
   secondsLeft: number | null = null,
-  mine?: { typed: string; errors: number; gaveUp: boolean },
+  mine?: { typed: string; errors: number; gaveUp: boolean; keys?: number },
 ) {
+  // Sans valeur donnée, chaque caractère et chaque faute comptent pour une touche.
+  const resumed = mine && { keys: mine.typed.length + mine.errors, keyErrors: {}, ...mine };
   act(() =>
-    handlers["race:started"]({ content: "Un texte court.", errorMode, racerIds, secondsLeft, mine }),
+    handlers["race:started"]({
+      content: "Un texte court.",
+      errorMode,
+      racerIds,
+      secondsLeft,
+      mine: resumed,
+    }),
   );
 }
 
@@ -339,7 +347,12 @@ test("Should_SendTypedTextAndErrorsToServer_When_RacerTypes", () => {
     target: { value: "Un" },
   });
 
-  expect(socket.emit).toHaveBeenCalledWith("race:progress", { typed: "Un", errors: 0 });
+  expect(socket.emit).toHaveBeenCalledWith("race:progress", {
+    typed: "Un",
+    errors: 0,
+    keys: 2,
+    keyErrors: {},
+  });
 });
 
 // Ack du dernier message envoyé sous ce nom.
@@ -370,7 +383,12 @@ test("Should_RejoinAndResendTyping_When_Reconnected", () => {
   act(() => lastAck("lobby:join")({ ok: true }));
 
   expect(socket.emit).toHaveBeenCalledWith("lobby:join", { code: "K7P3XM" }, expect.any(Function));
-  expect(socket.emit).toHaveBeenCalledWith("race:progress", { typed: "Un", errors: 0 });
+  expect(socket.emit).toHaveBeenCalledWith("race:progress", {
+    typed: "Un",
+    errors: 0,
+    keys: 2,
+    keyErrors: {},
+  });
 });
 
 test("Should_ResumeTypedTextAndErrors_When_RacerComesBack", () => {
@@ -380,6 +398,20 @@ test("Should_ResumeTypedTextAndErrors_When_RacerComesBack", () => {
 
   expect((typingBox() as HTMLTextAreaElement).value).toBe("Un tx");
   expect(screen.getByRole("status").textContent).toBe("1 faute");
+});
+
+test("Should_KeepCountingKeysFromResumedTyping_When_RacerTypesAgain", () => {
+  renderRoom();
+  startRace(["u1", "u2"], "blocking", null, { typed: "Un", errors: 1, gaveUp: false, keys: 5 });
+
+  fireEvent.change(typingBox()!, { target: { value: "Un " } });
+
+  expect(socket.emit).toHaveBeenLastCalledWith("race:progress", {
+    typed: "Un ",
+    errors: 1,
+    keys: 6,
+    keyErrors: {},
+  });
 });
 
 test("Should_KeepLocalTyping_When_ServerResendsRaceAfterShortDrop", () => {
