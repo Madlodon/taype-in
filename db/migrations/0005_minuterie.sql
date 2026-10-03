@@ -1,0 +1,1 @@
+ALTER TABLE "lobbies" ADD COLUMN "time_limit_seconds" integer DEFAULT 300;

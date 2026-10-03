@@ -14,6 +14,9 @@ export const CODE_LENGTH = 6;
 export const MAX_PARTICIPANTS = 300;
 // Un lien par participant possible.
 export const MAX_INVITES = MAX_PARTICIPANTS;
+// CRS-4 : minuterie de 5 min par défaut, 24 h au maximum.
+export const DEFAULT_TIMER_MINUTES = 5;
+export const MAX_TIMER_MINUTES = 24 * 60;
 
 export function generateLobbyCode(): string {
   let code = "";
@@ -31,13 +34,13 @@ export function normalizeCode(input: string): string {
 export async function createLobby(
   hostId: string,
   visibility: Lobby["visibility"],
-  text?: Pick<Lobby, "textLanguage" | "textLength">,
+  settings?: Partial<Pick<Lobby, "textLanguage" | "textLength" | "timeLimitSeconds">>,
 ): Promise<Lobby> {
   // On réessaie en cas de collision avec un code existant.
   for (;;) {
     const [lobby] = await db
       .insert(lobbies)
-      .values({ code: generateLobbyCode(), hostId, visibility, ...text })
+      .values({ code: generateLobbyCode(), hostId, visibility, ...settings })
       .onConflictDoNothing()
       .returning();
     if (lobby) return lobby;

@@ -54,6 +54,9 @@
     "english": "Anglais",
     "textLength": "Longueur du texte",
     "words": "{count} mots",
+    "timer": "Minuterie",
+    "timerMinutes": "Durée en minutes (jusqu'à {max})",
+    "noTimer": "Pas de minuterie",
     "submit": "Créer la course"
   },
   "LobbyRoom": {

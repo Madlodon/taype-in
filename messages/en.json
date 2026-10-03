@@ -54,6 +54,9 @@
     "english": "English",
     "textLength": "Text length",
     "words": "{count} words",
+    "timer": "Timer",
+    "timerMinutes": "Duration in minutes (up to {max})",
+    "noTimer": "No timer",
     "submit": "Create the race"
   },
   "LobbyRoom": {

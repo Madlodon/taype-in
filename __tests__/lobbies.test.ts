@@ -82,6 +82,21 @@ test("Should_UseFrenchAndHundredWords_When_CreatingLobbyWithoutTextSettings", as
   expect(lobby).toMatchObject({ textLanguage: "fr", textLength: 100 });
 });
 
+test.each([
+  ["a timer", 3600],
+  ["no timer", null],
+])("Should_SaveTimer_When_CreatingLobbyWith_%s", async (_, timeLimitSeconds) => {
+  const lobby = await createLobby((await newUser()).id, "public", { timeLimitSeconds });
+
+  expect(lobby.timeLimitSeconds).toBe(timeLimitSeconds);
+});
+
+test("Should_UseFiveMinuteTimer_When_CreatingLobbyWithoutTimer", async () => {
+  const lobby = await createLobby((await newUser()).id, "public");
+
+  expect(lobby.timeLimitSeconds).toBe(300);
+});
+
 test("Should_FindLobby_When_CodeIsTypedInLowercase", async () => {
   const lobby = await createLobby((await newUser()).id, "unlisted");
 
