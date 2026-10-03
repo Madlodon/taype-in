@@ -10,7 +10,7 @@ function type(mode: ErrorMode, ...values: string[]): Typing {
 
 describe.each<ErrorMode>(["blocking", "tolerant"])("applyInput (%s)", (mode) => {
   test("Should_AdvanceWithoutError_When_CharacterIsRight", () => {
-    expect(type(mode, "c", "ch")).toEqual({ typed: "ch", errors: 0, blocked: false });
+    expect(type(mode, "c", "ch")).toMatchObject({ typed: "ch", errors: 0, blocked: false });
   });
 
   test("Should_CountError_When_CharacterIsWrong", () => {
@@ -30,15 +30,15 @@ describe.each<ErrorMode>(["blocking", "tolerant"])("applyInput (%s)", (mode) => 
 
 describe("applyInput (blocking)", () => {
   test("Should_KeepWrongCharacterOutAndBlock_When_CharacterIsWrong", () => {
-    expect(type("blocking", "c", "cx")).toEqual({ typed: "c", errors: 1, blocked: true });
+    expect(type("blocking", "c", "cx")).toMatchObject({ typed: "c", errors: 1, blocked: true });
   });
 
   test("Should_CountEachAttempt_When_PlayerKeepsTypingWrong", () => {
-    expect(type("blocking", "x", "y", "z")).toEqual({ typed: "", errors: 3, blocked: true });
+    expect(type("blocking", "x", "y", "z")).toMatchObject({ typed: "", errors: 3, blocked: true });
   });
 
   test("Should_UnblockAndKeepError_When_RightCharacterFollows", () => {
-    expect(type("blocking", "x", "c")).toEqual({ typed: "c", errors: 1, blocked: false });
+    expect(type("blocking", "x", "c")).toMatchObject({ typed: "c", errors: 1, blocked: false });
   });
 
   test("Should_RefuseBackspace_When_EverythingTypedIsRight", () => {
@@ -48,7 +48,7 @@ describe("applyInput (blocking)", () => {
 
 describe("applyInput (tolerant)", () => {
   test("Should_KeepWrongCharacterAndContinue_When_CharacterIsWrong", () => {
-    expect(type("tolerant", "x", "xh")).toEqual({ typed: "xh", errors: 1, blocked: false });
+    expect(type("tolerant", "x", "xh")).toMatchObject({ typed: "xh", errors: 1, blocked: false });
   });
 
   test("Should_CountEveryWrongCharacter_When_SeveralAreTyped", () => {
@@ -60,7 +60,7 @@ describe("applyInput (tolerant)", () => {
   });
 
   test("Should_KeepCountingError_When_ErrorIsCorrected", () => {
-    expect(type("tolerant", "x", "", "c")).toEqual({ typed: "c", errors: 1, blocked: false });
+    expect(type("tolerant", "x", "", "c")).toMatchObject({ typed: "c", errors: 1, blocked: false });
   });
 
   test("Should_CountAgain_When_CorrectionIsAlsoWrong", () => {
@@ -68,6 +68,27 @@ describe("applyInput (tolerant)", () => {
   });
 
   test("Should_FinishWithErrors_When_EndIsReachedUncorrected", () => {
-    expect(type("tolerant", "chit")).toEqual({ typed: "chit", errors: 1, blocked: false });
+    expect(type("tolerant", "chit")).toMatchObject({ typed: "chit", errors: 1, blocked: false });
+  });
+});
+
+describe.each<ErrorMode>(["blocking", "tolerant"])("applyInput keys (%s)", (mode) => {
+  test("Should_CountEveryCharacterKey_When_RightAndWrongAreTyped", () => {
+    expect(type(mode, "c", "cx", "ch").keys).toBe(mode === "blocking" ? 3 : 2);
+  });
+
+  test("Should_CountErrorUnderExpectedCharacter_When_CharacterIsWrong", () => {
+    expect(type(mode, "x").keyErrors).toEqual({ c: 1 });
+  });
+
+  test("Should_AddUpErrors_When_SameCharacterIsMissedTwice", () => {
+    // En mode tolérant, il faut effacer la faute avant de retenter.
+    const values = mode === "blocking" ? ["c", "cx", "cy"] : ["c", "cx", "c", "cy"];
+
+    expect(type(mode, ...values).keyErrors).toEqual({ h: 2 });
+  });
+
+  test("Should_NotCountKeys_When_TextIsAlreadyFinished", () => {
+    expect(type(mode, "chat!").keys).toBe(4);
   });
 });
