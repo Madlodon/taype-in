@@ -54,6 +54,9 @@
     "english": "English",
     "textLength": "Text length",
     "words": "{count} words",
+    "errorMode": "Typing errors",
+    "blocking": "Blocking: you must type the right character to keep going",
+    "tolerant": "Tolerant: you keep going and can fix with Backspace",
     "submit": "Create the race"
   },
   "LobbyRoom": {

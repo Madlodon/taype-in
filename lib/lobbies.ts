@@ -31,13 +31,13 @@ export function normalizeCode(input: string): string {
 export async function createLobby(
   hostId: string,
   visibility: Lobby["visibility"],
-  text?: Pick<Lobby, "textLanguage" | "textLength">,
+  settings?: Partial<Pick<Lobby, "textLanguage" | "textLength" | "errorMode">>,
 ): Promise<Lobby> {
   // On réessaie en cas de collision avec un code existant.
   for (;;) {
     const [lobby] = await db
       .insert(lobbies)
-      .values({ code: generateLobbyCode(), hostId, visibility, ...text })
+      .values({ code: generateLobbyCode(), hostId, visibility, ...settings })
       .onConflictDoNothing()
       .returning();
     if (lobby) return lobby;

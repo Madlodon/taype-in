@@ -48,6 +48,13 @@ export default async function NewLobbyPage() {
                   {t("words", { count: length })}</label>
               ))}
             </fieldset>
+            <fieldset>
+              <legend className="text-sm font-semibold">{t("errorMode")}</legend>
+              <label className="radio-option">
+                <input type="radio" name="errorMode" value="blocking" defaultChecked />{t("blocking")}</label>
+              <label className="radio-option">
+                <input type="radio" name="errorMode" value="tolerant" />{t("tolerant")}</label>
+            </fieldset>
             <button type="submit" className="btn btn-primary">{t("submit")}<span aria-hidden="true">↗</span>
             </button>
           </form>

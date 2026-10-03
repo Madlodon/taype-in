@@ -18,8 +18,7 @@ export async function createRace(lobby: Lobby): Promise<Race | null> {
       textId: text.textId,
       content: text.content,
       language: lobby.textLanguage,
-      // L'hôte choisira le mode d'erreur avec l'interface de frappe (#56).
-      errorMode: "blocking",
+      errorMode: lobby.errorMode,
     })
     .returning();
   return race;

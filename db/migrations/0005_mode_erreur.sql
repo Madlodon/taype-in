@@ -1,0 +1,1 @@
+ALTER TABLE "lobbies" ADD COLUMN "error_mode" "error_mode" DEFAULT 'blocking' NOT NULL;
