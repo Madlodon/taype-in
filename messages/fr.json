@@ -232,5 +232,25 @@
     "serverErrorTitle": "Panne de moteur.",
     "serverErrorDescription": "Un problème est survenu de notre côté. Réessaie dans un instant.",
     "tryAgain": "Réessayer"
+  },
+  "Profile": {
+    "eyebrow": "Profil de pilote",
+    "you": "Toi",
+    "stats": "Statistiques globales",
+    "bestWpm": "Meilleure vitesse (MPM)",
+    "averageWpm": "Vitesse moyenne (MPM)",
+    "averageAccuracy": "Précision moyenne",
+    "history": "Historique des courses",
+    "noRaces": "Aucune course pour l’instant.",
+    "date": "Date",
+    "text": "Texte",
+    "rank": "Rang",
+    "wpm": "MPM",
+    "accuracy": "Précision",
+    "percent": "{value} %",
+    "hardestKeys": "Touches les plus difficiles",
+    "noHardKeys": "Aucune faute enregistrée.",
+    "space": "Espace",
+    "errors": "{count, plural, one {# faute} other {# fautes}}"
   }
 }

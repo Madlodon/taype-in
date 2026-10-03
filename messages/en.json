@@ -232,5 +232,25 @@
     "serverErrorTitle": "Engine failure.",
     "serverErrorDescription": "Something went wrong on our side. Try again in a moment.",
     "tryAgain": "Try again"
+  },
+  "Profile": {
+    "eyebrow": "Driver profile",
+    "you": "You",
+    "stats": "Overall stats",
+    "bestWpm": "Best speed (WPM)",
+    "averageWpm": "Average speed (WPM)",
+    "averageAccuracy": "Average accuracy",
+    "history": "Race history",
+    "noRaces": "No races yet.",
+    "date": "Date",
+    "text": "Text",
+    "rank": "Rank",
+    "wpm": "WPM",
+    "accuracy": "Accuracy",
+    "percent": "{value}%",
+    "hardestKeys": "Hardest keys",
+    "noHardKeys": "No errors recorded.",
+    "space": "Space",
+    "errors": "{count, plural, one {# error} other {# errors}}"
   }
 }
