@@ -118,10 +118,30 @@ test("Should_CreateGuestSession_When_PlayingAsGuest", async () => {
     isGuest: true,
   });
 
-  await expect(guestAction()).rejects.toThrow("NEXT_REDIRECT");
+  await expect(guestAction(new FormData())).rejects.toThrow("NEXT_REDIRECT");
 
   expect(auth.createSession).toHaveBeenCalledWith("guest-1");
   expect(cookieStore.set).toHaveBeenCalled();
+});
+
+test("Should_ReturnToNextPage_When_PlayingAsGuestWithNext", async () => {
+  vi.mocked(auth.createGuest).mockResolvedValue({ ...aUser, id: "guest-1", isGuest: true });
+  const data = new FormData();
+  data.set("next", "/garage");
+
+  await expect(guestAction(data)).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(redirect).toHaveBeenCalledWith("/garage");
+});
+
+test("Should_RedirectHome_When_PlayingAsGuestWithOutsideNext", async () => {
+  vi.mocked(auth.createGuest).mockResolvedValue({ ...aUser, id: "guest-1", isGuest: true });
+  const data = new FormData();
+  data.set("next", "https://evil.example");
+
+  await expect(guestAction(data)).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(redirect).toHaveBeenCalledWith("/");
 });
 
 test("Should_InvalidateSessionAndDeleteCookie_When_LoggingOut", async () => {
