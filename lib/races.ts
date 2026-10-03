@@ -1,4 +1,4 @@
-// Courses d'un lobby : le texte est copié au départ, le « Go » est daté (CRS-1).
+// Courses d'un lobby : le texte et la minuterie sont copiés au départ, le « Go » et la fin sont datés (CRS-1, CRS-4).
 import { eq } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { races } from "../db/schema.ts";
@@ -18,6 +18,7 @@ export async function createRace(lobby: Lobby): Promise<Race | null> {
       textId: text.textId,
       content: text.content,
       language: lobby.textLanguage,
+      timeLimitSeconds: lobby.timeLimitSeconds,
       // L'hôte choisira le mode d'erreur avec l'interface de frappe (#56).
       errorMode: "blocking",
     })
@@ -27,4 +28,8 @@ export async function createRace(lobby: Lobby): Promise<Race | null> {
 
 export async function markRaceStarted(raceId: string) {
   await db.update(races).set({ startedAt: new Date() }).where(eq(races.id, raceId));
+}
+
+export async function markRaceEnded(raceId: string) {
+  await db.update(races).set({ endedAt: new Date() }).where(eq(races.id, raceId));
 }

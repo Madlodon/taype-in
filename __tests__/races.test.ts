@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { lobbies, races, texts, users } from "../db/schema";
 import { createLobby } from "../lib/lobbies";
-import { createRace, markRaceStarted } from "../lib/races";
+import { createRace, markRaceEnded, markRaceStarted } from "../lib/races";
 import { cutText } from "../lib/texts";
 
 // Utilisateurs créés par un test, supprimés après (avec leurs lobbys et courses).
@@ -67,4 +67,23 @@ test("Should_SetStartTime_When_RaceStarts", async () => {
 
   const [saved] = await db.select().from(races).where(eq(races.id, race!.id));
   expect(saved.startedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
+});
+
+test.each([
+  ["a timer", 600],
+  ["no timer", null],
+])("Should_CopyLobbyTimer_When_LobbyHas_%s", async (_, timeLimitSeconds) => {
+  const race = await createRace(await newLobby({ timeLimitSeconds }));
+
+  expect(race!.timeLimitSeconds).toBe(timeLimitSeconds);
+});
+
+test("Should_SetEndTime_When_RaceEnds", async () => {
+  const race = await createRace(await newLobby());
+  const before = Date.now();
+
+  await markRaceEnded(race!.id);
+
+  const [saved] = await db.select().from(races).where(eq(races.id, race!.id));
+  expect(saved.endedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
 });
