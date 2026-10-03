@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { GarageForm } from "../components/garage-form";
-import { DEFAULT_LOADOUT } from "../lib/garage-items";
+import { CARS, DEFAULT_LOADOUT } from "../lib/garage-items";
 import en from "../messages/en.json";
 
 function garage(guest = false) {
@@ -33,14 +33,40 @@ test("Should_OfferNoneForHatAndBall_But_NotForBoost", () => {
   expect(within(screen.getByRole("group", { name: "Boost" })).queryByLabelText("None")).toBeNull();
 });
 
-test("Should_ShowPlaceholder_When_CarModelIsNotDrawnYet", () => {
+test("Should_DrawDistinctBodies_When_ChoosingEachCar", () => {
   garage();
-  expect(screen.queryByText(en.Garage.placeholder)).toBeNull();
+  const drawings = new Set<string>();
+  for (const car of CARS) {
+    const name = en.Garage.items.car[car];
+    fireEvent.click(screen.getByLabelText(name));
+    const preview = screen.getByRole("img", { name: `${name} with Standard boost, hat: None, ball: None` });
+    const body = preview.querySelector(`[data-body="${car}"]`);
+    expect(body).toBeTruthy();
+    drawings.add(body!.innerHTML);
+    expect(preview.querySelector("[data-item=placeholder]")).toBeNull();
+    expect(new FormData(document.querySelector("form")!).get("car")).toBe(car);
+  }
+  expect(drawings.size).toBe(CARS.length);
+});
 
-  fireEvent.click(screen.getByLabelText("Fennec"));
+test.each(CARS)("Should_KeepAccessories_When_Selecting_%s", (car) => {
+  garage();
+  for (const item of ["Flames", "Traffic cone", "Beach ball", en.Garage.items.car[car]]) {
+    fireEvent.click(screen.getByLabelText(item));
+  }
+  const preview = screen.getByRole("img");
+  for (const item of ["flames", "cone", "beach"]) {
+    expect(preview.querySelector(`[data-item="${item}"]`)).toBeTruthy();
+  }
+  expect(preview.querySelector(`[data-body="${car}"]`)).toBeTruthy();
+});
 
-  expect(screen.getByText(en.Garage.placeholder)).toBeTruthy();
-  expect(document.querySelector("[data-item=placeholder]")).toBeTruthy();
+test.each(CARS)("Should_PreviewSavedBody_When_Loading_%s", (car) => {
+  render(<NextIntlClientProvider locale="en" messages={en}>
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, car }} guest={false} />
+  </NextIntlClientProvider>);
+  expect((screen.getByLabelText(en.Garage.items.car[car]) as HTMLInputElement).checked).toBe(true);
+  expect(screen.getByRole("img").querySelector(`[data-body="${car}"]`)).toBeTruthy();
 });
 
 test("Should_HideSaveButtonAndInviteToSignUp_When_UserIsGuest", () => {

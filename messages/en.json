@@ -287,7 +287,6 @@
     },
     "preview": "Preview",
     "previewLabel": "{car} with {boost} boost, hat: {hat}, ball: {ball}",
-    "placeholder": "This car's model is coming soon. Your choice is still saved.",
     "save": "Save my garage",
     "saved": "Garage saved.",
     "guestNotice": "Guests can try things on, but only registered drivers keep their garage.",

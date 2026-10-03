@@ -9,9 +9,6 @@ export const HATS = ["none", "cone"] as const;
 // « none » garde le ballon standard.
 export const BALLS = ["none", "beach"] as const;
 
-// Modèles pas encore dessinés : on affiche une silhouette.
-export const PLACEHOLDER_CARS: readonly Car[] = ["fennec", "dominus", "merc"];
-
 export type Car = (typeof CARS)[number];
 export type Loadout = { car: Car; boost: (typeof BOOSTS)[number]; hat: (typeof HATS)[number]; ball: (typeof BALLS)[number] };
 

@@ -287,7 +287,6 @@
     },
     "preview": "Aperçu",
     "previewLabel": "{car} avec le boost {boost}, chapeau : {hat}, ballon : {ball}",
-    "placeholder": "Le modèle de cette voiture arrive bientôt. Ton choix est quand même enregistré.",
     "save": "Enregistrer mon garage",
     "saved": "Garage enregistré.",
     "guestNotice": "Les invités peuvent essayer, mais seuls les pilotes inscrits gardent leur garage.",
