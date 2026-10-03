@@ -6,7 +6,10 @@ export type Ranked = RacePositionsMessage["positions"][number] & { rank: number 
 export const TOP = 10;
 
 // positions est déjà trié du premier au dernier ; un spectateur ne voit que le top 10.
-export function selectShown(positions: RacePositionsMessage["positions"], userId: string): Ranked[] {
+export function selectShown(
+  positions: RacePositionsMessage["positions"],
+  userId: string,
+): Ranked[] {
   const ranked = positions.map((entry, index) => ({ ...entry, rank: index + 1 }));
   const you = ranked.findIndex((entry) => entry.id === userId);
   const top = ranked.slice(0, TOP);
