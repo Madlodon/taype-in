@@ -81,6 +81,9 @@
       "idle": "Course terminée : personne n'a tapé depuis 2 minutes."
     },
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
+    "giveUp": "Abandonner",
+    "confirmGiveUp": "Abandonner la course ? Tu deviendras spectateur et ne pourras plus taper.",
+    "gaveUp": "Tu as abandonné : tu regardes la fin de la course.",
     "errors": {
       "notLoggedIn": "Non connecté",
       "invalidMessage": "Message invalide",
@@ -91,7 +94,8 @@
       "raceInProgress": "Une course est déjà en cours",
       "noText": "Aucun texte disponible dans cette langue",
       "raceNotRunning": "Aucune course en cours",
-      "notRacer": "Tu ne cours pas dans cette course"
+      "notRacer": "Tu ne cours pas dans cette course",
+      "cannotGiveUp": "Tu ne peux plus abandonner"
     }
   },
   "RaceTyping": {
