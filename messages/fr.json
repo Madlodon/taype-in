@@ -80,7 +80,9 @@
       "lobbyFull": "La course est pleine (300 participants)",
       "notEnoughParticipants": "Il faut au moins 2 participants",
       "raceInProgress": "Une course est déjà en cours",
-      "noText": "Aucun texte disponible dans cette langue"
+      "noText": "Aucun texte disponible dans cette langue",
+      "raceNotRunning": "Aucune course en cours",
+      "notRacer": "Tu ne cours pas dans cette course"
     }
   },
   "Invites": {

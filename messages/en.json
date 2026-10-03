@@ -80,7 +80,9 @@
       "lobbyFull": "The race is full (300 participants)",
       "notEnoughParticipants": "At least 2 participants are needed",
       "raceInProgress": "A race is already running",
-      "noText": "No text available in this language"
+      "noText": "No text available in this language",
+    "raceNotRunning": "No race is running",
+    "notRacer": "You are not racing in this race"
     }
   },
   "Invites": {
