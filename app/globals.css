@@ -734,6 +734,53 @@ a, button, input {
   background: var(--accent);
 }
 
+.race-board {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 16px;
+  align-items: start;
+}
+
+.car-tag {
+  font-size: 18px;
+  font-weight: 700;
+  fill: #e8eef9;
+  stroke: #0b1426;
+  stroke-width: 4px;
+  paint-order: stroke;
+}
+
+.ranking {
+  list-style: decimal inside;
+  font-size: 13px;
+}
+
+.ranking li {
+  padding: 6px 8px;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+
+.ranking li::marker {
+  color: var(--muted);
+}
+
+.ranking li span {
+  float: right;
+  margin-left: 6px;
+  color: var(--muted);
+}
+
+.ranking-you {
+  background: color-mix(in srgb, var(--primary) 15%, var(--surface));
+  font-weight: 700;
+}
+
+.ranking-gap {
+  margin-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
 .room-info {
   margin-top: 22px;
   padding: 16px;
@@ -916,7 +963,8 @@ a, button, input {
     width: calc(100% - 40px);
     padding-top: 32px;
   }
-  .split-layout {
+  .split-layout,
+  .race-board {
     grid-template-columns: 1fr;
   }
   .auth-layout {

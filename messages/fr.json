@@ -80,6 +80,9 @@
       "timeUp": "Course terminée : le temps est écoulé.",
       "idle": "Course terminée : personne n'a tapé depuis 2 minutes."
     },
+    "ranking": "Classement",
+    "you": "(toi)",
+    "percent": "{value} %",
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
     "giveUp": "Abandonner",
     "confirmGiveUp": "Abandonner la course ? Tu deviendras spectateur et ne pourras plus taper.",

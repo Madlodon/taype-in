@@ -256,6 +256,26 @@ test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser
   await expect(player.page.getByRole("status")).toHaveText("1 faute");
 });
 
+test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+
+  const ranking = host.page.getByRole("list", { name: "Classement" }).getByRole("listitem");
+  await expect(ranking).toHaveCount(2, { timeout: 8000 });
+  await expect(ranking.first()).toHaveText(`${host.name} (toi)0 %`);
+  const input = player.page.getByRole("textbox", { name: "Tape le texte" });
+  await expect(input).toBeFocused();
+  const text = (await player.page.locator(".typing-text").textContent())!;
+  await player.page.keyboard.type(text.slice(0, 10));
+
+  await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ %$`));
+  await expect(ranking.nth(1)).toHaveText(`${host.name} (toi)0 %`);
+});
+
 test("Should_ResumeAtExactPositionWithErrors_When_RacerReloadsMidRace", async ({ browser }) => {
   const host = await newGuest(browser);
   const code = await createRace(host.page, /Non répertoriée/);
