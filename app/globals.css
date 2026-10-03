@@ -314,6 +314,13 @@ a, button, input {
   background: color-mix(in srgb, var(--primary) 8%, var(--surface));
 }
 
+/* Gros bouton pleine largeur, ex. « Abandonner » pendant la course (CRS-7). */
+.btn-lg {
+  width: 100%;
+  min-height: 56px;
+  font-size: 16px;
+}
+
 .text-link {
   font-size: 12px;
   font-weight: 600;

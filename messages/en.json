@@ -84,6 +84,9 @@
     "you": "(you)",
     "percent": "{value}%",
     "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
+    "giveUp": "Give up",
+    "confirmGiveUp": "Give up the race? You'll become a spectator and won't be able to type anymore.",
+    "gaveUp": "You gave up: you're watching the rest of the race.",
     "errors": {
       "notLoggedIn": "Not logged in",
       "invalidMessage": "Invalid message",
@@ -94,7 +97,8 @@
       "raceInProgress": "A race is already running",
       "noText": "No text available in this language",
       "raceNotRunning": "No race is running",
-      "notRacer": "You are not racing in this race"
+      "notRacer": "You are not racing in this race",
+      "cannotGiveUp": "You can't give up anymore"
     }
   },
   "RaceTyping": {

@@ -13,6 +13,8 @@ const socket = {
   on: vi.fn((event: string, handler: Handler) => (handlers[event] = handler)),
   emit: vi.fn(),
   disconnect: vi.fn(),
+  // Vrai tant que Socket.IO essaie de se reconnecter.
+  active: false,
 };
 
 vi.mock("socket.io-client", () => ({ io: () => socket }));
@@ -21,12 +23,15 @@ const router = { replace: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 // u1 est l'hôte ; l'utilisateur courant est u1 s'il est hôte, sinon u2.
+// Le socket se connecte aussitôt rendu.
 function renderRoom(locale: "fr" | "en" = "fr", isHost = false) {
-  return render(
+  const result = render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
       <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} />
     </NextIntlClientProvider>,
   );
+  act(() => handlers["connect"]());
+  return result;
 }
 
 function sendParticipants() {
@@ -48,6 +53,7 @@ function listedNames() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  socket.active = false;
 });
 
 afterEach(() => {
@@ -216,9 +222,14 @@ test("Should_CountDownEachSecondAndWaitAtOne_When_CountdownRuns", () => {
   expect(screen.getByRole("timer").textContent).toBe("Départ dans 1");
 });
 
-function startRace(racerIds: string[], errorMode = "blocking", secondsLeft: number | null = null) {
+function startRace(
+  racerIds: string[],
+  errorMode = "blocking",
+  secondsLeft: number | null = null,
+  mine?: { typed: string; errors: number; gaveUp: boolean },
+) {
   act(() =>
-    handlers["race:started"]({ content: "Un texte court.", errorMode, racerIds, secondsLeft }),
+    handlers["race:started"]({ content: "Un texte court.", errorMode, racerIds, secondsLeft, mine }),
   );
 }
 
@@ -320,7 +331,7 @@ test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
   expect(startButton()).toBeNull();
 });
 
-test("Should_SendTypedLengthToServer_When_RacerTypes", () => {
+test("Should_SendTypedTextAndErrorsToServer_When_RacerTypes", () => {
   renderRoom();
   startRace(["u1", "u2"]);
 
@@ -328,7 +339,114 @@ test("Should_SendTypedLengthToServer_When_RacerTypes", () => {
     target: { value: "Un" },
   });
 
-  expect(socket.emit).toHaveBeenCalledWith("race:progress", { position: 2 });
+  expect(socket.emit).toHaveBeenCalledWith("race:progress", { typed: "Un", errors: 0 });
+});
+
+// Ack du dernier message envoyé sous ce nom.
+function lastAck(event: string) {
+  const call = socket.emit.mock.calls.findLast((args) => args[0] === event);
+  return call?.at(-1) as Handler;
+}
+
+const typingBox = () => screen.queryByRole("textbox", { name: "Tape le texte" });
+const giveUpButton = () => screen.queryByRole("button", { name: "Abandonner" });
+
+test("Should_NotShowError_When_ConnectionDropsAndSocketRetries", () => {
+  renderRoom();
+  socket.active = true;
+
+  act(() => handlers["connect_error"](new Error("websocket error")));
+
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("Should_RejoinAndResendTyping_When_Reconnected", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+  fireEvent.change(typingBox()!, { target: { value: "Un" } });
+  socket.emit.mockClear();
+
+  act(() => handlers["connect"]());
+  act(() => lastAck("lobby:join")({ ok: true }));
+
+  expect(socket.emit).toHaveBeenCalledWith("lobby:join", { code: "K7P3XM" }, expect.any(Function));
+  expect(socket.emit).toHaveBeenCalledWith("race:progress", { typed: "Un", errors: 0 });
+});
+
+test("Should_ResumeTypedTextAndErrors_When_RacerComesBack", () => {
+  renderRoom();
+
+  startRace(["u1", "u2"], "tolerant", null, { typed: "Un tx", errors: 1, gaveUp: false });
+
+  expect((typingBox() as HTMLTextAreaElement).value).toBe("Un tx");
+  expect(screen.getByRole("status").textContent).toBe("1 faute");
+});
+
+test("Should_KeepLocalTyping_When_ServerResendsRaceAfterShortDrop", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+  fireEvent.change(typingBox()!, { target: { value: "Un t" } });
+
+  startRace(["u1", "u2"], "blocking", null, { typed: "Un", errors: 0, gaveUp: false });
+
+  expect((typingBox() as HTMLTextAreaElement).value).toBe("Un t");
+});
+
+test("Should_BecomeSpectator_When_RacerConfirmsGiveUp", () => {
+  vi.stubGlobal("confirm", vi.fn(() => true));
+  renderRoom();
+  startRace(["u1", "u2"]);
+
+  fireEvent.click(giveUpButton()!);
+  act(() => lastAck("race:giveUp")({ ok: true }));
+
+  expect(typingBox()).toBeNull();
+  expect(screen.getByText(fr.LobbyRoom.gaveUp)).toBeTruthy();
+});
+
+test("Should_KeepRacing_When_GiveUpIsNotConfirmed", () => {
+  vi.stubGlobal("confirm", vi.fn(() => false));
+  renderRoom();
+  startRace(["u1", "u2"]);
+
+  fireEvent.click(giveUpButton()!);
+
+  expect(socket.emit).not.toHaveBeenCalledWith("race:giveUp", expect.any(Function));
+  expect(typingBox()).toBeTruthy();
+});
+
+test("Should_HideGiveUp_When_RacerHasFinished", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+
+  fireEvent.change(typingBox()!, { target: { value: "Un texte court." } });
+
+  expect(giveUpButton()).toBeNull();
+});
+
+test("Should_HideGiveUp_When_FinishedRacerComesBack", () => {
+  renderRoom();
+
+  startRace(["u1", "u2"], "blocking", null, { typed: "Un texte court.", errors: 0, gaveUp: false });
+
+  expect(giveUpButton()).toBeNull();
+});
+
+test("Should_StaySpectator_When_RacerWhoGaveUpComesBack", () => {
+  renderRoom();
+
+  startRace(["u1", "u2"], "blocking", null, { typed: "Un", errors: 0, gaveUp: true });
+
+  expect(typingBox()).toBeNull();
+  expect(screen.getByText(fr.LobbyRoom.gaveUp)).toBeTruthy();
+});
+
+test("Should_ShowGiveUpInEnglish_When_LocaleIsEnglish", () => {
+  renderRoom("en");
+
+  startRace(["u1", "u2"]);
+
+  expect(screen.getByRole("button", { name: "Give up" })).toBeTruthy();
 });
 
 // Classement de `count` coureurs : r1 en tête ; u2 (l'utilisateur courant) est au rang `userRank`.

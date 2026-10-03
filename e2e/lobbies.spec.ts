@@ -275,3 +275,42 @@ test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser
   await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ %$`));
   await expect(ranking.nth(1)).toHaveText(`${host.name} (toi)0 %`);
 });
+
+test("Should_ResumeAtExactPositionWithErrors_When_RacerReloadsMidRace", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  const input = player.page.getByRole("textbox", { name: "Tape le texte" });
+  await expect(input).toBeFocused({ timeout: 8000 });
+  const text = (await player.page.locator(".typing-text").textContent())!;
+  await player.page.keyboard.type(`${text.slice(0, 5)}~`);
+  await expect(player.page.getByRole("status")).toHaveText("1 faute");
+
+  await player.page.reload();
+
+  await expect(input).toHaveValue(text.slice(0, 5));
+  await expect(player.page.getByRole("status")).toHaveText("1 faute");
+  await player.page.keyboard.type(text[5]);
+  await expect(input).toHaveValue(text.slice(0, 6));
+});
+
+test("Should_BecomeSpectator_When_RacerGivesUp", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  const input = player.page.getByRole("textbox", { name: "Tape le texte" });
+  await expect(input).toBeVisible({ timeout: 8000 });
+
+  player.page.once("dialog", (dialog) => dialog.accept());
+  await player.page.getByRole("button", { name: "Abandonner" }).click();
+
+  await expect(input).toHaveCount(0);
+  await expect(player.page.getByText("Tu as abandonné")).toBeVisible();
+  await expect(host.page.getByRole("textbox", { name: "Tape le texte" })).toBeVisible();
+});

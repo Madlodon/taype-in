@@ -2,14 +2,19 @@ import { afterEach, expect, test } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { RaceTyping } from "../components/race-typing";
-import type { ErrorMode } from "../lib/typing";
+import type { ErrorMode, Typing } from "../lib/typing";
 import en from "../messages/en.json";
 import fr from "../messages/fr.json";
 
-function renderTyping(errorMode: ErrorMode, content = "chat", locale: "fr" | "en" = "fr") {
+function renderTyping(
+  errorMode: ErrorMode,
+  content = "chat",
+  locale: "fr" | "en" = "fr",
+  initial?: Typing,
+) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <RaceTyping content={content} errorMode={errorMode} />
+      <RaceTyping content={content} errorMode={errorMode} initial={initial} />
     </NextIntlClientProvider>,
   );
   return screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -112,4 +117,27 @@ test("Should_WaitForComposedLetter_When_AccentIsTypedWithDeadKey", () => {
 
   expect(input.value).toBe("ê");
   expect(status()).toBe("Aucune faute");
+});
+
+test("Should_ResumeTypedTextMistakesAndErrors_When_InitialTypingIsGiven", () => {
+  const input = renderTyping("tolerant", "chat", "fr", { typed: "cx", errors: 3, blocked: false });
+
+  expect(input.value).toBe("cx");
+  expect(wrongLetters()).toEqual(["h"]);
+  expect(status()).toBe("3 fautes");
+});
+
+test("Should_ContinueFromResumedText_When_RacerTypesAgain", () => {
+  const input = renderTyping("blocking", "chat", "fr", { typed: "ch", errors: 1, blocked: false });
+
+  type(input, "cha");
+
+  expect(input.value).toBe("cha");
+  expect(status()).toBe("1 faute");
+});
+
+test("Should_PutCursorAtEnd_When_ResumedFieldGetsFocus", () => {
+  const input = renderTyping("blocking", "chat", "fr", { typed: "ch", errors: 0, blocked: false });
+
+  expect(input.selectionStart).toBe(2);
 });

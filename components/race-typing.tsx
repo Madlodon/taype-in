@@ -2,16 +2,21 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { applyInput, EMPTY_TYPING, type ErrorMode } from "@/lib/typing";
+import { applyInput, EMPTY_TYPING, type ErrorMode, type Typing } from "@/lib/typing";
 
-// onProgress reçoit le nombre de caractères tapés après chaque frappe.
-type Props = { content: string; errorMode: ErrorMode; onProgress?: (position: number) => void };
+// onProgress reçoit la saisie après chaque frappe ; initial = saisie reprise après une reconnexion (CRS-6).
+type Props = {
+  content: string;
+  errorMode: ErrorMode;
+  initial?: Typing;
+  onProgress?: (typing: Typing) => void;
+};
 
 // Zone de frappe pendant la course : seulement le texte, le champ et les fautes (CRS-8).
 // Le caractère fautif est mis en évidence (ERR-2).
-export function RaceTyping({ content, errorMode, onProgress }: Props) {
+export function RaceTyping({ content, errorMode, initial = EMPTY_TYPING, onProgress }: Props) {
   const t = useTranslations("RaceTyping");
-  const [typing, setTyping] = useState(EMPTY_TYPING);
+  const [typing, setTyping] = useState(initial);
   // Pendant une composition (accent circonflexe, tréma…), le champ garde la saisie en cours.
   const [draft, setDraft] = useState<string>();
   const finished = typing.typed.length === content.length;
@@ -20,7 +25,7 @@ export function RaceTyping({ content, errorMode, onProgress }: Props) {
     setDraft(undefined);
     const next = applyInput(typing, content, errorMode, value);
     setTyping(next);
-    onProgress?.(next.typed.length);
+    onProgress?.(next);
   }
 
   function letterClass(index: number) {
@@ -55,6 +60,11 @@ export function RaceTyping({ content, errorMode, onProgress }: Props) {
             : update(event.target.value)
         }
         onCompositionEnd={(event) => update(event.currentTarget.value)}
+        // Saisie reprise après une reconnexion : on continue à la fin, pas au début (CRS-6).
+        onFocus={(event) => {
+          const end = event.currentTarget.value.length;
+          event.currentTarget.setSelectionRange(end, end);
+        }}
         readOnly={finished}
         autoFocus
         autoComplete="off"
