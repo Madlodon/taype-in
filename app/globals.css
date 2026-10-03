@@ -842,8 +842,11 @@ a, button, input {
   order: 3;
 }
 
-/* Classement complet (FIN-2) ; défile de côté sur un petit écran. */
+/* Classement complet (FIN-2) ; défile de côté sur un petit écran.
+   width: 0 + min-width: 100% : le tableau n'élargit pas la colonne de la page. */
 .results-scroll {
+  width: 0;
+  min-width: 100%;
   overflow-x: auto;
 }
 
@@ -875,9 +878,10 @@ a, button, input {
 }
 
 .results-table th:nth-child(2) {
+  min-width: 10ch;
   text-align: left;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .room-info {
