@@ -21,7 +21,7 @@ La course reste individuelle, chacun pour soi (CRS-2, FIN-1, Q-7).
 Pour plus tard :
 
 - Mode par équipes, deux équipes au hasard et un ballon commun ([#33](https://github.com/Madlodon/taype-in/issues/33)).
-- Garage : choix de la carrosserie et de la couleur dans le lobby, purement esthétique ([#34](https://github.com/Madlodon/taype-in/issues/34)).
+- Garage : page `/garage` pour choisir la voiture (Octane, Fennec, Dominus, Merc), le boost, le chapeau et le ballon, purement esthétique ; Fennec, Dominus et Merc sont encore des silhouettes ([#34](https://github.com/Madlodon/taype-in/issues/34)).
 - Récompenses : chapeaux et styles de boost débloqués par niveau ([#35](https://github.com/Madlodon/taype-in/issues/35)).
 - Autres caméras à essayer : vue du dessus avec les murs dépliés, ou caméra qui suit ta voiture avec une mini-carte.
 

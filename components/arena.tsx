@@ -1,4 +1,5 @@
 import { useId } from "react";
+import type { Loadout } from "@/lib/garage-items";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
 export function arenaPosition(progress: number) {
@@ -14,23 +15,59 @@ export function arenaPosition(progress: number) {
   return { x: a[1] + (b[1] - a[1]) * fraction, y: a[2] + (b[2] - a[2]) * fraction, angle: Math.atan2(b[2] - a[2], b[1] - a[1]) * 180 / Math.PI };
 }
 
-function Car({ x, y, angle = 0, orange = false }: { x: number; y: number; angle?: number; orange?: boolean }) {
+// Le garage (#34) choisit le boost, le chapeau et le ballon ; sans ces props, la voiture de base.
+type CarProps = {
+  x: number;
+  y: number;
+  angle?: number;
+  orange?: boolean;
+  placeholder?: boolean;
+  boost?: Loadout["boost"];
+  hat?: Loadout["hat"];
+  ball?: Loadout["ball"];
+};
+
+export function Car({ x, y, angle = 0, orange = false, placeholder = false, boost = "standard", hat = "none", ball = "none" }: CarProps) {
   return (
     <g transform={`translate(${x} ${y}) rotate(${angle})`}>
       <ellipse cx="0" cy="16" rx="44" ry="8" fill="#020617" opacity=".35" />
-      <path d="M-35 2 L-110 7 L-48 13 L-135 15 L-35 20Z" fill={orange ? "#ffaf54" : "#65b7ff"} opacity=".45" />
-      <path d="M-37 4 L-29-11 L-4-17 L16-7 L34-3 L40 10 L28 17 L-31 16Z" fill={orange ? "#f89840" : "#559bff"} stroke="#122e50" strokeWidth="2" />
-      <path d="M-24-10 L-5-13 L10-5 L-28-2Z" fill="#142941" />
-      <path d="M-33 1 L31 2 M-2 3 L1 14" stroke={orange ? "#ffd79b" : "#a9d8ff"} strokeWidth="3" />
-      <path d="M-40-7 L-28-7 L-27 0 L-40-1Z" fill={orange ? "#ce631e" : "#2a69bf"} />
-      <circle cx="-22" cy="14" r="10" fill="#0b1426" />
-      <circle cx="25" cy="14" r="10" fill="#0b1426" />
-      <circle cx="-22" cy="14" r="5" fill="#bdcfe6" />
-      <circle cx="25" cy="14" r="5" fill="#bdcfe6" />
-      <path d="M32 3 L39 5" stroke="#eaf7ff" strokeWidth="4" />
+      {boost === "flames" ? <g data-item="flames">
+        <path d="M-35 0 Q-80-8-128 8 Q-82 11-60 12 Q-92 20-120 26 Q-70 24-35 20Z" fill="#ff4d1f" opacity=".85" />
+        <path d="M-35 5 Q-66 1-96 11 Q-64 15-35 17Z" fill="#ffd23f" />
+      </g> : <path d="M-35 2 L-110 7 L-48 13 L-135 15 L-35 20Z" fill={orange ? "#ffaf54" : "#65b7ff"} opacity=".45" />}
+      {placeholder ? <g data-item="placeholder">
+        {/* Modèle pas encore dessiné : silhouette en pointillé. */}
+        <path d="M-37 4 L-29-11 L-4-17 L16-7 L34-3 L40 10 L28 17 L-31 16Z" fill="#1e3a5f" fillOpacity=".5" stroke="#9bb4d0" strokeWidth="2" strokeDasharray="5 4" />
+        <text x="2" y="9" textAnchor="middle" fontSize="20" fontWeight="700" fill="#cfe3f7">?</text>
+        <circle cx="-22" cy="14" r="10" fill="#0b1426" stroke="#9bb4d0" strokeWidth="2" strokeDasharray="4 3" />
+        <circle cx="25" cy="14" r="10" fill="#0b1426" stroke="#9bb4d0" strokeWidth="2" strokeDasharray="4 3" />
+      </g> : <>
+        <path d="M-37 4 L-29-11 L-4-17 L16-7 L34-3 L40 10 L28 17 L-31 16Z" fill={orange ? "#f89840" : "#559bff"} stroke="#122e50" strokeWidth="2" />
+        <path d="M-24-10 L-5-13 L10-5 L-28-2Z" fill="#142941" />
+        <path d="M-33 1 L31 2 M-2 3 L1 14" stroke={orange ? "#ffd79b" : "#a9d8ff"} strokeWidth="3" />
+        <path d="M-40-7 L-28-7 L-27 0 L-40-1Z" fill={orange ? "#ce631e" : "#2a69bf"} />
+        <circle cx="-22" cy="14" r="10" fill="#0b1426" />
+        <circle cx="25" cy="14" r="10" fill="#0b1426" />
+        <circle cx="-22" cy="14" r="5" fill="#bdcfe6" />
+        <circle cx="25" cy="14" r="5" fill="#bdcfe6" />
+        <path d="M32 3 L39 5" stroke="#eaf7ff" strokeWidth="4" />
+      </>}
+      {hat === "cone" && <g data-item="cone" transform="translate(-6 -15)">
+        <rect x="-11" y="-3" width="22" height="4" rx="1" fill="#f97316" />
+        <path d="M-7-3 L-2-26 L2-26 L7-3Z" fill="#f97316" />
+        <path d="M-5.3-10 L5.3-10 L4.4-15 L-4.4-15Z" fill="#fff" />
+      </g>}
       <g transform="translate(65 -2)">
-        <circle r="16" fill="#e9f1fb" stroke="#9bacbf" strokeWidth="2" />
-        <path d="M-5-7 L5-7 L9 2 L0 8 L-9 2Z M-5-7 L-8-13 M5-7 L10-12 M9 2 L15 5 M0 8 L0 15 M-9 2 L-15 5" fill="#7890ab" stroke="#7890ab" strokeWidth="2" />
+        {ball === "beach" ? <g data-item="beach">
+          <circle r="16" fill="#f8fafc" stroke="#9bacbf" strokeWidth="2" />
+          <path d="M0 0 L0-16 A16 16 0 0 1 13.86-8Z" fill="#ef4444" />
+          <path d="M0 0 L13.86 8 A16 16 0 0 1 0 16Z" fill="#3b82f6" />
+          <path d="M0 0 L-13.86 8 A16 16 0 0 1 -13.86-8Z" fill="#facc15" />
+          <circle r="3" fill="#f8fafc" />
+        </g> : <>
+          <circle r="16" fill="#e9f1fb" stroke="#9bacbf" strokeWidth="2" />
+          <path d="M-5-7 L5-7 L9 2 L0 8 L-9 2Z M-5-7 L-8-13 M5-7 L10-12 M9 2 L15 5 M0 8 L0 15 M-9 2 L-15 5" fill="#7890ab" stroke="#7890ab" strokeWidth="2" />
+        </>}
       </g>
     </g>
   );

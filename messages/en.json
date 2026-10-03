@@ -205,7 +205,8 @@
     "nextUp": "On the starting line",
     "raceComing": "You can gather in this room now. Multiplayer racing is still in development.",
     "previewSeparate": "Want to test the driving concept? The solo preview runs separately from this room.",
-    "myProfile": "My profile"
+    "myProfile": "My profile",
+    "garage": "Garage"
   },
   "Race": {
     "title": "Meet your new racetrack.",
@@ -253,5 +254,47 @@
     "noHardKeys": "No errors recorded.",
     "space": "Space",
     "errors": "{count, plural, one {# error} other {# errors}}"
+  },
+  "Garage": {
+    "tag": "Your ride. Your style.",
+    "title": "Garage",
+    "description": "Pick your car and dress it up. Purely cosmetic: it never changes your speed.",
+    "categories": {
+      "car": "Car",
+      "boost": "Boost",
+      "hat": "Hat",
+      "ball": "Ball"
+    },
+    "items": {
+      "car": {
+        "octane": "Octane",
+        "fennec": "Fennec",
+        "dominus": "Dominus",
+        "merc": "Merc"
+      },
+      "boost": {
+        "standard": "Standard",
+        "flames": "Flames"
+      },
+      "hat": {
+        "none": "None",
+        "cone": "Traffic cone"
+      },
+      "ball": {
+        "none": "None",
+        "beach": "Beach ball"
+      }
+    },
+    "preview": "Preview",
+    "previewLabel": "{car} with {boost} boost, hat: {hat}, ball: {ball}",
+    "placeholder": "This car's model is coming soon. Your choice is still saved.",
+    "save": "Save my garage",
+    "saved": "Garage saved.",
+    "guestNotice": "Guests can try things on, but only registered drivers keep their garage.",
+    "signUp": "Create an account",
+    "errors": {
+      "guest": "Create an account to save your garage.",
+      "invalid": "This item doesn't exist."
+    }
   }
 }

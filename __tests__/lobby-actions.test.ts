@@ -36,6 +36,10 @@ const aGuest = {
   username: "Invité-123456",
   passwordHash: null,
   isGuest: true,
+  car: "octane",
+  boost: "standard",
+  hat: "none",
+  ball: "none",
   createdAt: new Date(),
 };
 const aLobby = {

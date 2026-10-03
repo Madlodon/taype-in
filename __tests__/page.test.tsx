@@ -14,6 +14,10 @@ const aUser = {
   username: "alex",
   passwordHash: "hash",
   isGuest: false,
+  car: "octane",
+  boost: "standard",
+  hat: "none",
+  ball: "none",
   createdAt: new Date(),
 };
 

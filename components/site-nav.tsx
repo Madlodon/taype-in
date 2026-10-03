@@ -8,7 +8,7 @@ import { useTranslations } from "next-intl";
 export function SiteNav({ username }: { username?: string }) {
   const pathname = usePathname();
   const t = useTranslations("Design");
-  const links = [["/", "home"], ["/lobbies", "play"], ["/race", "preview"]];
+  const links = [["/", "home"], ["/lobbies", "play"], ["/race", "preview"], ["/garage", "garage"]];
   if (username) links.push([`/profile/${username}`, "myProfile"]);
   return <nav className="site-nav" aria-label={t("navigation")}>
     {links.map(([href, label]) => (
