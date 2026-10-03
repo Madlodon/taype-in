@@ -2,6 +2,7 @@ import { useId } from "react";
 import { CarBall } from "@/components/car-ball";
 import { CarHat } from "@/components/car-hat";
 import { CarBoost } from "@/components/car-boost";
+import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
@@ -35,14 +36,7 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
     <g transform={`translate(${x} ${y}) rotate(${angle})`}>
       <ellipse cx="0" cy="16" rx="44" ry="8" fill="#020617" opacity=".35" />
       <CarBoost boost={boost} />
-      <g data-body={body}>
-        {body === "octane" && <>
-          <path d="M-37 4 L-29-11 L-4-17 L16-7 L34-3 L40 10 L28 17 L-31 16Z" fill={orange ? "#f89840" : "#559bff"} stroke="#122e50" strokeWidth="2" />
-          <path d="M-24-10 L-5-13 L10-5 L-28-2Z" fill="#142941" />
-          <path d="M-33 1 L31 2 M-2 3 L1 14" stroke={orange ? "#ffd79b" : "#a9d8ff"} strokeWidth="3" />
-          <path d="M-40-7 L-28-7 L-27 0 L-40-1Z" fill={orange ? "#ce631e" : "#2a69bf"} />
-          <path d="M32 3 L39 5" stroke="#eaf7ff" strokeWidth="4" />
-        </>}
+      {body === "octane" ? <CarBody orange={orange} /> : <g data-body={body}>
         {body === "fennec" && <>
           <path d="M-38 13 L-38-7 L-30-21 L3-21 L18-7 L35-5 L40 1 L40 14Z" fill={orange ? "#f89840" : "#559bff"} stroke="#122e50" strokeWidth="2" />
           <path d="M-29-17 H-14 V-7 H-34Z M-10-17 H1 L12-7 H-10Z" fill="#142941" />
@@ -72,7 +66,7 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
         <circle cx={body === "dominus" ? 31 : 25} cy="14" r="10" fill="#0b1426" />
         <circle cx={body === "dominus" ? -29 : -22} cy="14" r="5" fill="#bdcfe6" />
         <circle cx={body === "dominus" ? 31 : 25} cy="14" r="5" fill="#bdcfe6" />
-      </g>
+      </g>}
       <CarHat hat={hat} body={body} />
       <CarBall ball={ball} />
     </g>

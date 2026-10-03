@@ -6,7 +6,7 @@ export function CarHat({ hat, body }: Pick<Loadout, "hat"> & { body: Loadout["ca
   if (hat === "none") return null;
   const paint = (name: string) => `url(#${id}-${name})`;
 
-  return <g data-item={hat} transform={`translate(-6 ${{ octane: -15, fennec: -21, dominus: -16, merc: -29 }[body]})`}>
+  return <g data-item={hat} transform={`translate(-6 ${{ octane: -21, fennec: -21, dominus: -16, merc: -29 }[body]})`}>
     <defs>
       <linearGradient id={`${id}-gold`} x1="0" y1="0" x2="1" y2=".7">
         <stop stopColor="#80501a" /><stop offset=".28" stopColor="#efbd4e" /><stop offset=".48" stopColor="#fff0a0" /><stop offset=".68" stopColor="#d69b27" /><stop offset="1" stopColor="#805016" />
