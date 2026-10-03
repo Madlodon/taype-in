@@ -232,5 +232,47 @@
     "serverErrorTitle": "Panne de moteur.",
     "serverErrorDescription": "Un problème est survenu de notre côté. Réessaie dans un instant.",
     "tryAgain": "Réessayer"
+  },
+  "Garage": {
+    "tag": "Ton bolide. Ton style.",
+    "title": "Garage",
+    "description": "Choisis ta voiture et personnalise-la. Purement esthétique : ta vitesse ne change jamais.",
+    "categories": {
+      "car": "Voiture",
+      "boost": "Boost",
+      "hat": "Chapeau",
+      "ball": "Ballon"
+    },
+    "items": {
+      "car": {
+        "octane": "Octane",
+        "fennec": "Fennec",
+        "dominus": "Dominus",
+        "merc": "Merc"
+      },
+      "boost": {
+        "standard": "Standard",
+        "flames": "Flammes"
+      },
+      "hat": {
+        "none": "Aucun",
+        "cone": "Cône orange"
+      },
+      "ball": {
+        "none": "Aucun",
+        "beach": "Ballon de plage"
+      }
+    },
+    "preview": "Aperçu",
+    "previewLabel": "{car} avec le boost {boost}, chapeau : {hat}, ballon : {ball}",
+    "placeholder": "Le modèle de cette voiture arrive bientôt. Ton choix est quand même enregistré.",
+    "save": "Enregistrer mon garage",
+    "saved": "Garage enregistré.",
+    "guestNotice": "Les invités peuvent essayer, mais seuls les pilotes inscrits gardent leur garage.",
+    "signUp": "Créer un compte",
+    "errors": {
+      "guest": "Crée un compte pour enregistrer ton garage.",
+      "invalid": "Cet objet n'existe pas."
+    }
   }
 }

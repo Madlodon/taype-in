@@ -686,6 +686,19 @@ a, button, input {
   flex-shrink: 0;
 }
 
+.garage-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0 12px;
+}
+
+.garage-preview {
+  width: 100%;
+  height: auto;
+  background: linear-gradient(#102443, #233d5c);
+  border-radius: 8px;
+}
+
 .room-code {
   font-size: 11px;
   color: var(--muted);
@@ -1069,6 +1082,10 @@ a, button, input {
   .split-layout,
   .race-board {
     grid-template-columns: 1fr;
+  }
+  /* Sur une colonne, l'aperçu du garage passe au-dessus des choix. */
+  .garage-preview-panel {
+    order: -1;
   }
   .auth-layout {
     grid-template-columns: 1fr;

@@ -232,5 +232,47 @@
     "serverErrorTitle": "Engine failure.",
     "serverErrorDescription": "Something went wrong on our side. Try again in a moment.",
     "tryAgain": "Try again"
+  },
+  "Garage": {
+    "tag": "Your ride. Your style.",
+    "title": "Garage",
+    "description": "Pick your car and dress it up. Purely cosmetic: it never changes your speed.",
+    "categories": {
+      "car": "Car",
+      "boost": "Boost",
+      "hat": "Hat",
+      "ball": "Ball"
+    },
+    "items": {
+      "car": {
+        "octane": "Octane",
+        "fennec": "Fennec",
+        "dominus": "Dominus",
+        "merc": "Merc"
+      },
+      "boost": {
+        "standard": "Standard",
+        "flames": "Flames"
+      },
+      "hat": {
+        "none": "None",
+        "cone": "Traffic cone"
+      },
+      "ball": {
+        "none": "None",
+        "beach": "Beach ball"
+      }
+    },
+    "preview": "Preview",
+    "previewLabel": "{car} with {boost} boost, hat: {hat}, ball: {ball}",
+    "placeholder": "This car's model is coming soon. Your choice is still saved.",
+    "save": "Save my garage",
+    "saved": "Garage saved.",
+    "guestNotice": "Guests can try things on, but only registered drivers keep their garage.",
+    "signUp": "Create an account",
+    "errors": {
+      "guest": "Create an account to save your garage.",
+      "invalid": "This item doesn't exist."
+    }
   }
 }
