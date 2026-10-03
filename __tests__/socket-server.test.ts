@@ -23,6 +23,7 @@ import type {
   CountdownMessage,
   ParticipantsMessage,
   RaceEndedMessage,
+  RacePositionsMessage,
   RaceStartedMessage,
 } from "../lib/socket-messages";
 
@@ -562,6 +563,113 @@ describe("race:progress", () => {
   });
 });
 
+// Attend le classement qui remplit la condition (les positions partent par paquets).
+function positionsWhere(
+  client: Socket,
+  check: (message: RacePositionsMessage) => boolean,
+): Promise<RacePositionsMessage> {
+  return new Promise((resolve) => {
+    const listener = (message: RacePositionsMessage) => {
+      if (!check(message)) return;
+      client.off("race:positions", listener);
+      resolve(message);
+    };
+    client.on("race:positions", listener);
+  });
+}
+
+const summary = (message: RacePositionsMessage) =>
+  message.positions.map(({ id, position }) => [id, position]);
+
+describe("race:positions", () => {
+  test("Should_SendEveryRacerAtZeroWithName_When_RaceStarts", async () => {
+    const { host, guest, guestClient, hostClient } = await lobbyWithTwo();
+    const guestSees = next<RacePositionsMessage>(guestClient, "race:positions");
+
+    await startRace(hostClient);
+
+    expect(await guestSees).toEqual({
+      positions: [
+        { id: host.id, username: host.username, position: 0 },
+        { id: guest.id, username: guest.username, position: 0 },
+      ],
+    });
+  });
+
+  test("Should_RankFurthestRacerFirst_When_RacersType", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+    const hostSees = positionsWhere(hostClient, (message) => message.positions[0].position > 0);
+
+    await progress(guestClient, { position: 3 });
+
+    expect(summary(await hostSees)).toEqual([
+      [guest.id, 3],
+      [host.id, 0],
+    ]);
+  });
+
+  test("Should_RankFirstToArriveAhead_When_RacersAreTied", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+    const hostSees = positionsWhere(hostClient, (message) =>
+      message.positions.every(({ position }) => position === 2),
+    );
+
+    await progress(guestClient, { position: 2 });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await progress(hostClient, { position: 2 });
+
+    expect(summary(await hostSees)).toEqual([
+      [guest.id, 2],
+      [host.id, 2],
+    ]);
+  });
+
+  test("Should_NotSendAgain_When_NobodyMoved", async () => {
+    const { hostClient, guestClient } = await lobbyWithTwo();
+    const first = next(guestClient, "race:positions");
+    await startRace(hostClient);
+    await first;
+    let sent = 0;
+    guestClient.on("race:positions", () => sent++);
+
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    expect(sent).toBe(0);
+  });
+
+  test("Should_SendCurrentPositions_When_PlayerJoinsDuringRace", async () => {
+    const { host, lobby, hostClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+    await progress(hostClient, { position: 4 });
+    const late = await newClient();
+    const lateSees = next<RacePositionsMessage>(late, "race:positions");
+
+    await join(late, { code: lobby.code });
+
+    expect(summary(await lateSees)[0]).toEqual([host.id, 4]);
+  });
+
+  test("Should_SendFinalPositionsBeforeEnd_When_LastRacerFinishes", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    let last: RacePositionsMessage | undefined;
+    hostClient.on("race:positions", (message: RacePositionsMessage) => (last = message));
+    const ended = next(hostClient, "race:ended");
+
+    await progress(guestClient, { position: content.length });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await progress(hostClient, { position: content.length });
+    await ended;
+
+    expect(summary(last!)).toEqual([
+      [guest.id, content.length],
+      [host.id, content.length],
+    ]);
+  });
+});
+
 describe("lobby:close", () => {
   test("Should_AckRaceInProgressAndKeepLobbyOpen_When_RaceHasStarted", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
@@ -660,8 +768,6 @@ describe("disconnect", () => {
     firstTab.disconnect();
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    expect(await listParticipants(lobby.id)).toEqual([
-      { id: guest.id, username: guest.username },
-    ]);
+    expect(await listParticipants(lobby.id)).toEqual([{ id: guest.id, username: guest.username }]);
   });
 });

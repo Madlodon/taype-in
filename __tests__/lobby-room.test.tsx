@@ -59,11 +59,7 @@ afterEach(() => {
 test("Should_JoinLobbyByCode_When_Mounted", () => {
   renderRoom();
 
-  expect(socket.emit).toHaveBeenCalledWith(
-    "lobby:join",
-    { code: "K7P3XM" },
-    expect.any(Function),
-  );
+  expect(socket.emit).toHaveBeenCalledWith("lobby:join", { code: "K7P3XM" }, expect.any(Function));
 });
 
 test("Should_ShowParticipantsAndMarkHost_When_ServerSendsList", () => {
@@ -114,7 +110,10 @@ test("Should_NotShowCloseButton_When_UserIsNotHost", () => {
 });
 
 test("Should_AskServerToClose_When_HostConfirms", () => {
-  vi.stubGlobal("confirm", vi.fn(() => true));
+  vi.stubGlobal(
+    "confirm",
+    vi.fn(() => true),
+  );
   renderRoom("fr", true);
 
   fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
@@ -123,7 +122,10 @@ test("Should_AskServerToClose_When_HostConfirms", () => {
 });
 
 test("Should_NotClose_When_HostCancelsConfirmation", () => {
-  vi.stubGlobal("confirm", vi.fn(() => false));
+  vi.stubGlobal(
+    "confirm",
+    vi.fn(() => false),
+  );
   renderRoom("fr", true);
 
   fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
@@ -132,7 +134,10 @@ test("Should_NotClose_When_HostCancelsConfirmation", () => {
 });
 
 test("Should_ShowError_When_CloseIsRefused", () => {
-  vi.stubGlobal("confirm", vi.fn(() => true));
+  vi.stubGlobal(
+    "confirm",
+    vi.fn(() => true),
+  );
   renderRoom("fr", true);
   fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
   const ack = socket.emit.mock.calls[1][1] as Handler;
@@ -165,9 +170,7 @@ test("Should_DisableStartAndExplain_When_HostIsAlone", () => {
   act(() => handlers["lobby:participants"]({ participants: [{ id: "u1", username: "alex" }] }));
 
   expect(startButton()!.hasAttribute("disabled")).toBe(true);
-  expect(
-    screen.getByText("Il faut au moins 2 participants pour lancer la course."),
-  ).toBeTruthy();
+  expect(screen.getByText("Il faut au moins 2 participants pour lancer la course.")).toBeTruthy();
 });
 
 test("Should_AskServerToStart_When_HostClicksStart", () => {
@@ -326,4 +329,115 @@ test("Should_SendTypedLengthToServer_When_RacerTypes", () => {
   });
 
   expect(socket.emit).toHaveBeenCalledWith("race:progress", { position: 2 });
+});
+
+// Classement de `count` coureurs : r1 en tête ; u2 (l'utilisateur courant) est au rang `userRank`.
+function sendPositions(count: number, userRank: number) {
+  const positions = Array.from({ length: count }, (_, index) => ({
+    id: index + 1 === userRank ? "u2" : `r${index + 1}`,
+    username: index + 1 === userRank ? "moi" : `joueur${index + 1}`,
+    position: count - index - 1,
+  }));
+  act(() => handlers["race:positions"]({ positions }));
+}
+
+function ranking() {
+  return within(screen.getByRole("list", { name: "Classement" })).getAllByRole("listitem");
+}
+
+test("Should_ShowRankingWithProgress_When_ServerSendsPositions", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+
+  act(() =>
+    handlers["race:positions"]({
+      positions: [
+        { id: "u1", username: "alex", position: 3 },
+        { id: "u2", username: "moi", position: 0 },
+      ],
+    }),
+  );
+
+  expect(ranking().map((item) => item.textContent)).toEqual(["alex20 %", "moi (toi)0 %"]);
+});
+
+test("Should_UpdateRanking_When_NewPositionsArrive", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+  sendPositions(2, 2);
+
+  sendPositions(2, 1);
+
+  expect(ranking()[0].textContent).toBe("moi (toi)7 %");
+});
+
+test("Should_ShowTopTenAndNeighbours_When_UserIsFarBehind", () => {
+  renderRoom();
+  startRace(["u2"]);
+
+  sendPositions(30, 15);
+
+  expect(ranking().map((item) => item.getAttribute("value"))).toEqual([
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "14",
+    "15",
+    "16",
+  ]);
+  expect(ranking()[10].className).toContain("ranking-gap");
+  expect(ranking()[11].className).toContain("ranking-you");
+});
+
+test("Should_ShowOnlyTopTen_When_UserIsSpectating", () => {
+  renderRoom();
+  startRace(["u1", "u3"]);
+
+  sendPositions(30, 0);
+
+  expect(ranking()).toHaveLength(10);
+});
+
+test("Should_DrawOneCarTagPerShownPlayer_When_ServerSendsPositions", () => {
+  const { container } = renderRoom();
+  startRace(["u2"]);
+
+  sendPositions(30, 15);
+
+  expect(container.querySelectorAll(".car-tag")).toHaveLength(13);
+});
+
+test("Should_KeepRanking_When_RaceHasEnded", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+  sendPositions(2, 1);
+
+  act(() => handlers["race:ended"]({ reason: "allFinished" }));
+
+  expect(ranking()).toHaveLength(2);
+});
+
+test("Should_ShowNoRanking_When_RaceHasNotStarted", () => {
+  renderRoom();
+  sendParticipants();
+
+  expect(screen.queryByRole("list", { name: "Classement" })).toBeNull();
+});
+
+test("Should_ShowRankingInEnglish_When_LocaleIsEnglish", () => {
+  renderRoom("en");
+  startRace(["u1", "u2"]);
+
+  sendPositions(2, 2);
+
+  expect(
+    within(screen.getByRole("list", { name: "Ranking" })).getAllByRole("listitem")[1].textContent,
+  ).toBe("moi (you)0%");
 });

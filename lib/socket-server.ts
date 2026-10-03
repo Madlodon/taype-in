@@ -22,6 +22,7 @@ import {
   type CountdownMessage,
   type ParticipantsMessage,
   type RaceEndedMessage,
+  type RacePositionsMessage,
   type RaceStartedMessage,
 } from "./socket-messages.ts";
 
@@ -39,8 +40,12 @@ type LiveRace = {
   // Fin prévue par la minuterie (ms) ; null sans minuterie.
   endsAt: number | null;
   finishedIds: Set<string>;
+  // Position de chaque coureur et moment où il l'a atteinte (départage les égalités).
+  positions: Map<string, { username: string; position: number; at: number }>;
+  positionsChanged: boolean;
   endTimer?: NodeJS.Timeout;
   idleTimer?: NodeJS.Timeout;
+  positionsTimer?: NodeJS.Timeout;
   endReason?: RaceEndedMessage["reason"];
 };
 
@@ -55,7 +60,8 @@ function readCookie(header: string | undefined, name: string): string | undefine
 export function createSocketServer(
   httpServer: HttpServer,
   // CRS-5 : la course s'arrête après 2 min sans aucune frappe.
-  { countdownMs = 5000, idleMs = 2 * 60 * 1000 } = {},
+  // CRS-2 : les positions partent au plus toutes les 250 ms, seulement si quelqu'un a bougé.
+  { countdownMs = 5000, idleMs = 2 * 60 * 1000, positionsMs = 250 } = {},
 ): Server {
   const io = new Server<
     Record<string, never>,
@@ -64,6 +70,7 @@ export function createSocketServer(
       "lobby:closed": () => void;
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
+      "race:positions": (message: RacePositionsMessage) => void;
       "race:ended": (message: RaceEndedMessage) => void;
     },
     Record<string, never>,
@@ -87,6 +94,22 @@ export function createSocketServer(
     return live.endsAt === null ? null : Math.max(0, Math.ceil((live.endsAt - Date.now()) / 1000));
   }
 
+  // Classement : le plus avancé d'abord ; à égalité, celui qui y est arrivé le premier.
+  function ranking(live: LiveRace): RacePositionsMessage {
+    const positions = [...live.positions].sort(
+      ([, a], [, b]) => b.position - a.position || a.at - b.at,
+    );
+    return {
+      positions: positions.map(([id, { username, position }]) => ({ id, username, position })),
+    };
+  }
+
+  function sendPositions(lobby: Lobby, live: LiveRace) {
+    if (!live.positionsChanged) return;
+    live.positionsChanged = false;
+    io.to(lobby.code).emit("race:positions", ranking(live));
+  }
+
   async function endRace(lobby: Lobby, live: LiveRace, reason: RaceEndedMessage["reason"]) {
     // Une seule fin, même si deux conditions arrivent en même temps.
     if (live.state !== "racing") return;
@@ -94,6 +117,9 @@ export function createSocketServer(
     live.endReason = reason;
     clearTimeout(live.endTimer);
     clearTimeout(live.idleTimer);
+    clearInterval(live.positionsTimer);
+    // Les dernières frappes arrivent avant la fin.
+    sendPositions(lobby, live);
     await markRaceEnded(live.raceId);
     io.to(lobby.code).emit("race:ended", { reason });
   }
@@ -109,6 +135,7 @@ export function createSocketServer(
     for (const live of liveRaces.values()) {
       clearTimeout(live.endTimer);
       clearTimeout(live.idleTimer);
+      clearInterval(live.positionsTimer);
     }
   });
 
@@ -171,7 +198,9 @@ export function createSocketServer(
           racerIds: race.racerIds,
           secondsLeft: secondsLeft(race),
         });
+        socket.emit("race:positions", ranking(race));
       } else if (race?.endReason) {
+        socket.emit("race:positions", ranking(race));
         socket.emit("race:ended", { reason: race.endReason });
       }
       ack?.({ ok: true });
@@ -208,6 +237,8 @@ export function createSocketServer(
         timeLimitSeconds: null,
         endsAt: null,
         finishedIds: new Set(),
+        positions: new Map(),
+        positionsChanged: false,
       };
       liveRaces.set(lobby.id, live);
 
@@ -241,6 +272,13 @@ export function createSocketServer(
           racerIds: live.racerIds,
           secondsLeft: secondsLeft(live),
         });
+        // Tous les coureurs partent de 0, dans l'ordre d'arrivée dans le lobby.
+        for (const { id, username } of participants) {
+          live.positions.set(id, { username, position: 0, at: Date.now() });
+        }
+        live.positionsChanged = true;
+        sendPositions(lobby, live);
+        live.positionsTimer = setInterval(() => sendPositions(lobby, live), positionsMs);
       }, countdownMs);
     });
 
@@ -267,6 +305,11 @@ export function createSocketServer(
       }
 
       resetIdleTimer(lobby, live);
+      const racer = live.positions.get(user.id)!;
+      if (racer.position !== result.data.position) {
+        live.positions.set(user.id, { ...racer, position: result.data.position, at: Date.now() });
+        live.positionsChanged = true;
+      }
       if (result.data.position === live.content.length) {
         live.finishedIds.add(user.id);
         if (live.finishedIds.size === live.racerIds.length) {

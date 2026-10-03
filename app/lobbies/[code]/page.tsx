@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { InviteLinks } from "@/components/invite-links";
 import { LobbyRoom } from "@/components/lobby-room";
-import { Arena } from "@/components/arena";
 import { canEnterLobby, findOpenLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 
@@ -30,7 +29,6 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
       </div>
       <div className="split-layout">
         <div className="side-stack">
-          <Arena progress={0} />
           <LobbyRoom code={lobby.code} hostId={lobby.hostId} isHost={isHost} userId={user.id} />
         </div>
         <aside className="side-stack">
