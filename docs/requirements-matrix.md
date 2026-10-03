@@ -154,7 +154,7 @@ Statut :
 | ----- | -------------------------------------- | ----- | ---------- | --- | ----- | -------- |
 | ERR-1 | Mode bloquant ou tolérant              | E     | [#56][i56] | —   | [typing.test.ts](../__tests__/typing.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [races.test.ts](../__tests__/races.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | ERR-2 | Caractère erroné mis en évidence       | E     | [#56][i56] | —   | [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| ERR-3 | Fautes dans la précision et la heatmap | E     | [#60][i60] | —   | —     | En cours |
+| ERR-3 | Fautes dans la précision et la heatmap | E     | [#60][i60] | —   | [typing.test.ts](../__tests__/typing.test.ts), [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | Partiel (heatmap : [#77][i77]) |
 
 ## Bots (BOT)
 
@@ -176,10 +176,10 @@ Statut :
 
 | ID    | Exigence                              | Prio. | Issue      | PR  | Tests | Statut   |
 | ----- | ------------------------------------- | ----- | ---------- | --- | ----- | -------- |
-| FIN-1 | Podium du top 3                       | E     | [#60][i60] | —   | —     | En cours |
-| FIN-2 | Classement et statistiques par joueur | E     | [#60][i60] | —   | —     | En cours |
+| FIN-1 | Podium du top 3                       | E     | [#60][i60] | —   | [race-results.test.tsx](../__tests__/race-results.test.tsx), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
+| FIN-2 | Classement et statistiques par joueur | E     | [#60][i60] | —   | [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [race-results.test.tsx](../__tests__/race-results.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | FIN-3 | Heatmap du clavier                    | S     | [#77][i77] | —   | —     | En cours |
-| FIN-4 | Résultats dans l'historique           | E     | [#60][i60] | —   | —     | En cours |
+| FIN-4 | Résultats dans l'historique           | E     | [#60][i60] | —   | [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | Fait |
 
 ## Interface (UI)
 
