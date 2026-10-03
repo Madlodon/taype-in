@@ -1230,6 +1230,11 @@ a, button, input {
 .car-boost-sparkles .boost-particle {
   animation-duration: 1100ms;
 }
+/* During a race the cars already move with typing: an animated SVG repaints every frame and slows down keystrokes. */
+.race-board .boost-plume,
+.race-board .boost-particle {
+  animation: none;
+}
 @keyframes boost-flicker {
   from { transform: scale(0.94, 0.88); opacity: .85; }
   to { transform: scale(1, 1.08); opacity: 1; }
