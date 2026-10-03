@@ -36,7 +36,12 @@ function Car({ x, y, angle = 0, orange = false }: { x: number; y: number; angle?
   );
 }
 
-export function Arena({ progress, className = "" }: { progress?: number; className?: string }) {
+// Une voiture par joueur affiché sur la piste (CRS-2) : la tienne en bleu, les autres en orange.
+export type TrackCar = { id: string; name: string; progress: number; you: boolean };
+
+type ArenaProps = { progress?: number; cars?: TrackCar[]; className?: string };
+
+export function Arena({ progress, cars, className = "" }: ArenaProps) {
   const id = useId().replaceAll(":", "");
   const position = arenaPosition(progress ?? 0.16);
   return (
@@ -82,10 +87,19 @@ export function Arena({ progress, className = "" }: { progress?: number; classNa
       <path d="M153 271 L170 287 V340 M807 271 L790 287 V340" stroke="#d6efff" strokeOpacity=".4" strokeWidth="2" />
       <path d="M180 370 H780 L840 205 L765 140 H430 L800 310" stroke="#a3c9ef" strokeOpacity=".3" strokeWidth="2" strokeDasharray="5 10" />
       <g fill="#ffad55" opacity=".8">{[240, 360, 600, 720].map((x) => <ellipse key={x} cx={x} cy="431" rx="10" ry="3" />)}</g>
-      {progress === undefined && <g transform="translate(660 315) scale(.72)">
+      {progress === undefined && !cars && <g transform="translate(660 315) scale(.72)">
         <Car x={0} y={0} orange />
       </g>}
-      <Car x={position.x} y={position.y} angle={position.angle} />
+      {cars ? [...cars].sort((a, b) => Number(a.you) - Number(b.you)).map((car) => {
+        // Ta voiture est dessinée en dernier, par-dessus les autres.
+        const at = arenaPosition(car.progress);
+        return <g key={car.id}>
+          <g transform={`translate(${at.x} ${at.y}) scale(.6)`}>
+            <Car x={0} y={0} angle={at.angle} orange={!car.you} />
+          </g>
+          <text x={at.x} y={at.y - 22} textAnchor="middle" className="car-tag">{car.name}</text>
+        </g>;
+      }) : <Car x={position.x} y={position.y} angle={position.angle} />}
       <path d="M0 483 H960" stroke="#6fb2ed" strokeWidth="2" opacity=".5" />
     </svg>
   );

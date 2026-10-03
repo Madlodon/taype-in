@@ -80,6 +80,9 @@
       "timeUp": "Race over: time is up.",
       "idle": "Race over: nobody typed for 2 minutes."
     },
+    "ranking": "Ranking",
+    "you": "(you)",
+    "percent": "{value}%",
     "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
     "errors": {
       "notLoggedIn": "Not logged in",
