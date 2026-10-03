@@ -21,5 +21,9 @@ export type ParticipantsMessage = {
 // Envoyé à toute la salle quand l'hôte lance la course ; le texte reste caché jusqu'au « Go ».
 export type CountdownMessage = { seconds: number };
 
-// Le « Go » : même texte pour tous ; racerIds = ceux qui courent (arrivés après : spectateurs).
-export type RaceStartedMessage = { content: string; racerIds: string[] };
+// Le « Go » : même texte et même mode d'erreur pour tous ; racerIds = ceux qui courent (arrivés après : spectateurs).
+export type RaceStartedMessage = {
+  content: string;
+  errorMode: "blocking" | "tolerant";
+  racerIds: string[];
+};

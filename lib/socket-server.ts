@@ -118,7 +118,11 @@ export function createSocketServer(
           seconds: Math.ceil((race.goAt - Date.now()) / 1000),
         });
       } else if (race?.state === "racing") {
-        socket.emit("race:started", { content: race.content, racerIds: race.racerIds });
+        socket.emit("race:started", {
+          content: race.content,
+          errorMode: race.errorMode,
+          racerIds: race.racerIds,
+        });
       }
       ack?.({ ok: true });
     });
@@ -148,6 +152,7 @@ export function createSocketServer(
         state: nextLobbyState("waiting", "start"),
         goAt: Date.now() + countdownMs,
         content: "",
+        errorMode: lobby.errorMode,
         racerIds: participants.map((participant) => participant.id),
       };
       liveRaces.set(lobby.id, live);
@@ -168,6 +173,7 @@ export function createSocketServer(
         await markRaceStarted(race.id);
         io.to(lobby.code).emit("race:started", {
           content: live.content,
+          errorMode: live.errorMode,
           racerIds: live.racerIds,
         });
       }, countdownMs);
