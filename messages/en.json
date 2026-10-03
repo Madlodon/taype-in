@@ -64,11 +64,20 @@
     "host": "(host)",
     "close": "Close the race",
     "confirmClose": "Close the race? Every participant will be sent back to the race list.",
+    "start": "Start the race",
+    "needMore": "At least {count} participants are needed to start the race.",
+    "countdown": "Starting in {seconds}",
+    "raceText": "Race text",
+    "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
     "errors": {
       "notLoggedIn": "Not logged in",
       "invalidMessage": "Invalid message",
       "lobbyNotFound": "Race not found",
-      "notHost": "Only the host can do this"
+      "notHost": "Only the host can do this",
+      "lobbyFull": "The race is full (300 participants)",
+      "notEnoughParticipants": "At least 2 participants are needed",
+      "raceInProgress": "A race is already running",
+      "noText": "No text available in this language"
     }
   },
   "Invites": {

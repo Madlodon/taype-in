@@ -692,6 +692,12 @@ a, button, input {
   margin: 13px 0;
 }
 
+.countdown {
+  margin-top: 20px;
+  font: 700 40px var(--font-jetbrains-mono);
+  color: var(--primary);
+}
+
 .participants {
   display: flex;
   flex-direction: column;

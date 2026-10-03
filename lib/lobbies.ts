@@ -10,8 +10,10 @@ export type Participant = { id: string; username: string };
 // Sans 0/O, 1/I/L : le code se dicte et se recopie sans confusion.
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const CODE_LENGTH = 6;
-// Un lien par participant possible (LOB-6 : 300 au maximum).
-export const MAX_INVITES = 300;
+// LOB-6 : 300 participants au maximum.
+export const MAX_PARTICIPANTS = 300;
+// Un lien par participant possible.
+export const MAX_INVITES = MAX_PARTICIPANTS;
 
 export function generateLobbyCode(): string {
   let code = "";
