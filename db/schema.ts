@@ -31,6 +31,11 @@ export const users = pgTable(
     // Null pour les invités et les comptes OAuth.
     passwordHash: text("password_hash"),
     isGuest: boolean("is_guest").notNull().default(false),
+    // Garage (#34) : texte libre, les valeurs permises sont dans lib/garage.ts.
+    car: text("car").notNull().default("octane"),
+    boost: text("boost").notNull().default("standard"),
+    hat: text("hat").notNull().default("none"),
+    ball: text("ball").notNull().default("none"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
