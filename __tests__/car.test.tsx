@@ -1,13 +1,14 @@
 import { afterEach, expect, test } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { Car } from "../components/arena";
+import { CARS } from "../lib/garage-items";
 
 afterEach(cleanup);
 
-test("Should_KeepTeamPaintIndependent_When_MultipleCarsShareAnArena", () => {
+test.each(CARS)("Should_KeepTeamPaintIndependent_When_Two_%s_CarsShareAnArena", (body) => {
   const { container } = render(<svg>
-    <Car x={10} y={20} />
-    <Car x={30} y={40} orange />
+    <Car x={10} y={20} body={body} />
+    <Car x={30} y={40} body={body} orange />
   </svg>);
   const ids = Array.from(container.querySelectorAll("[id]"), (element) => element.id);
   expect(new Set(ids).size).toBe(ids.length);

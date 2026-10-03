@@ -36,37 +36,7 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
     <g transform={`translate(${x} ${y}) rotate(${angle})`}>
       <ellipse cx="0" cy="16" rx="44" ry="8" fill="#020617" opacity=".35" />
       <CarBoost boost={boost} />
-      {body === "octane" ? <CarBody orange={orange} /> : <g data-body={body}>
-        {body === "fennec" && <>
-          <path d="M-38 13 L-38-7 L-30-21 L3-21 L18-7 L35-5 L40 1 L40 14Z" fill={orange ? "#f89840" : "#559bff"} stroke="#122e50" strokeWidth="2" />
-          <path d="M-29-17 H-14 V-7 H-34Z M-10-17 H1 L12-7 H-10Z" fill="#142941" />
-          <path d="M-35-3 H34 M-10-3 V11" stroke={orange ? "#ffd79b" : "#a9d8ff"} strokeWidth="2" />
-          <path d="M-34-23 H-22 M-5 1 H1" stroke="#122e50" strokeWidth="3" />
-          <path d="M33-2 H39" stroke="#eaf7ff" strokeWidth="4" />
-          <path d="M-40 10 H-31 M31 10 H42" stroke="#142941" strokeWidth="5" />
-        </>}
-        {body === "dominus" && <>
-          <path d="M-45 5 L-38-3 L-24-5 L-13-16 L6-16 L20-4 L42 0 L47 7 L44 15 H-43Z" fill={orange ? "#f89840" : "#559bff"} stroke="#122e50" strokeWidth="2" />
-          <path d="M-20-5 L-11-13 H-3 V-5Z M1-13 H5 L15-5 H1Z" fill="#142941" />
-          <path d="M-38 3 H40 M-1-2 V11" stroke={orange ? "#ffd79b" : "#a9d8ff"} strokeWidth="2" />
-          <path d="M23-3 L37-1 M21 0 L35 2" stroke="#142941" strokeWidth="2" />
-          <path d="M-39 3 V-8 M-46-9 H-30" stroke={orange ? "#ce631e" : "#2a69bf"} strokeWidth="4" />
-          <path d="M39 4 H46" stroke="#eaf7ff" strokeWidth="3" />
-          <path d="M-16 13 H17" stroke="#142941" strokeWidth="4" />
-        </>}
-        {body === "merc" && <>
-          <path d="M-38 14 V-24 Q-38-29-32-29 H12 L27-16 L35-6 L39 1 V14Z" fill={orange ? "#f89840" : "#559bff"} stroke="#122e50" strokeWidth="2" />
-          <path d="M-31-23 H-14 V-9 H-31Z M-10-23 H9 L22-10 H-10Z" fill="#142941" />
-          <path d="M-34-5 H31 M-11-5 V11" stroke={orange ? "#ffd79b" : "#a9d8ff"} strokeWidth="2" />
-          <path d="M-6 0 H1 M-39 10 H-30 M30 10 H41" stroke="#142941" strokeWidth="3" />
-          <path d="M31-3 H37" stroke="#eaf7ff" strokeWidth="5" />
-          <path d="M-37-19 V-10" stroke="#ef4444" strokeWidth="3" />
-        </>}
-        <circle cx={body === "dominus" ? -29 : -22} cy="14" r="10" fill="#0b1426" />
-        <circle cx={body === "dominus" ? 31 : 25} cy="14" r="10" fill="#0b1426" />
-        <circle cx={body === "dominus" ? -29 : -22} cy="14" r="5" fill="#bdcfe6" />
-        <circle cx={body === "dominus" ? 31 : 25} cy="14" r="5" fill="#bdcfe6" />
-      </g>}
+      <CarBody body={body} orange={orange} />
       <CarHat hat={hat} body={body} />
       <CarBall ball={ball} />
     </g>
