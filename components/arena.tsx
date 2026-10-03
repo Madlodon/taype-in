@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { memo, useId } from "react";
 import { CarBall } from "@/components/car-ball";
 import { CarHat } from "@/components/car-hat";
 import { CarBoost } from "@/components/car-boost";
@@ -31,14 +31,23 @@ type CarProps = {
   ball?: Loadout["ball"];
 };
 
-export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = "standard", hat = "none", ball = "none" }: CarProps) {
+// Pendant la course seule la position change : on ne redessine pas la voiture à chaque touche.
+const CarParts = memo(function CarParts({ orange, body, boost, hat, ball }: Required<Omit<CarProps, "x" | "y" | "angle">>) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+    <>
       <ellipse cx="0" cy="16" rx="44" ry="8" fill="#020617" opacity=".35" />
       <CarBoost boost={boost} />
       <CarBody body={body} orange={orange} />
       <CarHat hat={hat} body={body} />
       <CarBall ball={ball} />
+    </>
+  );
+});
+
+export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = "standard", hat = "none", ball = "none" }: CarProps) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+      <CarParts orange={orange} body={body} boost={boost} hat={hat} ball={ball} />
     </g>
   );
 }
