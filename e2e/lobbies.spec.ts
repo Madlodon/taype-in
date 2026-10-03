@@ -334,6 +334,8 @@ test("Should_BecomeSpectator_When_RacerGivesUp", async ({ browser }) => {
 });
 
 test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) => {
+  // Taper tout le texte touche par touche dépasse 30 s sur les machines lentes de la CI.
+  test.slow();
   const host = await newGuest(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
