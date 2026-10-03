@@ -25,6 +25,15 @@ test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
     await expect(page.getByRole("radio", { name: item, exact: true })).toBeChecked();
   }
   await expect(page.getByRole("img", { name: "Fennec avec le boost Flammes, chapeau : Cône orange, ballon : Ballon de plage" })).toBeVisible();
+
+  for (const hat of ["Casquette Alpha", "Haut-de-forme", "Chapeau de pirate", "Chapeau de sorcier"]) {
+    await page.getByRole("radio", { name: hat, exact: true }).check();
+    await page.getByRole("button", { name: "Enregistrer mon garage" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Garage enregistré." })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("radio", { name: hat, exact: true })).toBeChecked();
+    await expect(page.getByRole("img", { name: `Fennec avec le boost Flammes, chapeau : ${hat}, ballon : Ballon de plage` })).toBeVisible();
+  }
 });
 
 test("Should_InviteToSignUp_When_GuestOpensGarage", async ({ page }) => {

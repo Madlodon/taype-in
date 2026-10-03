@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { GarageForm } from "../components/garage-form";
-import { BOOSTS, CARS, DEFAULT_LOADOUT } from "../lib/garage-items";
+import { BOOSTS, CARS, HATS, DEFAULT_LOADOUT } from "../lib/garage-items";
 import en from "../messages/en.json";
 
 function garage(guest = false) {
@@ -89,4 +89,28 @@ test.each(BOOSTS)("Should_PreviewSavedBoost_When_Loading_%s", (boost) => {
   </NextIntlClientProvider>);
   expect((screen.getByLabelText(en.Garage.items.boost[boost]) as HTMLInputElement).checked).toBe(true);
   expect(screen.getByRole("img").querySelector(`[data-item="${boost}"]`)).toBeTruthy();
+});
+
+test.each(HATS)("Should_PreviewSubmitAndRemoveHat_When_Selecting_%s", (hat) => {
+  garage();
+  const hats = within(screen.getByRole("group", { name: "Hat" }));
+  fireEvent.click(hats.getByLabelText(en.Garage.items.hat[hat]));
+  expect(new FormData(document.querySelector("form")!).get("hat")).toBe(hat);
+  for (const car of CARS) {
+    fireEvent.click(screen.getByLabelText(en.Garage.items.car[car]));
+    const preview = screen.getByRole("img");
+    if (hat !== "none") expect(preview.querySelector(`[data-item="${hat}"]`)).toBeTruthy();
+    expect(preview.getAttribute("aria-label")).toContain(`hat: ${en.Garage.items.hat[hat]}`);
+  }
+  fireEvent.click(hats.getByLabelText("None"));
+  for (const item of HATS) expect(screen.getByRole("img").querySelector(`[data-item="${item}"]`)).toBeNull();
+});
+
+test.each(HATS)("Should_PreviewSavedHat_When_Loading_%s", (hat) => {
+  render(<NextIntlClientProvider locale="en" messages={en}>
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, hat }} guest={false} />
+  </NextIntlClientProvider>);
+  const hats = within(screen.getByRole("group", { name: "Hat" }));
+  expect((hats.getByLabelText(en.Garage.items.hat[hat]) as HTMLInputElement).checked).toBe(true);
+  if (hat !== "none") expect(screen.getByRole("img").querySelector(`[data-item="${hat}"]`)).toBeTruthy();
 });
