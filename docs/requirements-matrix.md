@@ -99,8 +99,8 @@ Statut :
 | ID     | Exigence                                    | Prio. | Issue                  | PR  | Tests | Statut   |
 | ------ | ------------------------------------------- | ----- | ---------------------- | --- | ----- | -------- |
 | PROF-1 | Photo de profil                             | S     | [#65][i65], [#71][i71] | —   | —     | En cours |
-| PROF-2 | Historique des courses                      | E     | [#64][i64]             | —   | —     | En cours |
-| PROF-3 | Statistiques globales                       | E     | [#64][i64]             | —   | —     | En cours |
+| PROF-2 | Historique des courses                      | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | Fait |
+| PROF-3 | Statistiques globales                       | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx) | Fait |
 | PROF-4 | Graphique de progression                    | S     | [#69][i69]             | —   | —     | En cours |
 | PROF-5 | Statistiques de session de courses          | S     | [#70][i70]             | —   | —     | En cours |
 | PROF-6 | Signaler une photo de profil                | —     | [#66][i66]             | —   | —     | En cours |

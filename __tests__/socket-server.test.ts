@@ -60,6 +60,9 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
+  // io.close() lance les gestionnaires « disconnect » sans les attendre ; ils font encore
+  // des requêtes (participants) : on les laisse finir avant de fermer la base.
+  await new Promise((resolve) => setTimeout(resolve, 200));
   await db.$client.end();
 });
 

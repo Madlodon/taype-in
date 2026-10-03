@@ -9,6 +9,8 @@ export default getRequestConfig(async () => {
   );
   return {
     locale,
+    // Les élèves sont au Québec ; le serveur, lui, tourne en UTC.
+    timeZone: "America/Toronto",
     messages: (await import(`../messages/${locale}.json`)).default,
   };
 });

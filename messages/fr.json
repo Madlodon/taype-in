@@ -205,6 +205,7 @@
     "nextUp": "Sur la ligne de départ",
     "raceComing": "Vous pouvez déjà vous retrouver ici. La course multijoueur est encore en développement.",
     "previewSeparate": "Envie de tester le concept ? L’aperçu solo est indépendant de cette salle.",
+    "myProfile": "Mon profil",
     "garage": "Garage"
   },
   "Race": {
@@ -233,6 +234,26 @@
     "serverErrorTitle": "Panne de moteur.",
     "serverErrorDescription": "Un problème est survenu de notre côté. Réessaie dans un instant.",
     "tryAgain": "Réessayer"
+  },
+  "Profile": {
+    "eyebrow": "Profil de pilote",
+    "you": "Toi",
+    "stats": "Statistiques globales",
+    "bestWpm": "Meilleure vitesse (MPM)",
+    "averageWpm": "Vitesse moyenne (MPM)",
+    "averageAccuracy": "Précision moyenne",
+    "history": "Historique des courses",
+    "noRaces": "Aucune course pour l’instant.",
+    "date": "Date",
+    "text": "Texte",
+    "rank": "Rang",
+    "wpm": "MPM",
+    "accuracy": "Précision",
+    "percent": "{value} %",
+    "hardestKeys": "Touches les plus difficiles",
+    "noHardKeys": "Aucune faute enregistrée.",
+    "space": "Espace",
+    "errors": "{count, plural, one {# faute} other {# fautes}}"
   },
   "Garage": {
     "tag": "Ton bolide. Ton style.",
