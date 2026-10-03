@@ -22,6 +22,7 @@ const aUser = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  rankLevel: 0,
   createdAt: new Date(),
 };
 const aGuest = { ...aUser, username: "Invité-123456", passwordHash: null, isGuest: true };

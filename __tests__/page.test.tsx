@@ -18,6 +18,7 @@ const aUser = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  rankLevel: 0,
   createdAt: new Date(),
 };
 

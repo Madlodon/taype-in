@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "rank_level" integer DEFAULT 0 NOT NULL;

@@ -35,6 +35,7 @@ const aUser = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  rankLevel: 0,
   createdAt: new Date(),
 };
 const expiresAt = new Date("2026-10-29T00:00:00Z");

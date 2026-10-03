@@ -596,6 +596,33 @@ describe("race results", () => {
     );
   });
 
+  test("Should_MoveWinnerUpAndLoserDown_When_TwoRacersFinish", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    await db.update(users).set({ rankLevel: 10 }).where(inArray(users.id, [host.id, guest.id]));
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await progress(guestClient, typing(content, 0));
+
+    const { results: ranked } = await ended;
+
+    expect(ranked.map((result) => [result.id, result.rankLevel, result.rankChange])).toEqual([
+      [host.id, 11, 1],
+      [guest.id, 9, -1],
+    ]);
+    const saved = await db
+      .select({ id: users.id, rankLevel: users.rankLevel })
+      .from(users)
+      .where(inArray(users.id, [host.id, guest.id]));
+    expect(saved).toEqual(
+      expect.arrayContaining([
+        { id: host.id, rankLevel: 11 },
+        { id: guest.id, rankLevel: 9 },
+      ]),
+    );
+  });
+
   test("Should_SendResults_When_JoiningAfterEnd", async () => {
     const { lobby, hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
