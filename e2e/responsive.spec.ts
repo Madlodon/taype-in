@@ -47,6 +47,20 @@ test("Should_FitEveryPage_When_Visiting", async ({ page }) => {
   await expectNoHorizontalScroll(page);
 });
 
+test("Should_FitProfilePage_When_Visiting", async ({ page }) => {
+  const username = `e2e_${Date.now().toString(36)}`;
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(username);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+  await page.getByRole("navigation").getByRole("link", { name: "Mon profil" }).click();
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(username);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Sombre" }).click();
+  await expectNoHorizontalScroll(page);
+});
+
 test("Should_ReachEveryPage_When_UsingTheNavigation", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Jouer en invité" }).click();
