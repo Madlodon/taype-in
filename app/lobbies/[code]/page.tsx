@@ -7,9 +7,10 @@ import { canEnterLobby, findOpenLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 
 export default async function LobbyPage({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
   const user = await getCurrentUser();
-  if (!user) redirect("/");
-  const lobby = await findOpenLobby((await params).code);
+  if (!user) redirect(`/login?next=/lobbies/${encodeURIComponent(code)}`);
+  const lobby = await findOpenLobby(code);
   // Une course privée reste introuvable pour qui n'a pas d'invitation (LOB-3).
   if (!lobby || !(await canEnterLobby(lobby, user.id))) notFound();
   // Seul l'hôte invite, par le code ou par des liens (LOB-7).

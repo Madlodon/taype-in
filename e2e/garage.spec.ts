@@ -48,7 +48,14 @@ test("Should_InviteToSignUp_When_GuestOpensGarage", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Créer un compte" })).toBeVisible();
 });
 
-test("Should_SendHome_When_NobodyIsLoggedIn", async ({ page }) => {
+test("Should_AskToLogIn_When_NobodyIsLoggedIn", async ({ page }) => {
   await page.goto("/garage");
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/login?next=/garage");
+  await expect(page.getByRole("status")).toHaveText("Connecte-toi ou joue en invité pour continuer.");
+});
+
+test("Should_ReturnToGarage_When_PlayingAsGuestFromLogIn", async ({ page }) => {
+  await page.goto("/garage");
+  await page.getByRole("button", { name: "Jouer en invité" }).click();
+  await expect(page).toHaveURL("/garage");
 });

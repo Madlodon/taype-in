@@ -72,10 +72,28 @@ test("Should_ShowError_When_CodeDoesNotExist", async ({ browser }) => {
   );
 });
 
-test("Should_RedirectHome_When_NotLoggedIn", async ({ page }) => {
+test("Should_AskToLogIn_When_NotLoggedIn", async ({ page }) => {
   await page.goto("/lobbies");
 
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/login?next=/lobbies");
+  await expect(page.getByRole("status")).toHaveText("Connecte-toi ou joue en invité pour continuer.");
+});
+
+test("Should_ReturnToLobbies_When_LoggingInFromRedirect", async ({ page }) => {
+  const username = `lobbies_${Date.now().toString(36)}`;
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(username);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await page.context().clearCookies();
+
+  await page.goto("/lobbies");
+  await page.getByLabel("Nom d'utilisateur").fill(username);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Se connecter" }).click();
+
+  await expect(page).toHaveURL("/lobbies");
 });
 
 test("Should_ShowCodeOnlyToHost_When_RaceIsUnlisted", async ({ browser }) => {

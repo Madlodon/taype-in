@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/session-cookie";
 
 export default async function GaragePage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/");
+  if (!user) redirect("/login?next=/garage");
   const t = await getTranslations("Garage");
   return (
     <main id="main" className="page-shell">

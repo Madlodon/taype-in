@@ -8,7 +8,7 @@ import { TEXT_LENGTHS } from "@/lib/texts";
 import { Arena } from "@/components/arena";
 
 export default async function NewLobbyPage() {
-  if (!(await getCurrentUser())) redirect("/");
+  if (!(await getCurrentUser())) redirect("/login?next=/lobbies/new");
   const locale = await getLocale();
   const t = await getTranslations("NewLobby");
   const d = await getTranslations("Design");
