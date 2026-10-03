@@ -11,10 +11,12 @@ import {
   type ParticipantsMessage,
   type RaceEndedMessage,
   type RacePositionsMessage,
+  type RaceResult,
   type RaceStartedMessage,
 } from "@/lib/socket-messages";
 import { selectShown } from "@/lib/track";
 import { Arena } from "@/components/arena";
+import { RaceResults } from "@/components/race-results";
 import { RaceTyping } from "@/components/race-typing";
 import type { Typing } from "@/lib/typing";
 
@@ -47,6 +49,7 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
   const [race, setRace] = useState<RaceStartedMessage>();
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [endReason, setEndReason] = useState<RaceEndedMessage["reason"]>();
+  const [results, setResults] = useState<RaceResult[]>([]);
   const [positions, setPositions] = useState<RacePositionsMessage["positions"]>([]);
   // Ta propre position, sans attendre le serveur : ta voiture suit chaque frappe.
   const [myPosition, setMyPosition] = useState<number>();
@@ -80,7 +83,10 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
       }
     });
     socket.on("race:positions", (message: RacePositionsMessage) => setPositions(message.positions));
-    socket.on("race:ended", (message: RaceEndedMessage) => setEndReason(message.reason));
+    socket.on("race:ended", (message: RaceEndedMessage) => {
+      setEndReason(message.reason);
+      setResults(message.results);
+    });
     // Socket.IO se reconnecte seul après une coupure ; il abandonne seulement si le serveur refuse (ex. non connecté).
     socket.on("connect_error", (err) => {
       if (!socket.active) setError(err.message);
@@ -247,6 +253,7 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
             {t(`ended.${endReason}`)}
           </p>
         )}
+        {endReason && <RaceResults results={results} userId={userId} />}
         {race && (
           <>
             <h2 className="text-xl font-semibold mt-5">{t("raceText")}</h2>

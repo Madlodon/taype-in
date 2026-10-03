@@ -313,7 +313,7 @@ test.each([
   renderRoom();
   startRace(["u1", "u2"], "blocking", 300);
 
-  act(() => handlers["race:ended"]({ reason }));
+  act(() => handlers["race:ended"]({ reason, results: [] }));
 
   expect(screen.getByRole("status").textContent).toBe(text);
   expect(screen.queryByRole("timer")).toBeNull();
@@ -322,7 +322,7 @@ test.each([
 test("Should_SayRaceIsOverInEnglish_When_LocaleIsEnglish", () => {
   renderRoom("en");
 
-  act(() => handlers["race:ended"]({ reason: "timeUp" }));
+  act(() => handlers["race:ended"]({ reason: "timeUp", results: [] }));
 
   expect(screen.getByRole("status").textContent).toBe("Race over: time is up.");
 });
@@ -333,10 +333,40 @@ test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
   startRace(["u1", "u2"], "blocking", 300);
   expect(screen.queryByRole("button", { name: "Fermer la course" })).toBeNull();
 
-  act(() => handlers["race:ended"]({ reason: "allFinished" }));
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
 
   expect(screen.getByRole("button", { name: "Fermer la course" })).toBeTruthy();
   expect(startButton()).toBeNull();
+});
+
+test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+  const stats = { wpm: 40, accuracy: 100, durationMs: 30_000, penaltyMs: 0, errors: 0, keyErrors: {} };
+
+  act(() =>
+    handlers["race:ended"]({
+      reason: "allFinished",
+      results: [
+        { ...stats, id: "u2", username: "moi", rank: 1, finished: true },
+        { ...stats, id: "u1", username: "alex", rank: 2, finished: false },
+      ],
+    }),
+  );
+
+  expect(screen.getByRole("heading", { name: "Résultats" })).toBeTruthy();
+  expect(
+    within(screen.getByRole("list", { name: "Podium" })).getAllByRole("listitem"),
+  ).toHaveLength(2);
+  expect(screen.getByRole("table", { name: "Classement complet" })).toBeTruthy();
+});
+
+test("Should_ShowNoResults_When_RaceIsRunning", () => {
+  renderRoom();
+
+  startRace(["u1", "u3"]);
+
+  expect(screen.queryByRole("heading", { name: "Résultats" })).toBeNull();
 });
 
 test("Should_SendTypedTextAndErrorsToServer_When_RacerTypes", () => {
@@ -569,7 +599,7 @@ test("Should_KeepRanking_When_RaceHasEnded", () => {
   startRace(["u1", "u2"]);
   sendPositions(2, 1);
 
-  act(() => handlers["race:ended"]({ reason: "allFinished" }));
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
 
   expect(ranking()).toHaveLength(2);
 });

@@ -101,6 +101,23 @@
       "cannotGiveUp": "You can't give up anymore"
     }
   },
+  "RaceResults": {
+    "title": "Results",
+    "podium": "Podium",
+    "ranking": "Full ranking",
+    "rank": "Rank",
+    "player": "Player",
+    "wpm": "WPM",
+    "accuracy": "Accuracy",
+    "time": "Time",
+    "errors": "Errors",
+    "wpmValue": "{value} WPM",
+    "percent": "{value}%",
+    "seconds": "{value} s",
+    "penalty": "(+{value} s)",
+    "notFinished": "Not finished",
+    "you": "(you)"
+  },
   "RaceTyping": {
     "label": "Type the text",
     "blocking": "Blocking mode: a wrong character stops you until you type the right one.",
