@@ -280,7 +280,11 @@
       },
       "hat": {
         "none": "None",
-        "cone": "Traffic cone"
+        "cone": "Traffic cone",
+        "alpha-cap": "Alpha Cap",
+        "top-hat": "Top Hat",
+        "pirate": "Pirate’s Hat",
+        "wizard": "Wizard Hat"
       },
       "ball": {
         "none": "None",

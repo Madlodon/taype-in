@@ -5,7 +5,7 @@ import { z } from "zod";
 export const CARS = ["octane", "fennec", "dominus", "merc"] as const;
 // Pas de « none » : une voiture a toujours un boost.
 export const BOOSTS = ["standard", "flames", "ion", "sparkles"] as const;
-export const HATS = ["none", "cone"] as const;
+export const HATS = ["none", "cone", "alpha-cap", "top-hat", "pirate", "wizard"] as const;
 // « none » garde le ballon standard.
 export const BALLS = ["none", "beach"] as const;
 
