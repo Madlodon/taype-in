@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import type { GarageFormState } from "@/app/actions/garage";
 import { Car } from "@/components/arena";
-import { BALLS, BOOSTS, CARS, HATS, PLACEHOLDER_CARS, type Loadout } from "@/lib/garage-items";
+import { BALLS, BOOSTS, CARS, HATS, type Loadout } from "@/lib/garage-items";
 
 type Props = {
   action: (state: GarageFormState, formData: FormData) => Promise<GarageFormState>;
@@ -20,7 +20,6 @@ export function GarageForm({ action, initial, guest }: Props) {
   const t = useTranslations("Garage");
   const [state, formAction, pending] = useActionState(action, undefined);
   const [loadout, setLoadout] = useState(initial);
-  const placeholder = PLACEHOLDER_CARS.includes(loadout.car);
 
   return (
     <div className="split-layout">
@@ -52,15 +51,14 @@ export function GarageForm({ action, initial, guest }: Props) {
       </form>
       <aside className="panel side-stack garage-preview-panel">
         <h2>{t("preview")}</h2>
-        <svg className="garage-preview" viewBox="-140 -50 230 85" role="img" aria-label={t("previewLabel", {
+        <svg className="garage-preview" viewBox="-140 -62 230 97" role="img" aria-label={t("previewLabel", {
           car: t(`items.car.${loadout.car}`),
           boost: t(`items.boost.${loadout.boost}`),
           hat: t(`items.hat.${loadout.hat}`),
           ball: t(`items.ball.${loadout.ball}`),
         })}>
-          <Car x={0} y={0} placeholder={placeholder} boost={loadout.boost} hat={loadout.hat} ball={loadout.ball} />
+          <Car x={0} y={0} body={loadout.car} boost={loadout.boost} hat={loadout.hat} ball={loadout.ball} />
         </svg>
-        {placeholder && <p className="description">{t("placeholder")}</p>}
       </aside>
     </div>
   );
