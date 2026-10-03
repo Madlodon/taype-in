@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { GarageForm } from "../components/garage-form";
-import { CARS, DEFAULT_LOADOUT } from "../lib/garage-items";
+import { BOOSTS, CARS, DEFAULT_LOADOUT } from "../lib/garage-items";
 import en from "../messages/en.json";
 
 function garage(guest = false) {
@@ -74,4 +74,19 @@ test("Should_HideSaveButtonAndInviteToSignUp_When_UserIsGuest", () => {
 
   expect(screen.queryByRole("button", { name: "Save my garage" })).toBeNull();
   expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe("/signup");
+});
+
+test.each(BOOSTS)("Should_PreviewAndSubmitBoost_When_Selecting_%s", (boost) => {
+  garage();
+  fireEvent.click(screen.getByLabelText(en.Garage.items.boost[boost]));
+  expect(screen.getByRole("img").querySelector(`[data-item="${boost}"]`)).toBeTruthy();
+  expect(new FormData(document.querySelector("form")!).get("boost")).toBe(boost);
+});
+
+test.each(BOOSTS)("Should_PreviewSavedBoost_When_Loading_%s", (boost) => {
+  render(<NextIntlClientProvider locale="en" messages={en}>
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, boost }} guest={false} />
+  </NextIntlClientProvider>);
+  expect((screen.getByLabelText(en.Garage.items.boost[boost]) as HTMLInputElement).checked).toBe(true);
+  expect(screen.getByRole("img").querySelector(`[data-item="${boost}"]`)).toBeTruthy();
 });

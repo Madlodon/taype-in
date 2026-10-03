@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { CarBoost } from "@/components/car-boost";
 import type { Loadout } from "@/lib/garage-items";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
@@ -31,10 +32,7 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
   return (
     <g transform={`translate(${x} ${y}) rotate(${angle})`}>
       <ellipse cx="0" cy="16" rx="44" ry="8" fill="#020617" opacity=".35" />
-      {boost === "flames" ? <g data-item="flames">
-        <path d="M-35 0 Q-80-8-128 8 Q-82 11-60 12 Q-92 20-120 26 Q-70 24-35 20Z" fill="#ff4d1f" opacity=".85" />
-        <path d="M-35 5 Q-66 1-96 11 Q-64 15-35 17Z" fill="#ffd23f" />
-      </g> : <path d="M-35 2 L-110 7 L-48 13 L-135 15 L-35 20Z" fill={orange ? "#ffaf54" : "#65b7ff"} opacity=".45" />}
+      <CarBoost boost={boost} />
       <g data-body={body}>
         {body === "octane" && <>
           <path d="M-37 4 L-29-11 L-4-17 L16-7 L34-3 L40 10 L28 17 L-31 16Z" fill={orange ? "#f89840" : "#559bff"} stroke="#122e50" strokeWidth="2" />
