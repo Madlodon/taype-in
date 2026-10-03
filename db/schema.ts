@@ -70,6 +70,8 @@ export const lobbies = pgTable("lobbies", {
   // Langue et nombre de mots du texte, choisis à la création (TXT-1, TXT-2).
   textLanguage: languageEnum("text_language").notNull().default("fr"),
   textLength: integer("text_length").notNull().default(100),
+  // Mode d'erreur choisi à la création, copié dans chaque course (ERR-1).
+  errorMode: errorModeEnum("error_mode").notNull().default("blocking"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

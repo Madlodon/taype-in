@@ -54,6 +54,9 @@
     "english": "Anglais",
     "textLength": "Longueur du texte",
     "words": "{count} mots",
+    "errorMode": "Erreurs de frappe",
+    "blocking": "Bloquant : il faut taper le bon caractère pour continuer",
+    "tolerant": "Tolérant : on continue et on peut corriger avec Retour arrière",
     "submit": "Créer la course"
   },
   "LobbyRoom": {
@@ -79,6 +82,13 @@
       "raceInProgress": "Une course est déjà en cours",
       "noText": "Aucun texte disponible dans cette langue"
     }
+  },
+  "RaceTyping": {
+    "label": "Tape le texte",
+    "blocking": "Mode bloquant : un mauvais caractère t'arrête jusqu'à ce que tu tapes le bon.",
+    "tolerant": "Mode tolérant : continue et corrige avec Retour arrière. Chaque faute compte, même corrigée.",
+    "errors": "{count, plural, =0 {Aucune faute} one {# faute} other {# fautes}}",
+    "finished": "Terminé ! {count, plural, =0 {Aucune faute.} one {# faute.} other {# fautes.}}"
   },
   "Invites": {
     "title": "Liens d'invitation",

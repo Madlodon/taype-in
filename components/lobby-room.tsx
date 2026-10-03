@@ -11,11 +11,13 @@ import {
   type ParticipantsMessage,
   type RaceStartedMessage,
 } from "@/lib/socket-messages";
+import { RaceTyping } from "@/components/race-typing";
 
 type Props = { code: string; hostId: string; isHost: boolean; userId: string };
 
 // Salle d'attente : la liste des participants suit les arrivées et départs ;
 // l'hôte lance la course, tous voient le même compte à rebours puis le même texte (CRS-1).
+// Les coureurs tapent le texte ; ceux arrivés en cours de route le regardent.
 export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
   const t = useTranslations("LobbyRoom");
   const router = useRouter();
@@ -76,6 +78,15 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
     );
   }
 
+  // Pendant la course, le coureur ne voit que le texte à taper (CRS-8).
+  if (race?.racerIds.includes(userId)) {
+    return (
+      <section className="panel panel-accent">
+        <RaceTyping content={race.content} errorMode={race.errorMode} />
+      </section>
+    );
+  }
+
   return (
     <section className="panel">
       <h2 className="text-xl font-semibold">
@@ -98,7 +109,7 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
         <>
           <h2 className="text-xl font-semibold mt-5">{t("raceText")}</h2>
           <p className="typing-text">{race.content}</p>
-          {!race.racerIds.includes(userId) && <p className="form-note">{t("spectating")}</p>}
+          <p className="form-note">{t("spectating")}</p>
         </>
       )}
       {isHost && countdown === undefined && !race && (

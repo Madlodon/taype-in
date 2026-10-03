@@ -34,7 +34,9 @@ export async function createLobbyAction(formData: FormData) {
     .pipe(z.union(TEXT_LENGTHS.map((length) => z.literal(length))))
     .catch(100)
     .parse(formData.get("textLength"));
-  const lobby = await createLobby(user.id, visibility, { textLanguage, textLength });
+  // Bloquant : la saisie s'arrête jusqu'au bon caractère ; tolérant : on continue (ERR-1).
+  const errorMode = z.enum(["blocking", "tolerant"]).catch("blocking").parse(formData.get("errorMode"));
+  const lobby = await createLobby(user.id, visibility, { textLanguage, textLength, errorMode });
   redirect(`/lobbies/${lobby.code}`);
 }
 

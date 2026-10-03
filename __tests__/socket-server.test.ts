@@ -237,10 +237,10 @@ function next<T>(client: Socket, event: string): Promise<T> {
 }
 
 // Un hôte et un invité dans le même lobby, prêts à courir.
-async function lobbyWithTwo() {
+async function lobbyWithTwo(settings?: Parameters<typeof createLobby>[2]) {
   const host = await newUser();
   const guest = await newUser();
-  const lobby = await createLobby(host.id, "unlisted");
+  const lobby = await createLobby(host.id, "unlisted", settings);
   const hostClient = await newClient(host);
   await join(hostClient, { code: lobby.code });
   const guestClient = await newClient(guest);
@@ -274,6 +274,18 @@ describe("race:start", () => {
     expect(message.racerIds).toEqual([host.id, guest.id]);
     expect(await guestSees).toEqual(message);
   });
+
+  test.each(["blocking", "tolerant"] as const)(
+    "Should_SendLobbyErrorMode_When_LobbyIs_%s",
+    async (errorMode) => {
+      const { guestClient, hostClient } = await lobbyWithTwo({ errorMode });
+      const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
+
+      await hostClient.emitWithAck("race:start");
+
+      expect((await guestSees).errorMode).toBe(errorMode);
+    },
+  );
 
   test("Should_SaveRaceWithTextAndStartTime_When_CountdownEnds", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
@@ -367,7 +379,11 @@ describe("race:start", () => {
 
     await join(late, { code: lobby.code });
 
-    expect(await lateSees).toEqual({ content, racerIds: [host.id, guest.id] });
+    expect(await lateSees).toEqual({
+      content,
+      errorMode: "blocking",
+      racerIds: [host.id, guest.id],
+    });
   });
 });
 

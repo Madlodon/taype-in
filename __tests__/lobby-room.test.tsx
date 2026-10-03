@@ -213,21 +213,38 @@ test("Should_CountDownEachSecondAndWaitAtOne_When_CountdownRuns", () => {
   expect(screen.getByRole("timer").textContent).toBe("Départ dans 1");
 });
 
-test("Should_ShowTextAndHideCountdown_When_RaceStarts", () => {
+function startRace(racerIds: string[], errorMode = "blocking") {
+  act(() => handlers["race:started"]({ content: "Un texte court.", errorMode, racerIds }));
+}
+
+test("Should_ShowOnlyTextToTypeAndHideCountdown_When_RaceStarts", () => {
   renderRoom();
+  sendParticipants();
   act(() => handlers["race:countdown"]({ seconds: 5 }));
 
-  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u2"] }));
+  startRace(["u1", "u2"]);
 
   expect(screen.queryByRole("timer")).toBeNull();
-  expect(screen.getByText("Un texte court.")).toBeTruthy();
+  expect(screen.getByLabelText("Un texte court.")).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Tape le texte" })).toBeTruthy();
+  expect(screen.queryByRole("list", { name: "Participants" })).toBeNull();
   expect(screen.queryByText(/tu la regardes/)).toBeNull();
 });
 
-test("Should_SayUserIsWatching_When_UserIsNotARacer", () => {
+test("Should_UseServerErrorMode_When_RaceStarts", () => {
   renderRoom();
 
-  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u3"] }));
+  startRace(["u1", "u2"], "tolerant");
+
+  expect(screen.getByText(fr.RaceTyping.tolerant)).toBeTruthy();
+});
+
+test("Should_SayUserIsWatchingWithoutTextField_When_UserIsNotARacer", () => {
+  renderRoom();
+
+  startRace(["u1", "u3"]);
 
   expect(screen.getByText(/tu la regardes/)).toBeTruthy();
+  expect(screen.getByText("Un texte court.")).toBeTruthy();
+  expect(screen.queryByRole("textbox")).toBeNull();
 });
