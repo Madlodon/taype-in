@@ -41,6 +41,7 @@ def material(name, color, emission=0, metallic=0):
 
 
 steel = material("Midnight steel", (.035, .055, .085), metallic=.6)
+support_steel = material("Galvanized stand supports", (.18, .23, .28), metallic=.65)
 concrete = material("Stadium concrete", (.105, .14, .18))
 rubber = material("Rubber", (.012, .019, .028))
 glass = material("Dark reflective glass", (.025, .09, .14), metallic=.6)
@@ -116,10 +117,11 @@ def curves(name, paths, radius, mat):
     return obj
 
 
-def ring(extra=0, z=0, end_offset=0):
+def ring(extra=0, z=0, end_offset=0, side_offset=0):
     points = []
     end = 41 + end_offset
-    for cx, cy, start in ((end, 23, 0), (-end, 23, 90), (-end, -23, 180), (end, -23, 270)):
+    side = 23 + side_offset
+    for cx, cy, start in ((end, side, 0), (-end, side, 90), (-end, -side, 180), (end, -side, 270)):
         for i in range(25):
             a = math.radians(start + i * 90 / 24)
             points.append((cx + (12 + extra) * math.cos(a), cy + (12 + extra) * math.sin(a), z))
@@ -143,8 +145,8 @@ def band(name, inner, outer, mat, front=True, goals=False):
 
 outline = ring()
 mesh("Playing field", outline, [tuple(range(len(outline)))], turf)
-band("Floating stadium plinth", ring(22, -3, end_offset=12), ring(22, -1, end_offset=12), steel)
-mesh("Foundation", ring(22, -1, end_offset=12), [tuple(range(100))], steel)
+band("Stadium plinth", ring(22, -3, end_offset=7, side_offset=4), ring(22, -1, end_offset=7, side_offset=4), steel)
+mesh("Foundation", ring(22, -1, end_offset=7, side_offset=4), [tuple(range(100))], steel)
 
 # A quarter-pipe joins the grass to the side wall, including the curved corners.
 for step in range(12):
@@ -159,13 +161,13 @@ for team, sign in ((blue_light, -1), (orange_light, 1)):
              and not (abs(rim[i][0]) > 52 and abs(rim[i][1]) < 11)]
     curves("Blue wall rim" if sign < 0 else "Orange wall rim", paths, .13, team)
 
-# Set the end stands behind the goals; keep the front open for the race camera.
+# Keep the end stands close to the nets; place the wider aisle along the sides.
 for tier in range(10):
     extra = 6 + tier * 1.35
     z = 4 + tier * .83
-    band("Seating terrace", ring(extra, z, end_offset=12), ring(extra + 1.3, z, end_offset=12), concrete, front=False)
-    band("Terrace riser", ring(extra + 1.3, z, end_offset=12), ring(extra + 1.3, z + .8, end_offset=12), steel, front=False)
-    points = ring(extra + .6, z + .3, end_offset=12)
+    band("Seating terrace", ring(extra, z, end_offset=7, side_offset=4), ring(extra + 1.3, z, end_offset=7, side_offset=4), concrete, front=False)
+    band("Terrace riser", ring(extra + 1.3, z, end_offset=7, side_offset=4), ring(extra + 1.3, z + .8, end_offset=7, side_offset=4), steel, front=False)
+    points = ring(extra + .6, z + .3, end_offset=7, side_offset=4)
     for i in range(100):
         p, q = Vector(points[i]), Vector(points[(i + 1) % 100])
         if (p.y + q.y) / 2 < -20:
@@ -175,6 +177,36 @@ for tier in range(10):
             at = p.lerp(q, (j + .5) / max(1, int(length / 1.4)))
             seat = box("Seat", (.75, .7, .32), at, blue if at.x < 0 else orange)
             seat.rotation_euler.z = math.atan2(q.y - p.y, q.x - p.x)
+
+# Columns and cross-braced rakers carry the seating bowl down to the foundation.
+inner = ring(6.25, 3.72, end_offset=7, side_offset=4)
+outer = ring(19.2, 11.3, end_offset=7, side_offset=4)
+stations = [corner * 25 + step for corner in range(4) for step in (0, 6, 12, 18, 24)]
+rakers, braces, ties = [], [], []
+supports = {}
+for index, start in enumerate(stations):
+    end = stations[(index + 1) % len(stations)]
+    if (inner[start][1] + inner[end][1]) / 2 < -20:
+        continue
+    count = max(1, math.ceil((Vector(inner[end]) - Vector(inner[start])).length / 8))
+    for step in range(count + 1):
+        inside = Vector(inner[start]).lerp(Vector(inner[end]), step / count)
+        outside = Vector(outer[start]).lerp(Vector(outer[end]), step / count)
+        supports[tuple(round(value, 3) for value in inside)] = (inside, outside)
+for inside, outside in supports.values():
+    feet = []
+    for top in (inside, outside):
+        foot = Vector((top.x, top.y, -.55))
+        feet.append(foot)
+        box("Stand footing", (1.6, 1.6, .45), (top.x, top.y, -.775), concrete, .06)
+        box("Stand column", (.55, .55, top.z + .55), (top.x, top.y, (top.z - .55) / 2), support_steel)
+    rakers.append([tuple(inside), tuple(outside)])
+    braces.extend([[tuple(feet[0]), tuple(outside)], [tuple(feet[1]), tuple(inside)]])
+    ties.append([(inside.x, inside.y, 1.4), (outside.x, outside.y, 1.4)])
+curves("Stand raker beams", rakers, .28, support_steel)
+curves("Stand cross braces", braces, .14, support_steel)
+curves("Stand lower ties", ties, .18, support_steel)
+band("Front seating beam", ring(6.25, 3.45, end_offset=7, side_offset=4), ring(6.25, 4, end_offset=7, side_offset=4), concrete, front=False)
 
 # Recessed goals: floor, back and roof mesh, chamfered luminous frames.
 for sign, accent, paint in ((-1, blue_light, blue), (1, orange_light, orange)):
@@ -282,8 +314,8 @@ camera.data.type = "ORTHO"
 scene.camera = camera
 
 for name, location, target, scale in [
-    ("arena-broadcast", (5, -170, 85), (0, 3, 7), 187),
-    ("arena-diorama", (115, -140, 135), (0, 0, 7), 205),
+    ("arena-broadcast", (5, -170, 85), (0, 3, 7), 177),
+    ("arena-diorama", (115, -140, 135), (0, 0, 7), 198),
 ]:
     camera.location = location
     camera.rotation_euler = (Vector(target) - camera.location).to_track_quat("-Z", "Y").to_euler()
