@@ -15,6 +15,7 @@ import {
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
+import { updateRanks } from "./ranks.ts";
 import { rankRacers, saveResults } from "./results.ts";
 import {
   joinLobbySchema,
@@ -132,7 +133,7 @@ export function createSocketServer(
     // Les dernières frappes arrivent avant la fin.
     sendPositions(lobby, live);
     const endedAt = Date.now();
-    live.results = rankRacers(
+    const placements = rankRacers(
       [...live.players].map(([id, player]) => {
         const { username, at } = live.positions.get(id)!;
         return {
@@ -148,7 +149,12 @@ export function createSocketServer(
       live.errorMode,
     );
     await markRaceEnded(live.raceId);
-    await saveResults(live.raceId, live.results);
+    await saveResults(live.raceId, placements);
+    const ranks = await updateRanks(placements.map((placement) => placement.id));
+    live.results = placements.map((placement) => ({
+      ...placement,
+      ...(ranks.get(placement.id) ?? { rankLevel: 0, rankChange: 0 }),
+    }));
     io.to(lobby.code).emit("race:ended", { reason, results: live.results });
   }
 

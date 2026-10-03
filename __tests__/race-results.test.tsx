@@ -18,6 +18,8 @@ function result(rank: number, overrides: Partial<RaceResult> = {}): RaceResult {
     errors: 0,
     finished: true,
     keyErrors: {},
+    rankLevel: 0,
+    rankChange: 0,
     ...overrides,
   };
 }

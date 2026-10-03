@@ -15,6 +15,9 @@ export type Racer = ProgressMessage & {
   reachedAt: number;
 };
 
+// Place d'un coureur avant la mise à jour des rangs (#99).
+export type Placement = Omit<RaceResult, "rankLevel" | "rankChange">;
+
 // Mode tolérant : chaque faute ajoute 1 s au temps (Q-7).
 export const PENALTY_MS_PER_ERROR = 1000;
 
@@ -40,7 +43,7 @@ export function accuracy(keys: number, errors: number): number {
 }
 
 // Ordre d'arrivée (temps + pénalité) ; ceux qui n'ont pas fini, selon leur progression (Q-7).
-export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMode): RaceResult[] {
+export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMode): Placement[] {
   const scored = racers.map((racer) => ({
     racer,
     penaltyMs: errorMode === "tolerant" ? racer.errors * PENALTY_MS_PER_ERROR : 0,
@@ -68,7 +71,7 @@ export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMod
 }
 
 // Seuls les inscrits gardent un historique ; les invités occupent quand même leur rang.
-export async function saveResults(raceId: string, ranked: RaceResult[]) {
+export async function saveResults(raceId: string, ranked: Placement[]) {
   if (ranked.length === 0) return;
   const registered = await db
     .select({ id: users.id })
