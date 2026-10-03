@@ -71,6 +71,12 @@
     "needMore": "At least {count} participants are needed to start the race.",
     "countdown": "Starting in {seconds}",
     "raceText": "Race text",
+    "timeLeft": "Time left: {time}",
+    "ended": {
+      "allFinished": "Race over: everyone has finished.",
+      "timeUp": "Race over: time is up.",
+      "idle": "Race over: nobody typed for 2 minutes."
+    },
     "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
     "errors": {
       "notLoggedIn": "Not logged in",

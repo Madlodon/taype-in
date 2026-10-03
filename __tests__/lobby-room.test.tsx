@@ -217,7 +217,7 @@ test("Should_ShowTextAndHideCountdown_When_RaceStarts", () => {
   renderRoom();
   act(() => handlers["race:countdown"]({ seconds: 5 }));
 
-  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u2"] }));
+  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u2"], secondsLeft: null }));
 
   expect(screen.queryByRole("timer")).toBeNull();
   expect(screen.getByText("Un texte court.")).toBeTruthy();
@@ -227,7 +227,79 @@ test("Should_ShowTextAndHideCountdown_When_RaceStarts", () => {
 test("Should_SayUserIsWatching_When_UserIsNotARacer", () => {
   renderRoom();
 
-  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u3"] }));
+  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u3"], secondsLeft: null }));
 
   expect(screen.getByText(/tu la regardes/)).toBeTruthy();
+});
+
+function startRace(secondsLeft: number | null) {
+  act(() =>
+    handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u2"], secondsLeft }),
+  );
+}
+
+test.each([
+  [300, "Temps restant : 5:00"],
+  [65, "Temps restant : 1:05"],
+  [86400, "Temps restant : 24:00:00"],
+])("Should_ShowTimeLeft_When_RaceStartsWith_%i_Seconds", (secondsLeft, text) => {
+  renderRoom();
+
+  startRace(secondsLeft);
+
+  expect(screen.getByRole("timer").textContent).toBe(text);
+});
+
+test("Should_NotShowTimer_When_RaceHasNoTimer", () => {
+  renderRoom();
+
+  startRace(null);
+
+  expect(screen.queryByRole("timer")).toBeNull();
+});
+
+test("Should_CountDownTimeLeftAndStopAtZero_When_RaceRuns", () => {
+  vi.useFakeTimers();
+  renderRoom();
+  startRace(2);
+
+  act(() => vi.advanceTimersByTime(1000));
+  expect(screen.getByRole("timer").textContent).toBe("Temps restant : 0:01");
+
+  act(() => vi.advanceTimersByTime(5000));
+  expect(screen.getByRole("timer").textContent).toBe("Temps restant : 0:00");
+});
+
+test.each([
+  ["allFinished", "Course terminée : tout le monde a fini."],
+  ["timeUp", "Course terminée : le temps est écoulé."],
+  ["idle", "Course terminée : personne n'a tapé depuis 2 minutes."],
+])("Should_SayRaceIsOverAndHideTimer_When_RaceEndsBy_%s", (reason, text) => {
+  renderRoom();
+  startRace(300);
+
+  act(() => handlers["race:ended"]({ reason }));
+
+  expect(screen.getByRole("status").textContent).toBe(text);
+  expect(screen.queryByRole("timer")).toBeNull();
+});
+
+test("Should_SayRaceIsOverInEnglish_When_LocaleIsEnglish", () => {
+  renderRoom("en");
+
+  act(() => handlers["race:ended"]({ reason: "timeUp" }));
+
+  expect(screen.getByRole("status").textContent).toBe("Race over: time is up.");
+});
+
+test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
+  renderRoom("fr", true);
+  sendParticipants();
+  startRace(300);
+  expect(screen.queryByRole("button", { name: "Fermer la course" })).toBeNull();
+
+  act(() => handlers["race:ended"]({ reason: "allFinished" }));
+
+  expect(screen.getByRole("button", { name: "Fermer la course" })).toBeTruthy();
+  expect(startButton()).toBeNull();
 });

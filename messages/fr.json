@@ -71,6 +71,12 @@
     "needMore": "Il faut au moins {count} participants pour lancer la course.",
     "countdown": "Départ dans {seconds}",
     "raceText": "Texte de la course",
+    "timeLeft": "Temps restant : {time}",
+    "ended": {
+      "allFinished": "Course terminée : tout le monde a fini.",
+      "timeUp": "Course terminée : le temps est écoulé.",
+      "idle": "Course terminée : personne n'a tapé depuis 2 minutes."
+    },
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
     "errors": {
       "notLoggedIn": "Non connecté",
