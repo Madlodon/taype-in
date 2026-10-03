@@ -1,13 +1,19 @@
 import { useId } from "react";
 import type { Loadout } from "@/lib/garage-items";
 
-// Même coque et mêmes panneaux pour le ballon standard et sa finition émeraude.
+// Même coque et mêmes panneaux pour les quatre finitions du ballon.
+const FINISHES = {
+  none: { shell: "#d5d8cd", shadow: "#687775", panel: "#b3b9b8", dark: "#626d70", edge: "#c3ceca", light: "#b9f5ff" },
+  emerald: { shell: "#e9fff3", shadow: "#658c79", panel: "#26956b", dark: "#073f32", edge: "#52bd91", light: "#69ffb0" },
+  glacier: { shell: "#edf9ff", shadow: "#638ba7", panel: "#328ac5", dark: "#103c6e", edge: "#83d5ff", light: "#b5f6ff" },
+  solar: { shell: "#707982", shadow: "#232b38", panel: "#f5a345", dark: "#a34217", edge: "#ffcf84", light: "#ffe5ac" },
+};
 export function CarBall({ ball }: { ball: Loadout["ball"] }) {
   const id = useId().replaceAll(":", "");
-  const emerald = ball === "emerald";
+  const finish = FINISHES[ball === "beach" ? "none" : ball];
   const shell = `${id}-ball-shell`;
   const panel = `${id}-ball-panel`;
-  const accent = emerald ? "#69ffb0" : "#b9f5ff";
+  const accent = finish.light;
   const mesh = `${id}-ball-mesh`;
   const shade = `${id}-ball-shade`;
 
@@ -23,12 +29,12 @@ export function CarBall({ ball }: { ball: Loadout["ball"] }) {
         <defs>
           <radialGradient id={shell} cx="30%" cy="24%" r="78%">
             <stop stopColor="#ffffff" />
-            <stop offset=".55" stopColor={emerald ? "#e9fff3" : "#d5d8cd"} />
-            <stop offset="1" stopColor={emerald ? "#658c79" : "#687775"} />
+            <stop offset=".55" stopColor={finish.shell} />
+            <stop offset="1" stopColor={finish.shadow} />
           </radialGradient>
           <linearGradient id={panel} x1="0" y1="0" x2="1" y2="1">
-            <stop stopColor={emerald ? "#26956b" : "#b3b9b8"} />
-            <stop offset="1" stopColor={emerald ? "#073f32" : "#626d70"} />
+            <stop stopColor={finish.panel} />
+            <stop offset="1" stopColor={finish.dark} />
           </linearGradient>
           <pattern id={mesh} width="1.5" height="2.6" patternUnits="userSpaceOnUse">
             <path d="M.75 0 L1.5.43 V1.3 L.75 1.73 L0 1.3 V.43Z M.75 1.73 V2.6" fill="none" stroke="#122b30" strokeWidth=".13" opacity=".5" />
@@ -54,7 +60,7 @@ export function CarBall({ ball }: { ball: Loadout["ball"] }) {
         <g fill="none" stroke="#65716e" strokeWidth=".5">
           <path d="M-5-7 L-5-10 M4-8 L3-10 M9-1 L11-1 M5 7 L6 9 M-4 8 L-2 12 M-9 1 L-11 2" />
           <path d="M-8-13 L-11-9 L-12-4 M6-12 L10-10 L12-9 M12 4 L12 7 L10 10 M-13 9 L-8 12 L-2 12" />
-          <path d="M-4-5 L3-6 L6-1 L3 5 L-3 6 L-6 1Z" stroke={emerald ? "#52bd91" : "#c3ceca"} />
+          <path d="M-4-5 L3-6 L6-1 L3 5 L-3 6 L-6 1Z" stroke={finish.edge} />
         </g>
         <path d="M-4-5 L3-6 L6-1" fill="none" stroke="#eafff4" strokeWidth=".6" opacity=".65" />
         <g fill="#263b40" stroke="#a0aaa4" strokeWidth=".45">

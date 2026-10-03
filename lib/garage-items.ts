@@ -7,7 +7,7 @@ export const CARS = ["octane", "fennec", "dominus", "merc"] as const;
 export const BOOSTS = ["standard", "flames", "ion", "sparkles"] as const;
 export const HATS = ["none", "cone", "alpha-cap", "top-hat", "pirate", "wizard"] as const;
 // « none » garde le ballon standard.
-export const BALLS = ["none", "beach", "emerald"] as const;
+export const BALLS = ["none", "beach", "emerald", "glacier", "solar"] as const;
 
 export type Car = (typeof CARS)[number];
 export type Loadout = { car: Car; boost: (typeof BOOSTS)[number]; hat: (typeof HATS)[number]; ball: (typeof BALLS)[number] };

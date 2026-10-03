@@ -289,7 +289,9 @@
       "ball": {
         "none": "Aucun",
         "beach": "Ballon de plage",
-        "emerald": "Émeraude"
+        "emerald": "Émeraude",
+        "glacier": "Glacier",
+        "solar": "Solaire"
       }
     },
     "preview": "Aperçu",
