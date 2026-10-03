@@ -131,7 +131,9 @@ La mise en page du texte (une ligne ou un bloc) se décidera dans l'issue de l'�
 La [maquette 6](mockups/6-arena-studies.html) compare trois pistes : stade en coupe,
 diorama 3D et [SVG vu du dessus](mockups/assets/arena-top-view.svg). Elles ajoutent
 des murs courbes, des buts en retrait, des gradins et des marques sur le gazon.
-Ce sont des propositions à choisir ; l'arène de l'application reste inchangée.
+**Direction retenue : le diorama 3D**, sans les cinq traits colorés dans chaque
+coin avant et avec les gradins reculés derrière les buts. L'arène de l'application
+reste inchangée pendant cette étude.
 La vue du dessus nécessiterait une adaptation pour montrer le parcours mur/plafond.
 
 Le [modèle Blender](mockups/assets/arena.blend) et les deux rendus se régénèrent avec :

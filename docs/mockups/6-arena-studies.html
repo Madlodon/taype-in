@@ -38,13 +38,13 @@
   <p class="intro">Banked corners, recessed goals, mown turf, boost pads, and blue versus orange. Three camera and rendering directions for the arena.</p>
   <div class="toolbar">
     <div class="tabs" role="tablist" aria-label="Arena concepts">
-      <button id="cutaway-tab" role="tab" aria-controls="cutaway" aria-selected="true" type="button">Stadium cutaway</button>
-      <button id="diorama-tab" role="tab" aria-controls="diorama" aria-selected="false" type="button">3D diorama</button>
+      <button id="cutaway-tab" role="tab" aria-controls="cutaway" aria-selected="false" type="button">Stadium cutaway</button>
+      <button id="diorama-tab" role="tab" aria-controls="diorama" aria-selected="true" type="button">3D diorama</button>
       <button id="top-tab" role="tab" aria-controls="top" aria-selected="false" type="button">Top-down SVG</button>
     </div>
     <a class="source" href="assets/arena.blend" download>Blender model ↗</a>
   </div>
-  <section id="cutaway" role="tabpanel" aria-labelledby="cutaway-tab">
+  <section id="cutaway" role="tabpanel" aria-labelledby="cutaway-tab" hidden>
     <figure>
       <img class="render" src="assets/arena-broadcast.png" width="1400" height="900" alt="A front-facing stadium cutaway, with blue and orange stands, rounded walls, recessed netted goals and a grass field.">
       <figcaption>
@@ -53,11 +53,11 @@
       </figcaption>
     </figure>
   </section>
-  <section id="diorama" role="tabpanel" aria-labelledby="diorama-tab" hidden>
+  <section id="diorama" role="tabpanel" aria-labelledby="diorama-tab">
     <figure>
       <img class="render" src="assets/arena-diorama.png" width="1400" height="900" alt="An elevated three-quarter view of the modeled arena, showing the depth of the goals, ramps, stands and floodlights.">
       <figcaption>
-        <div><h2>3D diorama</h2><p class="tag">Most depth and physical presence</p></div>
+        <div><h2>3D diorama</h2><p class="tag">Selected direction · Clear space behind both goals</p></div>
         <p class="description">An angled view makes the arena feel like a physical space. The same editable Blender model can produce a static background with cars layered on top. Cars and player labels would need to stay readable at the far end.</p>
       </figcaption>
     </figure>
