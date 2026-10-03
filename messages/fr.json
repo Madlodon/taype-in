@@ -17,6 +17,7 @@
     "haveAccount": "J'ai déjà un compte",
     "createAccount": "Créer un compte",
     "username": "Nom d'utilisateur",
+    "signInToContinue": "Connecte-toi ou joue en invité pour continuer.",
     "password": "Mot de passe",
     "errors": {
       "usernameTooShort": "Le nom d'utilisateur doit avoir au moins 3 caractères.",

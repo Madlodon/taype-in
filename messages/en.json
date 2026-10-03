@@ -17,6 +17,7 @@
     "haveAccount": "I already have an account",
     "createAccount": "Sign up",
     "username": "Username",
+    "signInToContinue": "Log in or play as guest to continue.",
     "password": "Password",
     "errors": {
       "usernameTooShort": "Username must be at least 3 characters.",
