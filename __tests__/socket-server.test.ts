@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { lobbies, lobbyParticipants, races, users } from "../db/schema";
+import { lobbies, lobbyParticipants, races, results, users } from "../db/schema";
 import { createSession } from "../lib/auth";
 import {
   claimInvite,
@@ -436,8 +436,8 @@ describe("race end", () => {
     expect(await progress(hostClient, typing(content, 0))).toEqual({ ok: true });
     await progress(guestClient, typing(content, 0));
 
-    expect(await hostSees).toEqual({ reason: "allFinished" });
-    expect(await guestSees).toEqual({ reason: "allFinished" });
+    expect(await hostSees).toMatchObject({ reason: "allFinished" });
+    expect(await guestSees).toMatchObject({ reason: "allFinished" });
     expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
   });
 
@@ -460,7 +460,7 @@ describe("race end", () => {
     await startRace(hostClient);
     const guestSees = next<RaceEndedMessage>(guestClient, "race:ended");
 
-    expect(await guestSees).toEqual({ reason: "timeUp" });
+    expect(await guestSees).toMatchObject({ reason: "timeUp" });
     expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
   });
 
@@ -470,7 +470,7 @@ describe("race end", () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     await startRace(hostClient);
 
-    expect(await next<RaceEndedMessage>(hostClient, "race:ended")).toEqual({ reason: "idle" });
+    expect(await next<RaceEndedMessage>(hostClient, "race:ended")).toMatchObject({ reason: "idle" });
     expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
   });
 
@@ -488,7 +488,7 @@ describe("race end", () => {
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(ended).toBe(false);
-    expect(await endedLater).toEqual({ reason: "idle" });
+    expect(await endedLater).toMatchObject({ reason: "idle" });
   });
 
   test("Should_TellLatePlayerRaceIsOver_When_JoiningAfterEnd", async () => {
@@ -503,7 +503,7 @@ describe("race end", () => {
 
     await join(late, { code: lobby.code });
 
-    expect(await lateSees).toEqual({ reason: "allFinished" });
+    expect(await lateSees).toMatchObject({ reason: "allFinished" });
   });
 
   test("Should_LetHostClose_When_RaceHasEnded", async () => {
@@ -516,6 +516,96 @@ describe("race end", () => {
 
     expect(await hostClient.emitWithAck("lobby:close")).toEqual({ ok: true });
     expect(await findOpenLobby(lobby.code)).toBeNull();
+  });
+});
+
+describe("race results", () => {
+  test("Should_SendRankingInFinishOrder_When_EveryRacerFinishes", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(guestClient, "race:ended");
+
+    await progress(guestClient, typing(content, 2));
+    // Assez d'écart pour que les deux temps ne tombent pas dans la même milliseconde.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await progress(hostClient, typing(content, 0));
+
+    const { results: ranked } = await ended;
+    expect(ranked.map((result) => [result.id, result.rank, result.finished])).toEqual([
+      [guest.id, 1, true],
+      [host.id, 2, true],
+    ]);
+    expect(ranked[0]).toMatchObject({ username: guest.username, errors: 2, keyErrors: { e: 2 } });
+    expect(ranked[0].wpm).toBeGreaterThan(0);
+    expect(ranked[0].accuracy).toBeLessThan(100);
+  });
+
+  test("Should_RankRacerWhoGaveUpLast_When_OtherFinishes", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    await progress(guestClient, typing(content.slice(0, 10), 0));
+    await giveUp(guestClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(hostClient, typing(content, 0));
+
+    expect((await ended).results.map((result) => [result.id, result.finished])).toEqual([
+      [host.id, true],
+      [guest.id, false],
+    ]);
+  });
+
+  test("Should_RankByProgress_When_TimerRunsOut", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo({ timeLimitSeconds: 1 });
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(hostClient, typing(content.slice(0, 3), 0));
+    await progress(guestClient, typing(content.slice(0, 8), 0));
+
+    const { results: ranked } = await ended;
+    expect(ranked.map((result) => [result.id, result.finished])).toEqual([
+      [guest.id, false],
+      [host.id, false],
+    ]);
+    expect(ranked[0].durationMs).toBeGreaterThanOrEqual(900);
+  });
+
+  test("Should_SaveResults_When_RaceEnds", async () => {
+    const { lobby, host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await progress(guestClient, typing(content, 1));
+    await ended;
+
+    const saved = await db
+      .select()
+      .from(results)
+      .where(eq(results.raceId, (await savedRace(lobby.id)).id));
+
+    expect(saved.map((row) => [row.userId, row.rank, row.errorCount, row.keyErrors])).toEqual(
+      expect.arrayContaining([
+        [host.id, 1, 0, {}],
+        [guest.id, 2, 1, { e: 1 }],
+      ]),
+    );
+  });
+
+  test("Should_SendResults_When_JoiningAfterEnd", async () => {
+    const { lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await progress(guestClient, typing(content, 0));
+    await ended;
+    const late = await newClient();
+    const lateSees = next<RaceEndedMessage>(late, "race:ended");
+
+    await join(late, { code: lobby.code });
+
+    expect((await lateSees).results).toHaveLength(2);
   });
 });
 
@@ -652,7 +742,7 @@ describe("reconnect", () => {
 
     expect(await progress(client, typing(content, 0))).toEqual({ ok: true });
 
-    expect(await ended).toEqual({ reason: "allFinished" });
+    expect(await ended).toMatchObject({ reason: "allFinished" });
   });
 });
 
@@ -677,7 +767,7 @@ describe("race:giveUp", () => {
 
     await progress(hostClient, typing(content, 0));
 
-    expect(await ended).toEqual({ reason: "allFinished" });
+    expect(await ended).toMatchObject({ reason: "allFinished" });
   });
 
   test("Should_EndRace_When_LastRacerStillTypingGivesUp", async () => {
@@ -688,7 +778,7 @@ describe("race:giveUp", () => {
 
     await giveUp(guestClient);
 
-    expect(await ended).toEqual({ reason: "allFinished" });
+    expect(await ended).toMatchObject({ reason: "allFinished" });
   });
 
   test("Should_StaySpectator_When_RacerWhoGaveUpComesBack", async () => {
