@@ -63,7 +63,7 @@ function average(values: number[]): number | null {
   return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-// Vitesses et précision sur les courses terminées ; les bonus faussent la meilleure vitesse.
+// Vitesses et précision sur les courses terminées ; les bonus faussent les vitesses.
 // Les touches difficiles comptent les fautes de toutes les courses.
 export function computeStats(history: HistoryEntry[]): ProfileStats {
   const finished = history.filter((entry) => entry.finished);
@@ -76,7 +76,7 @@ export function computeStats(history: HistoryEntry[]): ProfileStats {
   }
   return {
     bestWpm: fair.length === 0 ? null : Math.max(...fair),
-    averageWpm: average(finished.map((entry) => entry.wpm)),
+    averageWpm: average(fair),
     averageAccuracy: average(finished.map((entry) => entry.accuracy)),
     hardestKeys: [...errorsByKey]
       .filter(([, errors]) => errors > 0)

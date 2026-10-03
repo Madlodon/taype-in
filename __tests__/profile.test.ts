@@ -64,18 +64,19 @@ describe("computeStats", () => {
     expect(stats).toMatchObject({ bestWpm: null, averageWpm: null, averageAccuracy: null });
   });
 
-  test("Should_IgnoreBonusRaceInBestSpeed_When_ItWasFaster", () => {
+  test("Should_IgnoreBonusRaceInSpeeds_When_ItWasFaster", () => {
     const stats = computeStats([
-      entry({ wpm: 40 }),
-      entry({ wpm: 120, bonusesEnabled: true }),
+      entry({ wpm: 40, accuracy: 90 }),
+      entry({ wpm: 120, accuracy: 100, bonusesEnabled: true }),
     ]);
 
-    expect(stats.bestWpm).toBe(40);
-    expect(stats.averageWpm).toBe(80);
+    expect(stats).toMatchObject({ bestWpm: 40, averageWpm: 40, averageAccuracy: 95 });
   });
 
-  test("Should_ReturnNullBestSpeed_When_EveryFinishedRaceHadBonuses", () => {
-    expect(computeStats([entry({ bonusesEnabled: true })]).bestWpm).toBeNull();
+  test("Should_ReturnNullSpeeds_When_EveryFinishedRaceHadBonuses", () => {
+    const stats = computeStats([entry({ bonusesEnabled: true, accuracy: 80 })]);
+
+    expect(stats).toMatchObject({ bestWpm: null, averageWpm: null, averageAccuracy: 80 });
   });
 
   test("Should_AddErrorsAcrossRaces_When_FindingHardestKeys", () => {
