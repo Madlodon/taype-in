@@ -884,6 +884,35 @@ a, button, input {
   overflow-wrap: break-word;
 }
 
+/* Touches les plus difficiles du profil (PROF-3). */
+.hard-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.hard-keys li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.hard-keys kbd {
+  min-width: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--foreground);
+  font: 16px var(--font-jetbrains-mono);
+  text-align: center;
+}
+
 .room-info {
   margin-top: 22px;
   padding: 16px;
