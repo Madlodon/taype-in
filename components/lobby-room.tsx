@@ -20,8 +20,8 @@ import type { Typing } from "@/lib/typing";
 
 type Props = { code: string; hostId: string; isHost: boolean; userId: string };
 
-function toProgress({ typed, errors }: Typing) {
-  return { typed, errors };
+function toProgress({ typed, errors, keys, keyErrors }: Typing) {
+  return { typed, errors, keys, keyErrors };
 }
 
 // 125 → « 2:05 », 3725 → « 1:02:05 ».

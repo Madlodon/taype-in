@@ -217,6 +217,8 @@ export function createSocketServer(
           mine: player && {
             typed: player.typed,
             errors: player.errors,
+            keys: player.keys,
+            keyErrors: player.keyErrors,
             gaveUp: player.state === "abandoned",
           },
         });
@@ -261,7 +263,7 @@ export function createSocketServer(
         players: new Map(
           participants.map((participant) => [
             participant.id,
-            { state: "connected", typed: "", errors: 0 },
+            { state: "connected", typed: "", errors: 0, keys: 0, keyErrors: {} },
           ]),
         ),
         positions: new Map(),
@@ -337,6 +339,8 @@ export function createSocketServer(
       if (player.state === "connected") {
         player.typed = result.data.typed;
         player.errors = result.data.errors;
+        player.keys = result.data.keys;
+        player.keyErrors = result.data.keyErrors;
         const racer = live.positions.get(user.id)!;
         if (racer.position !== player.typed.length) {
           live.positions.set(user.id, { ...racer, position: player.typed.length, at: Date.now() });
