@@ -45,6 +45,9 @@ test("Should_FitEveryPage_When_Visiting", async ({ page }) => {
   await page.getByRole("link", { name: "Créer une course", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expectNoHorizontalScroll(page);
+  await page.goto("/garage");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoHorizontalScroll(page);
 });
 
 test("Should_ReachEveryPage_When_UsingTheNavigation", async ({ page }) => {
@@ -54,6 +57,7 @@ test("Should_ReachEveryPage_When_UsingTheNavigation", async ({ page }) => {
   for (const [label, url] of [
     ["Trouver une course", "/lobbies"],
     ["L’arène", "/race"],
+    ["Garage", "/garage"],
     ["Accueil", "/"],
   ]) {
     await nav.getByRole("link", { name: label }).click();
