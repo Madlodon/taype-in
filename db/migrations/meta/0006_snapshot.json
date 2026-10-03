@@ -1,6 +1,6 @@
 {
-  "id": "9b2771dd-606a-4ee4-b997-6a0a04f627ac",
-  "prevId": "3949caef-f8b0-44f7-8331-84467902b843",
+  "id": "8cbecb2f-3175-41d2-9706-03dfafc488f3",
+  "prevId": "9b2771dd-606a-4ee4-b997-6a0a04f627ac",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -56,6 +56,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'blocking'"
+        },
+        "time_limit_seconds": {
+          "name": "time_limit_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 300
         },
         "created_at": {
           "name": "created_at",

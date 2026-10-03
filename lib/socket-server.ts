@@ -33,6 +33,7 @@ type LiveRace = {
   raceId: string;
   goAt: number;
   content: string;
+  errorMode: RaceStartedMessage["errorMode"];
   racerIds: string[];
   timeLimitSeconds: number | null;
   // Fin prévue par la minuterie (ms) ; null sans minuterie.
@@ -166,6 +167,7 @@ export function createSocketServer(
       } else if (race?.state === "racing") {
         socket.emit("race:started", {
           content: race.content,
+          errorMode: race.errorMode,
           racerIds: race.racerIds,
           secondsLeft: secondsLeft(race),
         });
@@ -201,6 +203,7 @@ export function createSocketServer(
         raceId: "",
         goAt: Date.now() + countdownMs,
         content: "",
+        errorMode: lobby.errorMode,
         racerIds: participants.map((participant) => participant.id),
         timeLimitSeconds: null,
         endsAt: null,
@@ -234,6 +237,7 @@ export function createSocketServer(
         resetIdleTimer(lobby, live);
         io.to(lobby.code).emit("race:started", {
           content: live.content,
+          errorMode: live.errorMode,
           racerIds: live.racerIds,
           secondsLeft: secondsLeft(live),
         });

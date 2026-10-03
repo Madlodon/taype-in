@@ -133,7 +133,7 @@ Statut :
 | CRS-5 | Fin de course (tous finis, minuterie, inactivité) | E     | [#3][i3], [#58][i58] | [#20][p20] | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [player-state.test.ts](../__tests__/player-state.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx) | Fait |
 | CRS-6 | Reprise après perte de connexion                  | E     | [#3][i3], [#59][i59] | [#20][p20] | [player-state.test.ts](../__tests__/player-state.test.ts)                                                          | En cours |
 | CRS-7 | Bouton « Abandonner » → spectateur                | E     | [#3][i3], [#59][i59] | [#20][p20] | [player-state.test.ts](../__tests__/player-state.test.ts)                                                          | En cours |
-| CRS-8 | Interface centrée sur le texte                    | E     | [#56][i56]           | —          | —                                                                                                                  | En cours |
+| CRS-8 | Interface centrée sur le texte                    | E     | [#56][i56]           | —          | [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx) | Fait |
 
 ## Textes (TXT)
 
@@ -152,8 +152,8 @@ Statut :
 
 | ID    | Exigence                               | Prio. | Issue      | PR  | Tests | Statut   |
 | ----- | -------------------------------------- | ----- | ---------- | --- | ----- | -------- |
-| ERR-1 | Mode bloquant ou tolérant              | E     | [#56][i56] | —   | —     | En cours |
-| ERR-2 | Caractère erroné mis en évidence       | E     | [#56][i56] | —   | —     | En cours |
+| ERR-1 | Mode bloquant ou tolérant              | E     | [#56][i56] | —   | [typing.test.ts](../__tests__/typing.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [races.test.ts](../__tests__/races.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
+| ERR-2 | Caractère erroné mis en évidence       | E     | [#56][i56] | —   | [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | ERR-3 | Fautes dans la précision et la heatmap | E     | [#60][i60] | —   | —     | En cours |
 
 ## Bots (BOT)

@@ -280,6 +280,18 @@ describe("race:start", () => {
     expect(await guestSees).toEqual(message);
   });
 
+  test.each(["blocking", "tolerant"] as const)(
+    "Should_SendLobbyErrorMode_When_LobbyIs_%s",
+    async (errorMode) => {
+      const { guestClient, hostClient } = await lobbyWithTwo({ errorMode });
+      const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
+
+      await hostClient.emitWithAck("race:start");
+
+      expect((await guestSees).errorMode).toBe(errorMode);
+    },
+  );
+
   test("Should_SaveRaceWithTextAndStartTime_When_CountdownEnds", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     const started = next<RaceStartedMessage>(hostClient, "race:started");
@@ -372,7 +384,11 @@ describe("race:start", () => {
 
     await join(late, { code: lobby.code });
 
-    expect(await lateSees).toMatchObject({ content, racerIds: [host.id, guest.id] });
+    expect(await lateSees).toMatchObject({
+      content,
+      errorMode: "blocking",
+      racerIds: [host.id, guest.id],
+    });
   });
 });
 

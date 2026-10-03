@@ -36,6 +36,8 @@ export async function createLobbyAction(formData: FormData) {
     .pipe(z.union(TEXT_LENGTHS.map((length) => z.literal(length))))
     .catch(100)
     .parse(formData.get("textLength"));
+  // Bloquant : la saisie s'arrête jusqu'au bon caractère ; tolérant : on continue (ERR-1).
+  const errorMode = z.enum(["blocking", "tolerant"]).catch("blocking").parse(formData.get("errorMode"));
   // Durée en minutes, ou aucune minuterie (CRS-4).
   const timerMinutes = z.coerce
     .number()
@@ -48,6 +50,7 @@ export async function createLobbyAction(formData: FormData) {
   const lobby = await createLobby(user.id, visibility, {
     textLanguage,
     textLength,
+    errorMode,
     timeLimitSeconds,
   });
   redirect(`/lobbies/${lobby.code}`);

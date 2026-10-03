@@ -236,3 +236,22 @@ test("Should_ShowNoTimeLeft_When_HostChoosesNoTimer", async ({ browser }) => {
   await expect(player.page.locator(".typing-text")).toBeVisible({ timeout: 8000 });
   await expect(player.page.getByRole("timer")).toHaveCount(0);
 });
+
+test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+
+  const input = player.page.getByRole("textbox", { name: "Tape le texte" });
+  await expect(input).toBeFocused({ timeout: 8000 });
+  const text = (await player.page.locator(".typing-text").textContent())!;
+  // Un caractère sûrement faux : ~ n'apparaît dans aucun texte de la banque.
+  await player.page.keyboard.type(`${text[0]}~`);
+
+  await expect(input).toHaveValue(text[0]);
+  await expect(player.page.locator(".typing-text .typed-wrong")).toHaveText(text[1]);
+  await expect(player.page.getByRole("status")).toHaveText("1 faute");
+});

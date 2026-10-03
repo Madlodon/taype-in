@@ -54,6 +54,9 @@
     "english": "English",
     "textLength": "Text length",
     "words": "{count} words",
+    "errorMode": "Typing errors",
+    "blocking": "Blocking: you must type the right character to keep going",
+    "tolerant": "Tolerant: you keep going and can fix with Backspace",
     "timer": "Timer",
     "timerMinutes": "Duration in minutes (up to {max})",
     "noTimer": "No timer",
@@ -87,9 +90,16 @@
       "notEnoughParticipants": "At least 2 participants are needed",
       "raceInProgress": "A race is already running",
       "noText": "No text available in this language",
-    "raceNotRunning": "No race is running",
-    "notRacer": "You are not racing in this race"
+      "raceNotRunning": "No race is running",
+      "notRacer": "You are not racing in this race"
     }
+  },
+  "RaceTyping": {
+    "label": "Type the text",
+    "blocking": "Blocking mode: a wrong character stops you until you type the right one.",
+    "tolerant": "Tolerant mode: keep going and fix with Backspace. Every mistake counts, even fixed.",
+    "errors": "{count, plural, =0 {No errors} one {# error} other {# errors}}",
+    "finished": "Finished! {count, plural, =0 {No errors.} one {# error.} other {# errors.}}"
   },
   "Invites": {
     "title": "Invite links",

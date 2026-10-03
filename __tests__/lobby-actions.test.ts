@@ -45,6 +45,7 @@ const aLobby = {
   hostId: "user-1",
   textLanguage: "fr" as const,
   textLength: 100,
+  errorMode: "blocking" as const,
   timeLimitSeconds: 300,
   createdAt: new Date(),
   closedAt: null,
@@ -113,6 +114,7 @@ test("Should_SaveTextSettings_When_HostPicksLanguageAndLength", async () => {
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "public", {
     textLanguage: "en",
     textLength: 200,
+    errorMode: "blocking",
     timeLimitSeconds: 300,
   });
 });
@@ -126,8 +128,29 @@ test.each([
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", {
     textLanguage: "fr",
     textLength: 100,
+    errorMode: "blocking",
     timeLimitSeconds: 300,
   });
+});
+
+test("Should_SaveTolerantMode_When_HostPicksTolerant", async () => {
+  await expect(createLobbyAction(form({ errorMode: "tolerant" }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ errorMode: "tolerant" }),
+  );
+});
+
+test("Should_UseBlockingMode_When_ErrorModeIsUnknown", async () => {
+  await expect(createLobbyAction(form({ errorMode: "lenient" }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ errorMode: "blocking" }),
+  );
 });
 
 test.each([

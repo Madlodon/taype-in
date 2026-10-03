@@ -12,6 +12,7 @@ import {
   type RaceEndedMessage,
   type RaceStartedMessage,
 } from "@/lib/socket-messages";
+import { RaceTyping } from "@/components/race-typing";
 
 type Props = { code: string; hostId: string; isHost: boolean; userId: string };
 
@@ -27,6 +28,7 @@ function formatTime(totalSeconds: number): string {
 
 // Salle d'attente : la liste des participants suit les arrivées et départs ;
 // l'hôte lance la course, tous voient le même compte à rebours puis le même texte (CRS-1).
+// Les coureurs tapent le texte ; ceux arrivés en cours de route le regardent.
 export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
   const t = useTranslations("LobbyRoom");
   const router = useRouter();
@@ -82,6 +84,11 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
     });
   }
 
+  // Chaque frappe est envoyée : le serveur sait qui a fini et si quelqu'un tape encore (CRS-5).
+  function progress(position: number) {
+    socketRef.current?.emit("race:progress", { position });
+  }
+
   function close() {
     if (!window.confirm(t("confirmClose"))) return;
     socketRef.current?.emit("lobby:close", (ack: Ack) => {
@@ -95,6 +102,22 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
       <p role="alert" className="form-error">
         {t.has(`errors.${error}`) ? t(`errors.${error}`) : error}
       </p>
+    );
+  }
+
+  const timeLeft = secondsLeft !== null && !endReason && (
+    <p role="timer" className="text-xl font-semibold mt-5">
+      {t("timeLeft", { time: formatTime(secondsLeft) })}
+    </p>
+  );
+
+  // Pendant la course, le coureur ne voit que le texte à taper et le temps restant (CRS-8).
+  if (race?.racerIds.includes(userId) && !endReason) {
+    return (
+      <section className="panel panel-accent">
+        <RaceTyping content={race.content} errorMode={race.errorMode} onProgress={progress} />
+        {timeLeft}
+      </section>
     );
   }
 
@@ -116,11 +139,7 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
           {t("countdown", { seconds: countdown })}
         </p>
       )}
-      {secondsLeft !== null && !endReason && (
-        <p role="timer" className="text-xl font-semibold mt-5">
-          {t("timeLeft", { time: formatTime(secondsLeft) })}
-        </p>
-      )}
+      {timeLeft}
       {endReason && (
         <p role="status" className="text-xl font-semibold mt-5">
           {t(`ended.${endReason}`)}
@@ -130,9 +149,7 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
         <>
           <h2 className="text-xl font-semibold mt-5">{t("raceText")}</h2>
           <p className="typing-text">{race.content}</p>
-          {!race.racerIds.includes(userId) && !endReason && (
-            <p className="form-note">{t("spectating")}</p>
-          )}
+          {!endReason && <p className="form-note">{t("spectating")}</p>}
         </>
       )}
       {isHost && countdown === undefined && !race && (

@@ -52,6 +52,15 @@ test.each([
   },
 );
 
+test.each(["blocking", "tolerant"] as const)(
+  "Should_CopyLobbyErrorMode_When_LobbyIs_%s",
+  async (errorMode) => {
+    const race = await createRace(await newLobby({ errorMode }));
+
+    expect(race!.errorMode).toBe(errorMode);
+  },
+);
+
 test("Should_SaveRace_When_Created", async () => {
   const race = await createRace(await newLobby());
 

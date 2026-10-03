@@ -213,30 +213,43 @@ test("Should_CountDownEachSecondAndWaitAtOne_When_CountdownRuns", () => {
   expect(screen.getByRole("timer").textContent).toBe("Départ dans 1");
 });
 
-test("Should_ShowTextAndHideCountdown_When_RaceStarts", () => {
+function startRace(racerIds: string[], errorMode = "blocking", secondsLeft: number | null = null) {
+  act(() =>
+    handlers["race:started"]({ content: "Un texte court.", errorMode, racerIds, secondsLeft }),
+  );
+}
+
+test("Should_ShowOnlyTextToTypeAndHideCountdown_When_RaceStarts", () => {
   renderRoom();
+  sendParticipants();
   act(() => handlers["race:countdown"]({ seconds: 5 }));
 
-  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u2"], secondsLeft: null }));
+  startRace(["u1", "u2"]);
 
   expect(screen.queryByRole("timer")).toBeNull();
-  expect(screen.getByText("Un texte court.")).toBeTruthy();
+  expect(screen.getByLabelText("Un texte court.")).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Tape le texte" })).toBeTruthy();
+  expect(screen.queryByRole("list", { name: "Participants" })).toBeNull();
   expect(screen.queryByText(/tu la regardes/)).toBeNull();
 });
 
-test("Should_SayUserIsWatching_When_UserIsNotARacer", () => {
+test("Should_UseServerErrorMode_When_RaceStarts", () => {
   renderRoom();
 
-  act(() => handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u3"], secondsLeft: null }));
+  startRace(["u1", "u2"], "tolerant");
 
-  expect(screen.getByText(/tu la regardes/)).toBeTruthy();
+  expect(screen.getByText(fr.RaceTyping.tolerant)).toBeTruthy();
 });
 
-function startRace(secondsLeft: number | null) {
-  act(() =>
-    handlers["race:started"]({ content: "Un texte court.", racerIds: ["u1", "u2"], secondsLeft }),
-  );
-}
+test("Should_SayUserIsWatchingWithoutTextField_When_UserIsNotARacer", () => {
+  renderRoom();
+
+  startRace(["u1", "u3"]);
+
+  expect(screen.getByText(/tu la regardes/)).toBeTruthy();
+  expect(screen.getByText("Un texte court.")).toBeTruthy();
+  expect(screen.queryByRole("textbox")).toBeNull();
+});
 
 test.each([
   [300, "Temps restant : 5:00"],
@@ -245,7 +258,7 @@ test.each([
 ])("Should_ShowTimeLeft_When_RaceStartsWith_%i_Seconds", (secondsLeft, text) => {
   renderRoom();
 
-  startRace(secondsLeft);
+  startRace(["u1", "u2"], "blocking", secondsLeft);
 
   expect(screen.getByRole("timer").textContent).toBe(text);
 });
@@ -253,7 +266,7 @@ test.each([
 test("Should_NotShowTimer_When_RaceHasNoTimer", () => {
   renderRoom();
 
-  startRace(null);
+  startRace(["u1", "u2"]);
 
   expect(screen.queryByRole("timer")).toBeNull();
 });
@@ -261,7 +274,7 @@ test("Should_NotShowTimer_When_RaceHasNoTimer", () => {
 test("Should_CountDownTimeLeftAndStopAtZero_When_RaceRuns", () => {
   vi.useFakeTimers();
   renderRoom();
-  startRace(2);
+  startRace(["u1", "u2"], "blocking", 2);
 
   act(() => vi.advanceTimersByTime(1000));
   expect(screen.getByRole("timer").textContent).toBe("Temps restant : 0:01");
@@ -276,7 +289,7 @@ test.each([
   ["idle", "Course terminée : personne n'a tapé depuis 2 minutes."],
 ])("Should_SayRaceIsOverAndHideTimer_When_RaceEndsBy_%s", (reason, text) => {
   renderRoom();
-  startRace(300);
+  startRace(["u1", "u2"], "blocking", 300);
 
   act(() => handlers["race:ended"]({ reason }));
 
@@ -295,11 +308,22 @@ test("Should_SayRaceIsOverInEnglish_When_LocaleIsEnglish", () => {
 test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
   renderRoom("fr", true);
   sendParticipants();
-  startRace(300);
+  startRace(["u1", "u2"], "blocking", 300);
   expect(screen.queryByRole("button", { name: "Fermer la course" })).toBeNull();
 
   act(() => handlers["race:ended"]({ reason: "allFinished" }));
 
   expect(screen.getByRole("button", { name: "Fermer la course" })).toBeTruthy();
   expect(startButton()).toBeNull();
+});
+
+test("Should_SendTypedLengthToServer_When_RacerTypes", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Tape le texte" }), {
+    target: { value: "Un" },
+  });
+
+  expect(socket.emit).toHaveBeenCalledWith("race:progress", { position: 2 });
 });

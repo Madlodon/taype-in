@@ -40,8 +40,15 @@
     {
       "idx": 5,
       "version": "7",
-      "when": 1790987421785,
-      "tag": "0005_minuterie",
+      "when": 1790987337502,
+      "tag": "0005_mode_erreur",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790988285430,
+      "tag": "0006_minuterie",
       "breakpoints": true
     }
   ]

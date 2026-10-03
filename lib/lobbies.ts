@@ -34,7 +34,9 @@ export function normalizeCode(input: string): string {
 export async function createLobby(
   hostId: string,
   visibility: Lobby["visibility"],
-  settings?: Partial<Pick<Lobby, "textLanguage" | "textLength" | "timeLimitSeconds">>,
+  settings?: Partial<
+    Pick<Lobby, "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds">
+  >,
 ): Promise<Lobby> {
   // On réessaie en cas de collision avec un code existant.
   for (;;) {

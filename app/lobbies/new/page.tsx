@@ -50,6 +50,13 @@ export default async function NewLobbyPage() {
               ))}
             </fieldset>
             <fieldset>
+              <legend className="text-sm font-semibold">{t("errorMode")}</legend>
+              <label className="radio-option">
+                <input type="radio" name="errorMode" value="blocking" defaultChecked />{t("blocking")}</label>
+              <label className="radio-option">
+                <input type="radio" name="errorMode" value="tolerant" />{t("tolerant")}</label>
+            </fieldset>
+            <fieldset>
               <legend className="text-sm font-semibold">{t("timer")}</legend>
               <label className="field">
                 {t("timerMinutes", { max: MAX_TIMER_MINUTES })}
