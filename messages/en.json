@@ -288,7 +288,8 @@
       },
       "ball": {
         "none": "None",
-        "beach": "Beach ball"
+        "beach": "Beach ball",
+        "emerald": "Emerald"
       }
     },
     "preview": "Preview",

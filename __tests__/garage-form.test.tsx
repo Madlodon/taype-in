@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { GarageForm } from "../components/garage-form";
-import { BOOSTS, CARS, HATS, DEFAULT_LOADOUT } from "../lib/garage-items";
+import { BALLS, BOOSTS, CARS, HATS, DEFAULT_LOADOUT } from "../lib/garage-items";
 import en from "../messages/en.json";
 
 function garage(guest = false) {
@@ -113,4 +113,20 @@ test.each(HATS)("Should_PreviewSavedHat_When_Loading_%s", (hat) => {
   const hats = within(screen.getByRole("group", { name: "Hat" }));
   expect((hats.getByLabelText(en.Garage.items.hat[hat]) as HTMLInputElement).checked).toBe(true);
   if (hat !== "none") expect(screen.getByRole("img").querySelector(`[data-item="${hat}"]`)).toBeTruthy();
+});
+
+
+test.each(BALLS)("Should_PreviewSubmitAndRestoreBall_When_Selecting_%s", (ball) => {
+  garage();
+  const balls = within(screen.getByRole("group", { name: "Ball" }));
+  fireEvent.click(balls.getByLabelText(en.Garage.items.ball[ball]));
+  expect(new FormData(document.querySelector("form")!).get("ball")).toBe(ball);
+  expect(screen.getByRole("img").getAttribute("aria-label")).toContain(`ball: ${en.Garage.items.ball[ball]}`);
+  if (ball !== "none") expect(screen.getByRole("img").querySelector(`[data-item="${ball}"]`)).toBeTruthy();
+  cleanup();
+  render(<NextIntlClientProvider locale="en" messages={en}>
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, ball }} guest={false} />
+  </NextIntlClientProvider>);
+  expect((within(screen.getByRole("group", { name: "Ball" })).getByLabelText(en.Garage.items.ball[ball]) as HTMLInputElement).checked).toBe(true);
+  if (ball !== "none") expect(screen.getByRole("img").querySelector(`[data-item="${ball}"]`)).toBeTruthy();
 });

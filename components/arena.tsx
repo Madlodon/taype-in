@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { CarBall } from "@/components/car-ball";
 import { CarHat } from "@/components/car-hat";
 import { CarBoost } from "@/components/car-boost";
 import type { Loadout } from "@/lib/garage-items";
@@ -73,18 +74,7 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
         <circle cx={body === "dominus" ? 31 : 25} cy="14" r="5" fill="#bdcfe6" />
       </g>
       <CarHat hat={hat} body={body} />
-      <g transform="translate(65 -2)">
-        {ball === "beach" ? <g data-item="beach">
-          <circle r="16" fill="#f8fafc" stroke="#9bacbf" strokeWidth="2" />
-          <path d="M0 0 L0-16 A16 16 0 0 1 13.86-8Z" fill="#ef4444" />
-          <path d="M0 0 L13.86 8 A16 16 0 0 1 0 16Z" fill="#3b82f6" />
-          <path d="M0 0 L-13.86 8 A16 16 0 0 1 -13.86-8Z" fill="#facc15" />
-          <circle r="3" fill="#f8fafc" />
-        </g> : <>
-          <circle r="16" fill="#e9f1fb" stroke="#9bacbf" strokeWidth="2" />
-          <path d="M-5-7 L5-7 L9 2 L0 8 L-9 2Z M-5-7 L-8-13 M5-7 L10-12 M9 2 L15 5 M0 8 L0 15 M-9 2 L-15 5" fill="#7890ab" stroke="#7890ab" strokeWidth="2" />
-        </>}
-      </g>
+      <CarBall ball={ball} />
     </g>
   );
 }

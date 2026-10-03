@@ -288,7 +288,8 @@
       },
       "ball": {
         "none": "Aucun",
-        "beach": "Ballon de plage"
+        "beach": "Ballon de plage",
+        "emerald": "Émeraude"
       }
     },
     "preview": "Aperçu",
