@@ -274,15 +274,24 @@
       },
       "boost": {
         "standard": "Standard",
-        "flames": "Flammes"
+        "flames": "Flammes",
+        "ion": "Ion",
+        "sparkles": "Étincelles"
       },
       "hat": {
         "none": "Aucun",
-        "cone": "Cône orange"
+        "cone": "Cône orange",
+        "alpha-cap": "Casquette Alpha",
+        "top-hat": "Haut-de-forme",
+        "pirate": "Chapeau de pirate",
+        "wizard": "Chapeau de sorcier"
       },
       "ball": {
         "none": "Aucun",
-        "beach": "Ballon de plage"
+        "beach": "Ballon de plage",
+        "emerald": "Émeraude",
+        "glacier": "Glacier",
+        "solar": "Solaire"
       }
     },
     "preview": "Aperçu",

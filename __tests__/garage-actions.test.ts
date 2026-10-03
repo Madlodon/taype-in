@@ -74,3 +74,9 @@ test("Should_RefuseWithoutSaving_When_BoostIsMissing", async () => {
   expect(await saveLoadoutAction(undefined, data)).toEqual({ error: "invalid" });
   expect(saveLoadout).not.toHaveBeenCalled();
 });
+
+test.each(["standard", "flames", "ion", "sparkles"])("Should_SaveBoost_When_Selecting_%s", async (boost) => {
+  const loadout = { ...choice, boost };
+  expect(await saveLoadoutAction(undefined, form(loadout))).toEqual({ saved: true });
+  expect(saveLoadout).toHaveBeenCalledWith("user-1", loadout);
+});

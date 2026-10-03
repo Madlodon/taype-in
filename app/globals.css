@@ -1216,6 +1216,35 @@ a, button, input {
   }
 }
 
+/* Exhaust stays anchored to the nozzle while particles travel behind the car. */
+.boost-plume {
+  animation: boost-flicker 180ms ease-in-out infinite alternate;
+}
+.car-boost-ion .boost-plume {
+  animation-duration: 650ms;
+}
+.boost-particle {
+  animation: boost-drift 700ms linear infinite;
+  animation-delay: var(--boost-delay);
+}
+.car-boost-sparkles .boost-particle {
+  animation-duration: 1100ms;
+}
+/* During a race the cars already move with typing: an animated SVG repaints every frame and slows down keystrokes. */
+.race-board .boost-plume,
+.race-board .boost-particle {
+  animation: none;
+}
+@keyframes boost-flicker {
+  from { transform: scale(0.94, 0.88); opacity: .85; }
+  to { transform: scale(1, 1.08); opacity: 1; }
+}
+@keyframes boost-drift {
+  from { transform: translateX(6px); opacity: 0; }
+  20% { opacity: 1; }
+  to { transform: translateX(-10px); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition: none !important;
