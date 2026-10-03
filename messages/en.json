@@ -274,7 +274,9 @@
       },
       "boost": {
         "standard": "Standard",
-        "flames": "Flames"
+        "flames": "Flames",
+        "ion": "Ion",
+        "sparkles": "Sparkles"
       },
       "hat": {
         "none": "None",

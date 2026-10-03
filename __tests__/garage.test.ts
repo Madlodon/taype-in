@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { getLoadout, saveLoadout } from "../lib/garage";
-import { DEFAULT_LOADOUT, loadoutSchema } from "../lib/garage-items";
+import { BOOSTS, DEFAULT_LOADOUT, loadoutSchema } from "../lib/garage-items";
 
 const createdIds: string[] = [];
 
@@ -64,4 +64,11 @@ test.each([
   ["unknown hat", { car: "octane", boost: "standard", hat: "crown", ball: "none" }],
 ])("Should_Reject_When_%s", (_name, value) => {
   expect(loadoutSchema.safeParse(value).success).toBe(false);
+});
+
+test.each(BOOSTS)("Should_ReturnSavedBoost_When_Saving_%s", async (boost) => {
+  const user = await newUser();
+  const loadout = { ...DEFAULT_LOADOUT, boost };
+  await saveLoadout(user.id, loadout);
+  expect(await getLoadout(user.id)).toEqual(loadout);
 });
