@@ -226,10 +226,18 @@ function startRace(
   racerIds: string[],
   errorMode = "blocking",
   secondsLeft: number | null = null,
-  mine?: { typed: string; errors: number; gaveUp: boolean },
+  mine?: { typed: string; errors: number; gaveUp: boolean; keys?: number },
 ) {
+  // Sans valeur donnée, chaque caractère et chaque faute comptent pour une touche.
+  const resumed = mine && { keys: mine.typed.length + mine.errors, keyErrors: {}, ...mine };
   act(() =>
-    handlers["race:started"]({ content: "Un texte court.", errorMode, racerIds, secondsLeft, mine }),
+    handlers["race:started"]({
+      content: "Un texte court.",
+      errorMode,
+      racerIds,
+      secondsLeft,
+      mine: resumed,
+    }),
   );
 }
 
@@ -305,7 +313,7 @@ test.each([
   renderRoom();
   startRace(["u1", "u2"], "blocking", 300);
 
-  act(() => handlers["race:ended"]({ reason }));
+  act(() => handlers["race:ended"]({ reason, results: [] }));
 
   expect(screen.getByRole("status").textContent).toBe(text);
   expect(screen.queryByRole("timer")).toBeNull();
@@ -314,7 +322,7 @@ test.each([
 test("Should_SayRaceIsOverInEnglish_When_LocaleIsEnglish", () => {
   renderRoom("en");
 
-  act(() => handlers["race:ended"]({ reason: "timeUp" }));
+  act(() => handlers["race:ended"]({ reason: "timeUp", results: [] }));
 
   expect(screen.getByRole("status").textContent).toBe("Race over: time is up.");
 });
@@ -325,10 +333,40 @@ test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
   startRace(["u1", "u2"], "blocking", 300);
   expect(screen.queryByRole("button", { name: "Fermer la course" })).toBeNull();
 
-  act(() => handlers["race:ended"]({ reason: "allFinished" }));
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
 
   expect(screen.getByRole("button", { name: "Fermer la course" })).toBeTruthy();
   expect(startButton()).toBeNull();
+});
+
+test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+  const stats = { wpm: 40, accuracy: 100, durationMs: 30_000, penaltyMs: 0, errors: 0, keyErrors: {} };
+
+  act(() =>
+    handlers["race:ended"]({
+      reason: "allFinished",
+      results: [
+        { ...stats, id: "u2", username: "moi", rank: 1, finished: true },
+        { ...stats, id: "u1", username: "alex", rank: 2, finished: false },
+      ],
+    }),
+  );
+
+  expect(screen.getByRole("heading", { name: "Résultats" })).toBeTruthy();
+  expect(
+    within(screen.getByRole("list", { name: "Podium" })).getAllByRole("listitem"),
+  ).toHaveLength(2);
+  expect(screen.getByRole("table", { name: "Classement complet" })).toBeTruthy();
+});
+
+test("Should_ShowNoResults_When_RaceIsRunning", () => {
+  renderRoom();
+
+  startRace(["u1", "u3"]);
+
+  expect(screen.queryByRole("heading", { name: "Résultats" })).toBeNull();
 });
 
 test("Should_SendTypedTextAndErrorsToServer_When_RacerTypes", () => {
@@ -339,7 +377,12 @@ test("Should_SendTypedTextAndErrorsToServer_When_RacerTypes", () => {
     target: { value: "Un" },
   });
 
-  expect(socket.emit).toHaveBeenCalledWith("race:progress", { typed: "Un", errors: 0 });
+  expect(socket.emit).toHaveBeenCalledWith("race:progress", {
+    typed: "Un",
+    errors: 0,
+    keys: 2,
+    keyErrors: {},
+  });
 });
 
 // Ack du dernier message envoyé sous ce nom.
@@ -370,7 +413,12 @@ test("Should_RejoinAndResendTyping_When_Reconnected", () => {
   act(() => lastAck("lobby:join")({ ok: true }));
 
   expect(socket.emit).toHaveBeenCalledWith("lobby:join", { code: "K7P3XM" }, expect.any(Function));
-  expect(socket.emit).toHaveBeenCalledWith("race:progress", { typed: "Un", errors: 0 });
+  expect(socket.emit).toHaveBeenCalledWith("race:progress", {
+    typed: "Un",
+    errors: 0,
+    keys: 2,
+    keyErrors: {},
+  });
 });
 
 test("Should_ResumeTypedTextAndErrors_When_RacerComesBack", () => {
@@ -380,6 +428,20 @@ test("Should_ResumeTypedTextAndErrors_When_RacerComesBack", () => {
 
   expect((typingBox() as HTMLTextAreaElement).value).toBe("Un tx");
   expect(screen.getByRole("status").textContent).toBe("1 faute");
+});
+
+test("Should_KeepCountingKeysFromResumedTyping_When_RacerTypesAgain", () => {
+  renderRoom();
+  startRace(["u1", "u2"], "blocking", null, { typed: "Un", errors: 1, gaveUp: false, keys: 5 });
+
+  fireEvent.change(typingBox()!, { target: { value: "Un " } });
+
+  expect(socket.emit).toHaveBeenLastCalledWith("race:progress", {
+    typed: "Un ",
+    errors: 1,
+    keys: 6,
+    keyErrors: {},
+  });
 });
 
 test("Should_KeepLocalTyping_When_ServerResendsRaceAfterShortDrop", () => {
@@ -537,7 +599,7 @@ test("Should_KeepRanking_When_RaceHasEnded", () => {
   startRace(["u1", "u2"]);
   sendPositions(2, 1);
 
-  act(() => handlers["race:ended"]({ reason: "allFinished" }));
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
 
   expect(ranking()).toHaveLength(2);
 });

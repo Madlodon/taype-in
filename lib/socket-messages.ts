@@ -9,9 +9,12 @@ export type JoinLobbyMessage = z.infer<typeof joinLobbySchema>;
 
 // Envoyé par un coureur à chaque frappe : tout ce qu'il a tapé et ses fautes,
 // pour qu'il reprenne exactement là où il était s'il revient (CRS-6).
+// keys et keyErrors servent à la précision et à l'historique des fautes par touche (ERR-3).
 export const progressSchema = z.object({
   typed: z.string().max(10_000),
   errors: z.number().int().min(0),
+  keys: z.number().int().min(0),
+  keyErrors: z.record(z.string().max(2), z.number().int().min(1)),
 });
 
 export type ProgressMessage = z.infer<typeof progressSchema>;
@@ -46,5 +49,22 @@ export type RacePositionsMessage = {
   positions: { id: string; username: string; position: number }[];
 };
 
-// Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5).
-export type RaceEndedMessage = { reason: "allFinished" | "timeUp" | "idle" };
+// Résultat d'un coureur, du premier au dernier (FIN-2) ; accuracy en %, penaltyMs = +1 s par faute en mode tolérant.
+export type RaceResult = {
+  id: string;
+  username: string;
+  rank: number;
+  wpm: number;
+  accuracy: number;
+  durationMs: number;
+  penaltyMs: number;
+  errors: number;
+  finished: boolean;
+  keyErrors: Record<string, number>;
+};
+
+// Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5), avec le classement final.
+export type RaceEndedMessage = {
+  reason: "allFinished" | "timeUp" | "idle";
+  results: RaceResult[];
+};

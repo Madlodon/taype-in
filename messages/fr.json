@@ -101,6 +101,23 @@
       "cannotGiveUp": "Tu ne peux plus abandonner"
     }
   },
+  "RaceResults": {
+    "title": "Résultats",
+    "podium": "Podium",
+    "ranking": "Classement complet",
+    "rank": "Rang",
+    "player": "Joueur",
+    "wpm": "MPM",
+    "accuracy": "Précision",
+    "time": "Temps",
+    "errors": "Fautes",
+    "wpmValue": "{value} MPM",
+    "percent": "{value} %",
+    "seconds": "{value} s",
+    "penalty": "(+{value} s)",
+    "notFinished": "Non terminé",
+    "you": "(toi)"
+  },
   "RaceTyping": {
     "label": "Tape le texte",
     "blocking": "Mode bloquant : un mauvais caractère t'arrête jusqu'à ce que tu tapes le bon.",

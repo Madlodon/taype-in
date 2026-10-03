@@ -15,6 +15,7 @@ import {
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
+import { rankRacers, saveResults } from "./results.ts";
 import {
   joinLobbySchema,
   MIN_RACERS,
@@ -25,19 +26,23 @@ import {
   type ProgressMessage,
   type RaceEndedMessage,
   type RacePositionsMessage,
+  type RaceResult,
   type RaceStartedMessage,
 } from "./socket-messages.ts";
 
 type SocketData = { user: User; lobby?: Lobby };
 
 // Un coureur et ce qu'il a tapé, gardé pour qu'il reprenne où il était (CRS-6).
-type Player = ProgressMessage & { state: PlayerState };
+// doneAt : moment où il a fini ou abandonné, pour son temps (FIN-2).
+type Player = ProgressMessage & { state: PlayerState; doneAt?: number };
 
 // Course en cours d'un lobby ; un lobby absent de la liste est en attente.
 type LiveRace = {
   state: LobbyState;
   raceId: string;
   goAt: number;
+  // Moment du « Go », d'où partent les temps.
+  startedAt: number;
   content: string;
   errorMode: RaceStartedMessage["errorMode"];
   racerIds: string[];
@@ -52,6 +57,7 @@ type LiveRace = {
   idleTimer?: NodeJS.Timeout;
   positionsTimer?: NodeJS.Timeout;
   endReason?: RaceEndedMessage["reason"];
+  results?: RaceResult[];
 };
 
 function readCookie(header: string | undefined, name: string): string | undefined {
@@ -125,8 +131,25 @@ export function createSocketServer(
     clearInterval(live.positionsTimer);
     // Les dernières frappes arrivent avant la fin.
     sendPositions(lobby, live);
+    const endedAt = Date.now();
+    live.results = rankRacers(
+      [...live.players].map(([id, player]) => {
+        const { username, at } = live.positions.get(id)!;
+        return {
+          ...player,
+          id,
+          username,
+          finished: player.state === "finished",
+          durationMs: (player.doneAt ?? endedAt) - live.startedAt,
+          reachedAt: at,
+        };
+      }),
+      live.content,
+      live.errorMode,
+    );
     await markRaceEnded(live.raceId);
-    io.to(lobby.code).emit("race:ended", { reason });
+    await saveResults(live.raceId, live.results);
+    io.to(lobby.code).emit("race:ended", { reason, results: live.results });
   }
 
   // Chaque frappe repousse la fin pour inactivité.
@@ -217,13 +240,15 @@ export function createSocketServer(
           mine: player && {
             typed: player.typed,
             errors: player.errors,
+            keys: player.keys,
+            keyErrors: player.keyErrors,
             gaveUp: player.state === "abandoned",
           },
         });
         socket.emit("race:positions", ranking(race));
-      } else if (race?.endReason) {
+      } else if (race?.endReason && race.results) {
         socket.emit("race:positions", ranking(race));
-        socket.emit("race:ended", { reason: race.endReason });
+        socket.emit("race:ended", { reason: race.endReason, results: race.results });
       }
       ack?.({ ok: true });
     });
@@ -253,6 +278,7 @@ export function createSocketServer(
         state: nextLobbyState("waiting", "start"),
         raceId: "",
         goAt: Date.now() + countdownMs,
+        startedAt: 0,
         content: "",
         errorMode: lobby.errorMode,
         racerIds: participants.map((participant) => participant.id),
@@ -261,7 +287,7 @@ export function createSocketServer(
         players: new Map(
           participants.map((participant) => [
             participant.id,
-            { state: "connected", typed: "", errors: 0 },
+            { state: "connected", typed: "", errors: 0, keys: 0, keyErrors: {} },
           ]),
         ),
         positions: new Map(),
@@ -284,6 +310,7 @@ export function createSocketServer(
 
       setTimeout(async () => {
         live.state = nextLobbyState(live.state, "countdownEnd");
+        live.startedAt = Date.now();
         await markRaceStarted(race.id);
         if (live.timeLimitSeconds !== null) {
           live.endsAt = Date.now() + live.timeLimitSeconds * 1000;
@@ -337,6 +364,8 @@ export function createSocketServer(
       if (player.state === "connected") {
         player.typed = result.data.typed;
         player.errors = result.data.errors;
+        player.keys = result.data.keys;
+        player.keyErrors = result.data.keyErrors;
         const racer = live.positions.get(user.id)!;
         if (racer.position !== player.typed.length) {
           live.positions.set(user.id, { ...racer, position: player.typed.length, at: Date.now() });
@@ -344,6 +373,7 @@ export function createSocketServer(
         }
         if (player.typed.length === live.content.length) {
           player.state = nextPlayerState(player.state, "finish");
+          player.doneAt = Date.now();
           await endIfNobodyRacing(lobby, live);
         }
       }
@@ -369,6 +399,7 @@ export function createSocketServer(
       }
 
       player.state = nextPlayerState(player.state, "abandon");
+      player.doneAt = Date.now();
       await endIfNobodyRacing(lobby, live);
       ack?.({ ok: true });
     });

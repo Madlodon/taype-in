@@ -314,3 +314,29 @@ test("Should_BecomeSpectator_When_RacerGivesUp", async ({ browser }) => {
   await expect(player.page.getByText("Tu as abandonné")).toBeVisible();
   await expect(host.page.getByRole("textbox", { name: "Tape le texte" })).toBeVisible();
 });
+
+test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  const input = host.page.getByRole("textbox", { name: "Tape le texte" });
+  await expect(input).toBeFocused({ timeout: 8000 });
+  player.page.once("dialog", (dialog) => dialog.accept());
+  await player.page.getByRole("button", { name: "Abandonner" }).click();
+  const text = (await host.page.locator(".typing-text").textContent())!;
+
+  await host.page.keyboard.type(text);
+
+  for (const { page } of [host, player]) {
+    await expect(page.getByRole("heading", { name: "Résultats" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "Podium" }).getByRole("listitem")).toHaveCount(2);
+    const rows = page.getByRole("table", { name: "Classement complet" }).getByRole("row");
+    await expect(rows.nth(1)).toContainText(host.name);
+    await expect(rows.nth(1)).toContainText("100 %");
+    await expect(rows.nth(2)).toContainText(player.name);
+    await expect(rows.nth(2)).toContainText("Non terminé");
+  }
+});

@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { lobbies, lobbyParticipants, races, users } from "../db/schema";
+import { lobbies, lobbyParticipants, races, results, users } from "../db/schema";
 import { createSession } from "../lib/auth";
 import {
   claimInvite,
@@ -400,6 +400,11 @@ async function startRace(hostClient: Socket): Promise<RaceStartedMessage> {
   return started;
 }
 
+// Saisie envoyée par un coureur : chaque faute est une touche de plus, notée sous « e ».
+function typing(typed: string, errors: number) {
+  return { typed, errors, keys: typed.length + errors, keyErrors: errors > 0 ? { e: errors } : {} };
+}
+
 function progress(client: Socket, payload: unknown): Promise<Ack> {
   return client.emitWithAck("race:progress", payload);
 }
@@ -428,11 +433,11 @@ describe("race end", () => {
     const hostSees = next<RaceEndedMessage>(hostClient, "race:ended");
     const guestSees = next<RaceEndedMessage>(guestClient, "race:ended");
 
-    expect(await progress(hostClient, { typed: content, errors: 0 })).toEqual({ ok: true });
-    await progress(guestClient, { typed: content, errors: 0 });
+    expect(await progress(hostClient, typing(content, 0))).toEqual({ ok: true });
+    await progress(guestClient, typing(content, 0));
 
-    expect(await hostSees).toEqual({ reason: "allFinished" });
-    expect(await guestSees).toEqual({ reason: "allFinished" });
+    expect(await hostSees).toMatchObject({ reason: "allFinished" });
+    expect(await guestSees).toMatchObject({ reason: "allFinished" });
     expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
   });
 
@@ -442,8 +447,8 @@ describe("race end", () => {
     let ended = false;
     guestClient.on("race:ended", () => (ended = true));
 
-    await progress(hostClient, { typed: content, errors: 0 });
-    await progress(guestClient, { typed: content.slice(0, -1), errors: 0 });
+    await progress(hostClient, typing(content, 0));
+    await progress(guestClient, typing(content.slice(0, -1), 0));
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(ended).toBe(false);
@@ -455,7 +460,7 @@ describe("race end", () => {
     await startRace(hostClient);
     const guestSees = next<RaceEndedMessage>(guestClient, "race:ended");
 
-    expect(await guestSees).toEqual({ reason: "timeUp" });
+    expect(await guestSees).toMatchObject({ reason: "timeUp" });
     expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
   });
 
@@ -465,7 +470,7 @@ describe("race end", () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     await startRace(hostClient);
 
-    expect(await next<RaceEndedMessage>(hostClient, "race:ended")).toEqual({ reason: "idle" });
+    expect(await next<RaceEndedMessage>(hostClient, "race:ended")).toMatchObject({ reason: "idle" });
     expect((await savedRace(lobby.id)).endedAt).not.toBeNull();
   });
 
@@ -479,34 +484,34 @@ describe("race end", () => {
     const endedLater = next<RaceEndedMessage>(hostClient, "race:ended");
 
     await new Promise((resolve) => setTimeout(resolve, 200));
-    await progress(guestClient, { typed: "U", errors: 0 });
+    await progress(guestClient, typing("U", 0));
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(ended).toBe(false);
-    expect(await endedLater).toEqual({ reason: "idle" });
+    expect(await endedLater).toMatchObject({ reason: "idle" });
   });
 
   test("Should_TellLatePlayerRaceIsOver_When_JoiningAfterEnd", async () => {
     const { lobby, hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
     const ended = next(hostClient, "race:ended");
-    await progress(hostClient, { typed: content, errors: 0 });
-    await progress(guestClient, { typed: content, errors: 0 });
+    await progress(hostClient, typing(content, 0));
+    await progress(guestClient, typing(content, 0));
     await ended;
     const late = await newClient();
     const lateSees = next<RaceEndedMessage>(late, "race:ended");
 
     await join(late, { code: lobby.code });
 
-    expect(await lateSees).toEqual({ reason: "allFinished" });
+    expect(await lateSees).toMatchObject({ reason: "allFinished" });
   });
 
   test("Should_LetHostClose_When_RaceHasEnded", async () => {
     const { lobby, hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
     const ended = next(hostClient, "race:ended");
-    await progress(hostClient, { typed: content, errors: 0 });
-    await progress(guestClient, { typed: content, errors: 0 });
+    await progress(hostClient, typing(content, 0));
+    await progress(guestClient, typing(content, 0));
     await ended;
 
     expect(await hostClient.emitWithAck("lobby:close")).toEqual({ ok: true });
@@ -514,18 +519,108 @@ describe("race end", () => {
   });
 });
 
+describe("race results", () => {
+  test("Should_SendRankingInFinishOrder_When_EveryRacerFinishes", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(guestClient, "race:ended");
+
+    await progress(guestClient, typing(content, 2));
+    // Assez d'écart pour que les deux temps ne tombent pas dans la même milliseconde.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await progress(hostClient, typing(content, 0));
+
+    const { results: ranked } = await ended;
+    expect(ranked.map((result) => [result.id, result.rank, result.finished])).toEqual([
+      [guest.id, 1, true],
+      [host.id, 2, true],
+    ]);
+    expect(ranked[0]).toMatchObject({ username: guest.username, errors: 2, keyErrors: { e: 2 } });
+    expect(ranked[0].wpm).toBeGreaterThan(0);
+    expect(ranked[0].accuracy).toBeLessThan(100);
+  });
+
+  test("Should_RankRacerWhoGaveUpLast_When_OtherFinishes", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    await progress(guestClient, typing(content.slice(0, 10), 0));
+    await giveUp(guestClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(hostClient, typing(content, 0));
+
+    expect((await ended).results.map((result) => [result.id, result.finished])).toEqual([
+      [host.id, true],
+      [guest.id, false],
+    ]);
+  });
+
+  test("Should_RankByProgress_When_TimerRunsOut", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo({ timeLimitSeconds: 1 });
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(hostClient, typing(content.slice(0, 3), 0));
+    await progress(guestClient, typing(content.slice(0, 8), 0));
+
+    const { results: ranked } = await ended;
+    expect(ranked.map((result) => [result.id, result.finished])).toEqual([
+      [guest.id, false],
+      [host.id, false],
+    ]);
+    expect(ranked[0].durationMs).toBeGreaterThanOrEqual(900);
+  });
+
+  test("Should_SaveResults_When_RaceEnds", async () => {
+    const { lobby, host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await progress(guestClient, typing(content, 1));
+    await ended;
+
+    const saved = await db
+      .select()
+      .from(results)
+      .where(eq(results.raceId, (await savedRace(lobby.id)).id));
+
+    expect(saved.map((row) => [row.userId, row.rank, row.errorCount, row.keyErrors])).toEqual(
+      expect.arrayContaining([
+        [host.id, 1, 0, {}],
+        [guest.id, 2, 1, { e: 1 }],
+      ]),
+    );
+  });
+
+  test("Should_SendResults_When_JoiningAfterEnd", async () => {
+    const { lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await progress(guestClient, typing(content, 0));
+    await ended;
+    const late = await newClient();
+    const lateSees = next<RaceEndedMessage>(late, "race:ended");
+
+    await join(late, { code: lobby.code });
+
+    expect((await lateSees).results).toHaveLength(2);
+  });
+});
+
 describe("race:progress", () => {
   test("Should_AckRaceNotRunning_When_RaceHasNotStarted", async () => {
     const { hostClient } = await lobbyWithTwo();
 
-    expect(await progress(hostClient, { typed: "U", errors: 0 })).toEqual({
+    expect(await progress(hostClient, typing("U", 0))).toEqual({
       ok: false,
       error: "raceNotRunning",
     });
   });
 
   test("Should_AckRaceNotRunning_When_SocketHasNotJoinedALobby", async () => {
-    expect(await progress(await newClient(), { typed: "U", errors: 0 })).toEqual({
+    expect(await progress(await newClient(), typing("U", 0))).toEqual({
       ok: false,
       error: "raceNotRunning",
     });
@@ -537,14 +632,14 @@ describe("race:progress", () => {
     const late = await newClient();
     await join(late, { code: lobby.code });
 
-    expect(await progress(late, { typed: "U", errors: 0 })).toEqual({ ok: false, error: "notRacer" });
+    expect(await progress(late, typing("U", 0))).toEqual({ ok: false, error: "notRacer" });
   });
 
   test("Should_AckInvalidMessage_When_TypedIsLongerThanTheText", async () => {
     const { hostClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
 
-    expect(await progress(hostClient, { typed: `${content}x`, errors: 0 })).toEqual({
+    expect(await progress(hostClient, typing(`${content}x`, 0))).toEqual({
       ok: false,
       error: "invalidMessage",
     });
@@ -552,10 +647,14 @@ describe("race:progress", () => {
 
   test.each([
     ["no payload", undefined],
-    ["typed not a string", { typed: 3, errors: 0 }],
+    ["typed not a string", { ...typing("U", 0), typed: 3 }],
     ["missing errors", { typed: "U" }],
-    ["negative errors", { typed: "U", errors: -1 }],
-    ["decimal errors", { typed: "U", errors: 1.5 }],
+    ["negative errors", typing("U", -1)],
+    ["decimal errors", typing("U", 1.5)],
+    ["missing keys", { typed: "U", errors: 0, keyErrors: {} }],
+    ["negative keys", { ...typing("U", 0), keys: -1 }],
+    ["missing keyErrors", { typed: "U", errors: 0, keys: 1 }],
+    ["key errors not a number", { ...typing("U", 1), keyErrors: { e: "1" } }],
   ])("Should_AckInvalidMessage_When_%s", async (_, payload) => {
     const { hostClient } = await lobbyWithTwo();
     await startRace(hostClient);
@@ -587,12 +686,12 @@ describe("reconnect", () => {
   test("Should_SendTypedTextAndErrors_When_RacerComesBackMidWord", async () => {
     const { guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
-    await progress(guestClient, { typed: content.slice(0, 5), errors: 2 });
+    await progress(guestClient, typing(content.slice(0, 5), 2));
     await dropGuest(hostClient, guestClient);
 
     const { started } = await guestComesBack(lobby, guest);
 
-    expect(started.mine).toEqual({ typed: content.slice(0, 5), errors: 2, gaveUp: false });
+    expect(started.mine).toEqual({ ...typing(content.slice(0, 5), 2), gaveUp: false });
   });
 
   test("Should_KeepTolerantMistakes_When_RacerComesBack", async () => {
@@ -600,7 +699,7 @@ describe("reconnect", () => {
       errorMode: "tolerant",
     });
     await startRace(hostClient);
-    await progress(guestClient, { typed: "Xx", errors: 2 });
+    await progress(guestClient, typing("Xx", 2));
     await dropGuest(hostClient, guestClient);
 
     const { started } = await guestComesBack(lobby, guest);
@@ -626,7 +725,7 @@ describe("reconnect", () => {
     hostClient.on("race:ended", () => (ended = true));
     await dropGuest(hostClient, guestClient);
 
-    await progress(hostClient, { typed: content, errors: 0 });
+    await progress(hostClient, typing(content, 0));
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(ended).toBe(false);
@@ -636,14 +735,14 @@ describe("reconnect", () => {
   test("Should_EndRace_When_ReturningRacerFinishes", async () => {
     const { guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
-    await progress(hostClient, { typed: content, errors: 0 });
+    await progress(hostClient, typing(content, 0));
     await dropGuest(hostClient, guestClient);
     const { client } = await guestComesBack(lobby, guest);
     const ended = next<RaceEndedMessage>(hostClient, "race:ended");
 
-    expect(await progress(client, { typed: content, errors: 0 })).toEqual({ ok: true });
+    expect(await progress(client, typing(content, 0))).toEqual({ ok: true });
 
-    expect(await ended).toEqual({ reason: "allFinished" });
+    expect(await ended).toMatchObject({ reason: "allFinished" });
   });
 });
 
@@ -654,7 +753,7 @@ describe("race:giveUp", () => {
 
     expect(await giveUp(guestClient)).toEqual({ ok: true });
 
-    expect(await progress(guestClient, { typed: "U", errors: 0 })).toEqual({
+    expect(await progress(guestClient, typing("U", 0))).toEqual({
       ok: false,
       error: "notRacer",
     });
@@ -666,20 +765,20 @@ describe("race:giveUp", () => {
     await giveUp(guestClient);
     const ended = next<RaceEndedMessage>(guestClient, "race:ended");
 
-    await progress(hostClient, { typed: content, errors: 0 });
+    await progress(hostClient, typing(content, 0));
 
-    expect(await ended).toEqual({ reason: "allFinished" });
+    expect(await ended).toMatchObject({ reason: "allFinished" });
   });
 
   test("Should_EndRace_When_LastRacerStillTypingGivesUp", async () => {
     const { hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
-    await progress(hostClient, { typed: content, errors: 0 });
+    await progress(hostClient, typing(content, 0));
     const ended = next<RaceEndedMessage>(hostClient, "race:ended");
 
     await giveUp(guestClient);
 
-    expect(await ended).toEqual({ reason: "allFinished" });
+    expect(await ended).toMatchObject({ reason: "allFinished" });
   });
 
   test("Should_StaySpectator_When_RacerWhoGaveUpComesBack", async () => {
@@ -696,7 +795,7 @@ describe("race:giveUp", () => {
   test("Should_AckCannotGiveUp_When_RacerHasFinished", async () => {
     const { hostClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
-    await progress(hostClient, { typed: content, errors: 0 });
+    await progress(hostClient, typing(content, 0));
 
     expect(await giveUp(hostClient)).toEqual({ ok: false, error: "cannotGiveUp" });
   });
@@ -755,7 +854,7 @@ describe("race:positions", () => {
     await startRace(hostClient);
     const hostSees = positionsWhere(hostClient, (message) => message.positions[0].position > 0);
 
-    await progress(guestClient, { typed: "abc", errors: 0 });
+    await progress(guestClient, typing("abc", 0));
 
     expect(summary(await hostSees)).toEqual([
       [guest.id, 3],
@@ -770,9 +869,9 @@ describe("race:positions", () => {
       message.positions.every(({ position }) => position === 2),
     );
 
-    await progress(guestClient, { typed: "ab", errors: 0 });
+    await progress(guestClient, typing("ab", 0));
     await new Promise((resolve) => setTimeout(resolve, 10));
-    await progress(hostClient, { typed: "ab", errors: 0 });
+    await progress(hostClient, typing("ab", 0));
 
     expect(summary(await hostSees)).toEqual([
       [guest.id, 2],
@@ -796,7 +895,7 @@ describe("race:positions", () => {
   test("Should_SendCurrentPositions_When_PlayerJoinsDuringRace", async () => {
     const { host, lobby, hostClient } = await lobbyWithTwo();
     await startRace(hostClient);
-    await progress(hostClient, { typed: "abcd", errors: 0 });
+    await progress(hostClient, typing("abcd", 0));
     const late = await newClient();
     const lateSees = next<RacePositionsMessage>(late, "race:positions");
 
@@ -812,9 +911,9 @@ describe("race:positions", () => {
     hostClient.on("race:positions", (message: RacePositionsMessage) => (last = message));
     const ended = next(hostClient, "race:ended");
 
-    await progress(guestClient, { typed: content, errors: 0 });
+    await progress(guestClient, typing(content, 0));
     await new Promise((resolve) => setTimeout(resolve, 10));
-    await progress(hostClient, { typed: content, errors: 0 });
+    await progress(hostClient, typing(content, 0));
     await ended;
 
     expect(summary(last!)).toEqual([

@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { RaceTyping } from "../components/race-typing";
-import type { ErrorMode, Typing } from "../lib/typing";
+import { EMPTY_TYPING, type ErrorMode, type Typing } from "../lib/typing";
 import en from "../messages/en.json";
 import fr from "../messages/fr.json";
 
@@ -120,7 +120,7 @@ test("Should_WaitForComposedLetter_When_AccentIsTypedWithDeadKey", () => {
 });
 
 test("Should_ResumeTypedTextMistakesAndErrors_When_InitialTypingIsGiven", () => {
-  const input = renderTyping("tolerant", "chat", "fr", { typed: "cx", errors: 3, blocked: false });
+  const input = renderTyping("tolerant", "chat", "fr", { ...EMPTY_TYPING, typed: "cx", errors: 3 });
 
   expect(input.value).toBe("cx");
   expect(wrongLetters()).toEqual(["h"]);
@@ -128,7 +128,7 @@ test("Should_ResumeTypedTextMistakesAndErrors_When_InitialTypingIsGiven", () => 
 });
 
 test("Should_ContinueFromResumedText_When_RacerTypesAgain", () => {
-  const input = renderTyping("blocking", "chat", "fr", { typed: "ch", errors: 1, blocked: false });
+  const input = renderTyping("blocking", "chat", "fr", { ...EMPTY_TYPING, typed: "ch", errors: 1 });
 
   type(input, "cha");
 
@@ -137,7 +137,7 @@ test("Should_ContinueFromResumedText_When_RacerTypesAgain", () => {
 });
 
 test("Should_PutCursorAtEnd_When_ResumedFieldGetsFocus", () => {
-  const input = renderTyping("blocking", "chat", "fr", { typed: "ch", errors: 0, blocked: false });
+  const input = renderTyping("blocking", "chat", "fr", { ...EMPTY_TYPING, typed: "ch", errors: 0 });
 
   expect(input.selectionStart).toBe(2);
 });
