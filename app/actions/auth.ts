@@ -80,10 +80,10 @@ export async function logInAction(
   redirect(nextPath(formData));
 }
 
-export async function guestAction() {
+export async function guestAction(formData: FormData) {
   const guest = await createGuest();
   await startSession(guest.id);
-  redirect("/");
+  redirect(nextPath(formData));
 }
 
 export async function logOutAction() {

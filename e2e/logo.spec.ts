@@ -27,5 +27,6 @@ test("Should_ReplaceDefaultMetadata_When_VisitingAnyPage", async ({ page }) => {
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg/);
 
   await page.getByRole("button", { name: "English" }).click();
-  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /Typing races/);
+  // Next.js peut ajouter la nouvelle balise avant de retirer l'ancienne : on cherche l'anglaise.
+  await expect(page.locator('meta[name="description"][content^="Typing races"]')).toBeAttached();
 });

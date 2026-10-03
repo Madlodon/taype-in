@@ -6,7 +6,7 @@ import { listPublicLobbies } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 
 export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string }> }) {
-  if (!(await getCurrentUser())) redirect("/");
+  if (!(await getCurrentUser())) redirect("/login?next=/lobbies");
   // Renvoyé ici quand l'hôte ferme sa course (LOB-10).
   const { closed } = await searchParams;
   const publicLobbies = await listPublicLobbies();
