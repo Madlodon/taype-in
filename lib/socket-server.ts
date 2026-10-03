@@ -15,8 +15,7 @@ import {
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
-import { updateRanks } from "./ranks.ts";
-import { rankRacers, saveResults } from "./results.ts";
+import { rankRacers, saveResults, updateRanks } from "./results.ts";
 import {
   joinLobbySchema,
   MIN_RACERS,

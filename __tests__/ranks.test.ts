@@ -4,7 +4,8 @@ import { inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { users } from "../db/schema";
-import { MAX_RANK_LEVEL, rankFromLevel, rankMoves, updateRanks } from "../lib/ranks";
+import { MAX_RANK_LEVEL, rankFromLevel, rankMoves } from "../lib/ranks";
+import { updateRanks } from "../lib/results";
 
 describe("rankFromLevel", () => {
   test("Should_BeBronzeOneDivisionOne_When_LevelIsZero", () => {

@@ -1,8 +1,5 @@
 // Rangs façon Rocket League (#99) : Bronze I à Grand Champion III, 4 divisions chacun, puis Supersonic Legend.
-import { eq, inArray } from "drizzle-orm";
-import { db } from "../db/index.ts";
-import { users } from "../db/schema.ts";
-
+// Sans accès à la base : le tableau des résultats l'importe côté client.
 export const RANK_TIERS = [
   "bronze",
   "silver",
@@ -51,29 +48,4 @@ export function rankMoves(players: number): number[] {
 
 export function clampRankLevel(level: number): number {
   return Math.min(MAX_RANK_LEVEL, Math.max(0, level));
-}
-
-export type RankUpdate = { rankLevel: number; rankChange: number };
-
-// Applique la fin de course aux joueurs, dans l'ordre d'arrivée (invités compris).
-// rankChange vaut 0 si le joueur est déjà au plancher ou au plafond.
-export async function updateRanks(orderedIds: string[]): Promise<Map<string, RankUpdate>> {
-  const updates = new Map<string, RankUpdate>();
-  if (orderedIds.length === 0) return updates;
-  const moves = rankMoves(orderedIds.length);
-  await db.transaction(async (tx) => {
-    const rows = await tx
-      .select({ id: users.id, rankLevel: users.rankLevel })
-      .from(users)
-      .where(inArray(users.id, orderedIds));
-    const levels = new Map(rows.map((row) => [row.id, row.rankLevel]));
-    for (const [index, id] of orderedIds.entries()) {
-      const before = levels.get(id);
-      if (before === undefined) continue;
-      const after = clampRankLevel(before + moves[index]);
-      if (after !== before) await tx.update(users).set({ rankLevel: after }).where(eq(users.id, id));
-      updates.set(id, { rankLevel: after, rankChange: after - before });
-    }
-  });
-  return updates;
 }
