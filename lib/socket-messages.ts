@@ -35,5 +35,10 @@ export type RaceStartedMessage = {
   secondsLeft: number | null;
 };
 
+// Classement en direct, du premier au dernier ; position = caractères tapés (CRS-2).
+export type RacePositionsMessage = {
+  positions: { id: string; username: string; position: number }[];
+};
+
 // Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5).
 export type RaceEndedMessage = { reason: "allFinished" | "timeUp" | "idle" };
