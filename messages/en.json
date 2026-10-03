@@ -204,7 +204,8 @@
     "shareCode": "Share this code with your friends. They can enter it on the race browser.",
     "nextUp": "On the starting line",
     "raceComing": "You can gather in this room now. Multiplayer racing is still in development.",
-    "previewSeparate": "Want to test the driving concept? The solo preview runs separately from this room."
+    "previewSeparate": "Want to test the driving concept? The solo preview runs separately from this room.",
+    "myProfile": "My profile"
   },
   "Race": {
     "title": "Meet your new racetrack.",
