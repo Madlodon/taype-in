@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arena studies · Taype-in</title>
+  <style>
+    :root { color-scheme: dark; font-family: Arial, Helvetica, sans-serif; background: #090f18; color: #e8eef9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1300px; margin: auto; padding: 40px 28px 24px; }
+    .eyebrow { margin: 0 0 16px; color: #86a4c3; font-size: 12px; letter-spacing: .18em; }
+    h1 { margin: 0 0 12px; font-size: clamp(28px, 4vw, 46px); font-weight: 600; letter-spacing: -.045em; }
+    .intro { margin: 0; color: #9fadc0; max-width: 640px; font-size: 15px; line-height: 1.7; }
+    .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin: 28px 0 20px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { background: #141f2d; border: 1px solid #344359; border-radius: 7px; color: #b9c8d9; padding: 12px 16px; cursor: pointer; font: inherit; font-size: 14px; }
+    button[aria-selected="true"] { background: #dfeaf6; color: #122136; border-color: #dfeaf6; }
+    button:focus-visible, a:focus-visible { outline: 3px solid #58afff; outline-offset: 4px; }
+    a { color: #8ac6ff; text-underline-offset: 4px; }
+    .source { font-size: 13px; }
+    figure { margin: 0; }
+    .render { display: block; width: 100%; height: auto; aspect-ratio: 14 / 9; background: #080f18; border-radius: 10px; }
+    figcaption { display: grid; grid-template-columns: 1fr 1.2fr; gap: 28px; padding: 24px 0; }
+    h2 { margin: 0 0 7px; font-size: 21px; font-weight: 500; letter-spacing: -.025em; }
+    .tag { color: #8bc3f3; margin: 0; font-size: 13px; }
+    .description { margin: 0; color: #aab9ca; font-size: 14px; line-height: 1.7; }
+    footer { border-top: 1px solid #243247; padding: 18px 0 0; color: #94a4b9; font-size: 12px; line-height: 1.7; }
+    footer p { margin: 0 0 4px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 600px) { main { padding: 24px 16px; } figcaption { grid-template-columns: 1fr; gap: 12px; } .tabs { width: 100%; } button { flex: 1; padding: 12px 10px; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">TAYPE-IN / ARENA STUDIES</p>
+  <h1>A stadium you can feel.</h1>
+  <p class="intro">Banked corners, recessed goals, mown turf, boost pads, and blue versus orange. Three camera and rendering directions for the arena.</p>
+  <div class="toolbar">
+    <div class="tabs" role="tablist" aria-label="Arena concepts">
+      <button id="cutaway-tab" role="tab" aria-controls="cutaway" aria-selected="true" type="button">Stadium cutaway</button>
+      <button id="diorama-tab" role="tab" aria-controls="diorama" aria-selected="false" type="button">3D diorama</button>
+      <button id="top-tab" role="tab" aria-controls="top" aria-selected="false" type="button">Top-down SVG</button>
+    </div>
+    <a class="source" href="assets/arena.blend" download>Blender model ↗</a>
+  </div>
+  <section id="cutaway" role="tabpanel" aria-labelledby="cutaway-tab">
+    <figure>
+      <img class="render" src="assets/arena-broadcast.png" width="1400" height="900" alt="A front-facing stadium cutaway, with blue and orange stands, rounded walls, recessed netted goals and a grass field.">
+      <figcaption>
+        <div><h2>Stadium cutaway</h2><p class="tag">Closest to the current race camera</p></div>
+        <p class="description">A broad view of both goals keeps the race easy to follow. The open front exposes the curved walls. A ceiling route would need an upper cage and a visible route overlay.</p>
+      </figcaption>
+    </figure>
+  </section>
+  <section id="diorama" role="tabpanel" aria-labelledby="diorama-tab" hidden>
+    <figure>
+      <img class="render" src="assets/arena-diorama.png" width="1400" height="900" alt="An elevated three-quarter view of the modeled arena, showing the depth of the goals, ramps, stands and floodlights.">
+      <figcaption>
+        <div><h2>3D diorama</h2><p class="tag">Most depth and physical presence</p></div>
+        <p class="description">An angled view makes the arena feel like a physical space. The same editable Blender model can produce a static background with cars layered on top. Cars and player labels would need to stay readable at the far end.</p>
+      </figcaption>
+    </figure>
+  </section>
+  <section id="top" role="tabpanel" aria-labelledby="top-tab" hidden>
+    <figure>
+      <img class="render" src="assets/arena-top-view.svg" width="1400" height="900" alt="A detailed top-down SVG field with rounded corners, recessed goals, field markings, boost pads and top-down cars.">
+      <figcaption>
+        <div><h2>Top-down SVG</h2><p class="tag">Clearest field layout · <a href="assets/arena-top-view.svg" download>SVG source ↗</a></p></div>
+        <p class="description">A lightweight vector arena with crisp markings and clear player positions. This camera hides vertical movement; the existing wall and ceiling route would need unfolded wall lanes or a separate height indicator.</p>
+      </figcaption>
+    </figure>
+  </section>
+  <footer>
+    <p>Design studies with sample cars. The production arena and race behavior are unchanged.</p>
+    <p>Fan project inspired by Rocket League. Not affiliated with or endorsed by Epic Games or Psyonix.</p>
+  </footer>
+</main>
+<script>
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  function selectTab(tab) {
+    tabs.forEach(item => {
+      const selected = item === tab;
+      item.setAttribute('aria-selected', String(selected));
+      document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+    });
+  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectTab(tab));
+    tab.addEventListener('keydown', event => {
+      let target;
+      if (event.key === 'ArrowRight') target = tabs[(index + 1) % tabs.length];
+      if (event.key === 'ArrowLeft') target = tabs[(index + tabs.length - 1) % tabs.length];
+      if (event.key === 'Home') target = tabs[0];
+      if (event.key === 'End') target = tabs[tabs.length - 1];
+      if (target) { event.preventDefault(); selectTab(target); target.focus(); }
+    });
+  });
+</script>
+</body>
+</html>

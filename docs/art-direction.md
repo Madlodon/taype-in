@@ -126,6 +126,20 @@ Pour les ouvrir : `python3 -m http.server 8123 -d docs/mockups`, puis http://loc
 **Choix : la maquette 5.** Les maquettes 1 à 4 restent comme exploration : leurs voies droites l'une sous l'autre ressemblaient trop à TypeRacer, peu importe le style.
 La mise en page du texte (une ligne ou un bloc) se décidera dans l'issue de l'écran de course.
 
+### Études d'arène plus réaliste
+
+La [maquette 6](mockups/6-arena-studies.html) compare trois pistes : stade en coupe,
+diorama 3D et [SVG vu du dessus](mockups/assets/arena-top-view.svg). Elles ajoutent
+des murs courbes, des buts en retrait, des gradins et des marques sur le gazon.
+Ce sont des propositions à choisir ; l'arène de l'application reste inchangée.
+La vue du dessus nécessiterait une adaptation pour montrer le parcours mur/plafond.
+
+Le [modèle Blender](mockups/assets/arena.blend) et les deux rendus se régénèrent avec :
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/arena-model.py
+```
+
 ### Modèles Blender
 
 [`mockups/assets/models.py`](mockups/assets/models.py) construit une voiture et un ballon low-poly, puis les rend en sprites PNG transparents (voiture bleue, voiture orange, ballon). Les fichiers `.blend` peuvent être retouchés à la main dans Blender.
