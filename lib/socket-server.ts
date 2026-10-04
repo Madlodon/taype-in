@@ -1,7 +1,9 @@
 // Serveur Socket.IO attaché au serveur HTTP de Next.js (ADR 0001).
+import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
+import { botKey, type Bot } from "./bots.ts";
 import {
   addParticipant,
   canEnterLobby,
@@ -17,9 +19,11 @@ import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
 import { rankRacers, saveResults, updateRanks } from "./results.ts";
 import {
+  addBotSchema,
   joinLobbySchema,
   MIN_RACERS,
   progressSchema,
+  removeBotSchema,
   startRaceSchema,
   type Ack,
   type CountdownMessage,
@@ -37,6 +41,9 @@ type SocketData = { user: User; lobby?: Lobby };
 // doneAt : moment où il a fini ou abandonné, pour son temps (FIN-2).
 type Player = ProgressMessage & { state: PlayerState; doneAt?: number };
 
+// Bot ajouté par l'hôte : un id au format d'un utilisateur, qui ne correspond à personne en base (BOT-1).
+type BotParticipant = { id: string; username: string; bot: Bot };
+
 // Course en cours d'un lobby ; un lobby absent de la liste est en attente.
 type LiveRace = {
   state: LobbyState;
@@ -52,8 +59,10 @@ type LiveRace = {
   endsAt: number | null;
   players: Map<string, Player>;
   // Position de chaque coureur et moment où il l'a atteinte (départage les égalités).
-  positions: Map<string, { username: string; position: number; at: number }>;
+  positions: Map<string, { username: string; position: number; at: number; bot?: Bot }>;
   positionsChanged: boolean;
+  // Prochaine touche de chaque bot.
+  botTimers: Map<string, NodeJS.Timeout>;
   endTimer?: NodeJS.Timeout;
   idleTimer?: NodeJS.Timeout;
   positionsTimer?: NodeJS.Timeout;
@@ -73,7 +82,8 @@ export function createSocketServer(
   httpServer: HttpServer,
   // CRS-5 : la course s'arrête après 2 min sans aucune frappe.
   // CRS-2 : les positions partent au plus toutes les 250 ms, seulement si quelqu'un a bougé.
-  { countdownMs = 5000, idleMs = 2 * 60 * 1000, positionsMs = 250 } = {},
+  // botSpeedup accélère les bots, pour des tests rapides.
+  { countdownMs = 5000, idleMs = 2 * 60 * 1000, positionsMs = 250, botSpeedup = 1 } = {},
 ): Server {
   const io = new Server<
     Record<string, never>,
@@ -92,6 +102,13 @@ export function createSocketServer(
 
   // Gardé en mémoire : un seul processus Node sert toutes les salles (ADR 0001).
   const liveRaces = new Map<string, LiveRace>();
+  // Bots de chaque lobby ; ils restent d'une course à l'autre jusqu'à ce que l'hôte les retire.
+  const lobbyBots = new Map<string, BotParticipant[]>();
+
+  // Les joueurs connectés, puis les bots : tous comptent comme participants (BOT-1).
+  async function roomParticipants(lobby: Lobby): Promise<ParticipantsMessage["participants"]> {
+    return [...(await listParticipants(lobby.id)), ...(lobbyBots.get(lobby.id) ?? [])];
+  }
 
   // Faux si la machine à états refuse l'événement (ex. fermer pendant la course).
   function canDo(lobby: Lobby, event: "start" | "close" | "restart"): boolean {
@@ -113,7 +130,12 @@ export function createSocketServer(
       ([, a], [, b]) => b.position - a.position || a.at - b.at,
     );
     return {
-      positions: positions.map(([id, { username, position }]) => ({ id, username, position })),
+      positions: positions.map(([id, { username, position, bot }]) => ({
+        id,
+        username,
+        position,
+        bot,
+      })),
     };
   }
 
@@ -123,14 +145,19 @@ export function createSocketServer(
     io.to(lobby.code).emit("race:positions", ranking(live));
   }
 
+  function stopTimers(live: LiveRace) {
+    clearTimeout(live.endTimer);
+    clearTimeout(live.idleTimer);
+    clearInterval(live.positionsTimer);
+    live.botTimers.forEach((timer) => clearTimeout(timer));
+  }
+
   async function endRace(lobby: Lobby, live: LiveRace, reason: RaceEndedMessage["reason"]) {
     // Une seule fin, même si deux conditions arrivent en même temps.
     if (live.state !== "racing") return;
     live.state = nextLobbyState(live.state, "end");
     live.endReason = reason;
-    clearTimeout(live.endTimer);
-    clearTimeout(live.idleTimer);
-    clearInterval(live.positionsTimer);
+    stopTimers(live);
     // Les dernières frappes arrivent avant la fin.
     sendPositions(lobby, live);
     const endedAt = Date.now();
@@ -150,11 +177,13 @@ export function createSocketServer(
       live.errorMode,
     );
     await markRaceEnded(live.raceId);
+    // Les bots prennent une place au classement, sans ligne de résultat ni rang (aucun utilisateur en base).
     await saveResults(live.raceId, placements);
     const ranks = await updateRanks(placements.map((placement) => placement.id));
     live.results = placements.map((placement) => ({
       ...placement,
       ...(ranks.get(placement.id) ?? { rankLevel: 0, rankChange: 0 }),
+      bot: live.positions.get(placement.id)?.bot,
     }));
     io.to(lobby.code).emit("race:ended", { reason, results: live.results });
   }
@@ -167,11 +196,7 @@ export function createSocketServer(
 
   // Serveur arrêté : les minuteries des courses en cours ne doivent plus se déclencher.
   httpServer.on("close", () => {
-    for (const live of liveRaces.values()) {
-      clearTimeout(live.endTimer);
-      clearTimeout(live.idleTimer);
-      clearInterval(live.positionsTimer);
-    }
+    for (const live of liveRaces.values()) stopTimers(live);
   });
 
   // La course finit quand plus personne ne court : un absent compte encore, il peut revenir (CRS-6).
@@ -182,9 +207,52 @@ export function createSocketServer(
     }
   }
 
+  // Nouvelle saisie d'un coureur (joueur ou bot) ; la course finit quand tous ont tapé tout le texte (CRS-5).
+  async function updateProgress(
+    lobby: Lobby,
+    live: LiveRace,
+    id: string,
+    progress: ProgressMessage,
+  ) {
+    const player = live.players.get(id)!;
+    resetIdleTimer(lobby, live);
+    // Une fois fini, sa saisie ne change plus (ex. renvoyée après une reconnexion).
+    if (player.state !== "connected") return;
+    player.typed = progress.typed;
+    player.errors = progress.errors;
+    player.keys = progress.keys;
+    player.keyErrors = progress.keyErrors;
+    const racer = live.positions.get(id)!;
+    if (racer.position !== player.typed.length) {
+      live.positions.set(id, {
+        ...racer,
+        position: player.typed.length,
+        at: Date.now(),
+      });
+      live.positionsChanged = true;
+    }
+    if (player.typed.length === live.content.length) {
+      player.state = nextPlayerState(player.state, "finish");
+      player.doneAt = Date.now();
+      await endIfNobodyRacing(lobby, live);
+    }
+  }
+
+  // Le bot tape une touche à la fois, à la vitesse de son niveau, jusqu'à la fin du texte (BOT-2).
+  function driveBot(lobby: Lobby, live: LiveRace, id: string, bot: Bot) {
+    const player = live.players.get(id)!;
+    const key = botKey(bot.level, { ...player, blocked: false }, live.content, live.errorMode);
+    const timer = setTimeout(async () => {
+      if (live.state !== "racing") return;
+      await updateProgress(lobby, live, id, key.typing);
+      if (player.state === "connected") driveBot(lobby, live, id, bot);
+    }, key.delayMs / botSpeedup);
+    live.botTimers.set(id, timer);
+  }
+
   async function sendParticipants(lobby: Lobby) {
     io.to(lobby.code).emit("lobby:participants", {
-      participants: await listParticipants(lobby.id),
+      participants: await roomParticipants(lobby),
     });
   }
 
@@ -214,7 +282,7 @@ export function createSocketServer(
       }
 
       // Une place se libère quand quelqu'un part ; déjà présent (autre onglet), on entre (LOB-6).
-      const participants = await listParticipants(lobby.id);
+      const participants = await roomParticipants(lobby);
       if (
         participants.length >= MAX_PARTICIPANTS &&
         !participants.some((participant) => participant.id === socket.data.user.id)
@@ -255,7 +323,10 @@ export function createSocketServer(
         socket.emit("race:positions", ranking(race));
       } else if (race?.endReason && race.results) {
         socket.emit("race:positions", ranking(race));
-        socket.emit("race:ended", { reason: race.endReason, results: race.results });
+        socket.emit("race:ended", {
+          reason: race.endReason,
+          results: race.results,
+        });
       }
       ack?.({ ok: true });
     });
@@ -279,7 +350,7 @@ export function createSocketServer(
         ack?.({ ok: false, error: "notHost" });
         return;
       }
-      const racers = (await listParticipants(lobby.id)).filter(
+      const racers = (await roomParticipants(lobby)).filter(
         (participant) => !(message.data.watch && participant.id === user.id),
       );
       if (racers.length < MIN_RACERS) {
@@ -304,11 +375,18 @@ export function createSocketServer(
         players: new Map(
           racers.map((racer) => [
             racer.id,
-            { state: "connected", typed: "", errors: 0, keys: 0, keyErrors: {} },
+            {
+              state: "connected",
+              typed: "",
+              errors: 0,
+              keys: 0,
+              keyErrors: {},
+            },
           ]),
         ),
         positions: new Map(),
         positionsChanged: false,
+        botTimers: new Map(),
       };
       liveRaces.set(lobby.id, live);
 
@@ -322,7 +400,9 @@ export function createSocketServer(
       live.content = race.content;
       live.timeLimitSeconds = race.timeLimitSeconds;
 
-      io.to(lobby.code).emit("race:countdown", { seconds: Math.ceil(countdownMs / 1000) });
+      io.to(lobby.code).emit("race:countdown", {
+        seconds: Math.ceil(countdownMs / 1000),
+      });
       ack?.({ ok: true });
 
       setTimeout(async () => {
@@ -344,12 +424,18 @@ export function createSocketServer(
           secondsLeft: secondsLeft(live),
         });
         // Tous les coureurs partent de 0, dans l'ordre d'arrivée dans le lobby.
-        for (const { id, username } of racers) {
-          live.positions.set(id, { username, position: 0, at: Date.now() });
+        for (const { id, username, bot } of racers) {
+          live.positions.set(id, {
+            username,
+            position: 0,
+            at: Date.now(),
+            bot,
+          });
         }
         live.positionsChanged = true;
         sendPositions(lobby, live);
         live.positionsTimer = setInterval(() => sendPositions(lobby, live), positionsMs);
+        for (const { id, bot } of racers) if (bot) driveBot(lobby, live, id, bot);
       }, countdownMs);
     });
 
@@ -376,24 +462,7 @@ export function createSocketServer(
         return;
       }
 
-      resetIdleTimer(lobby, live);
-      // Une fois fini, sa saisie ne change plus (ex. renvoyée après une reconnexion).
-      if (player.state === "connected") {
-        player.typed = result.data.typed;
-        player.errors = result.data.errors;
-        player.keys = result.data.keys;
-        player.keyErrors = result.data.keyErrors;
-        const racer = live.positions.get(user.id)!;
-        if (racer.position !== player.typed.length) {
-          live.positions.set(user.id, { ...racer, position: player.typed.length, at: Date.now() });
-          live.positionsChanged = true;
-        }
-        if (player.typed.length === live.content.length) {
-          player.state = nextPlayerState(player.state, "finish");
-          player.doneAt = Date.now();
-          await endIfNobodyRacing(lobby, live);
-        }
-      }
+      await updateProgress(lobby, live, user.id, result.data);
       ack?.({ ok: true });
     });
 
@@ -418,6 +487,82 @@ export function createSocketServer(
       player.state = nextPlayerState(player.state, "abandon");
       player.doneAt = Date.now();
       await endIfNobodyRacing(lobby, live);
+      ack?.({ ok: true });
+    });
+
+    // Dans la salle d'attente, l'hôte ajoute un bot du niveau choisi (BOT-1, BOT-2).
+    socket.on("lobby:addBot", async (payload: unknown, ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      const message = addBotSchema.safeParse(payload);
+      if (!message.success) {
+        ack?.({ ok: false, error: "invalidMessage" });
+        return;
+      }
+      if (!lobby) {
+        ack?.({ ok: false, error: "lobbyNotFound" });
+        return;
+      }
+      if (lobby.hostId !== user.id) {
+        ack?.({ ok: false, error: "notHost" });
+        return;
+      }
+      if (liveRaces.has(lobby.id)) {
+        ack?.({ ok: false, error: "raceInProgress" });
+        return;
+      }
+      if ((await roomParticipants(lobby)).length >= MAX_PARTICIPANTS) {
+        ack?.({ ok: false, error: "lobbyFull" });
+        return;
+      }
+
+      // Numéro suivant parmi les bots de ce niveau : « Bot Expert 1 », « Bot Expert 2 »…
+      const bots = lobbyBots.get(lobby.id) ?? [];
+      const { level } = message.data;
+      const number =
+        Math.max(0, ...bots.filter(({ bot }) => bot.level === level).map(({ bot }) => bot.number)) +
+        1;
+      lobbyBots.set(lobby.id, [
+        ...bots,
+        {
+          id: randomUUID(),
+          username: `Bot ${level} ${number}`,
+          bot: { level, number },
+        },
+      ]);
+      await sendParticipants(lobby);
+      ack?.({ ok: true });
+    });
+
+    socket.on("lobby:removeBot", async (payload: unknown, ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      const message = removeBotSchema.safeParse(payload);
+      if (!message.success) {
+        ack?.({ ok: false, error: "invalidMessage" });
+        return;
+      }
+      if (!lobby) {
+        ack?.({ ok: false, error: "lobbyNotFound" });
+        return;
+      }
+      if (lobby.hostId !== user.id) {
+        ack?.({ ok: false, error: "notHost" });
+        return;
+      }
+      if (liveRaces.has(lobby.id)) {
+        ack?.({ ok: false, error: "raceInProgress" });
+        return;
+      }
+      const bots = lobbyBots.get(lobby.id) ?? [];
+      if (!bots.some((bot) => bot.id === message.data.id)) {
+        ack?.({ ok: false, error: "botNotFound" });
+        return;
+      }
+
+      lobbyBots.set(
+        lobby.id,
+        bots.filter((bot) => bot.id !== message.data.id),
+      );
+      await sendParticipants(lobby);
       ack?.({ ok: true });
     });
 
@@ -461,6 +606,7 @@ export function createSocketServer(
       }
 
       liveRaces.delete(lobby.id);
+      lobbyBots.delete(lobby.id);
       await closeLobby(lobby.id);
       io.to(lobby.code).emit("lobby:closed");
       ack?.({ ok: true });
