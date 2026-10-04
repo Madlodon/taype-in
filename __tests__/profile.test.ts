@@ -10,6 +10,8 @@ import {
   computeStats,
   findProfileUser,
   listRaceHistory,
+  PROGRESSION_RACES,
+  progressionPoints,
   type HistoryEntry,
 } from "../lib/profile";
 
@@ -101,6 +103,52 @@ describe("computeStats", () => {
 
   test("Should_SkipKeys_When_TheyHaveZeroErrors", () => {
     expect(computeStats([entry({ keyErrors: { a: 0 } })]).hardestKeys).toEqual([]);
+  });
+});
+
+describe("progressionPoints", () => {
+  test("Should_ReturnNoPoint_When_UserHasNoRace", () => {
+    expect(progressionPoints([])).toEqual([]);
+  });
+
+  test("Should_OrderOldestFirst_When_HistoryIsNewestFirst", () => {
+    const points = progressionPoints([
+      entry({ date: new Date("2026-09-03"), wpm: 60, accuracy: 98 }),
+      entry({ date: new Date("2026-09-02"), wpm: 50, accuracy: 95 }),
+      entry({ date: new Date("2026-09-01"), wpm: 40, accuracy: 90 }),
+    ]);
+
+    expect(points).toEqual([
+      { date: new Date("2026-09-01"), wpm: 40, accuracy: 90 },
+      { date: new Date("2026-09-02"), wpm: 50, accuracy: 95 },
+      { date: new Date("2026-09-03"), wpm: 60, accuracy: 98 },
+    ]);
+  });
+
+  test("Should_SkipRace_When_UnfinishedOrWithBonuses", () => {
+    const points = progressionPoints([
+      entry({ wpm: 99, finished: false }),
+      entry({ wpm: 120, bonusesEnabled: true }),
+      entry({ wpm: 45 }),
+    ]);
+
+    expect(points.map((point) => point.wpm)).toEqual([45]);
+  });
+
+  test("Should_ReturnNoPoint_When_NoRaceCounts", () => {
+    expect(progressionPoints([entry({ finished: false }), entry({ bonusesEnabled: true })])).toEqual([]);
+  });
+
+  test("Should_KeepLatestRaces_When_HistoryIsLongerThanLimit", () => {
+    const history = Array.from({ length: PROGRESSION_RACES + 5 }, (_, index) =>
+      entry({ wpm: PROGRESSION_RACES + 5 - index }),
+    );
+
+    const points = progressionPoints(history);
+
+    expect(points).toHaveLength(PROGRESSION_RACES);
+    expect(points[0].wpm).toBe(6);
+    expect(points.at(-1)?.wpm).toBe(PROGRESSION_RACES + 5);
   });
 });
 
