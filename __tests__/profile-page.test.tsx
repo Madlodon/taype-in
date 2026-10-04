@@ -21,6 +21,7 @@ const alex = {
   hat: "none",
   ball: "none",
   stadium: "diorama",
+  rankLevel: 0,
   createdAt: new Date(),
 };
 const sam = { ...alex, id: "2", username: "sam" };

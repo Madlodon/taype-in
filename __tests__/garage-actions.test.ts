@@ -26,6 +26,7 @@ const aUser = {
   hat: "none",
   ball: "none",
   stadium: "diorama",
+  rankLevel: 0,
   createdAt: new Date(),
 };
 const aGuest = { ...aUser, username: "Invité-123456", passwordHash: null, isGuest: true };

@@ -1,9 +1,12 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
+import { rankFromLevel } from "@/lib/ranks";
 import type { RaceResult } from "@/lib/socket-messages";
 
 type Props = { results: RaceResult[]; userId: string };
+
+const ROMAN = ["I", "II", "III", "IV"];
 
 // Fin de course : podium du top 3 (FIN-1), puis le classement complet avec les statistiques de chacun (FIN-2).
 export function RaceResults({ results, userId }: Props) {
@@ -12,6 +15,16 @@ export function RaceResults({ results, userId }: Props) {
   const decimal = (value: number) => format.number(value, { maximumFractionDigits: 1 });
   const name = (result: RaceResult) =>
     result.id === userId ? `${result.username} ${t("you")}` : result.username;
+  // Or II · Div. III ; Supersonic Legend n'a pas de division (#99).
+  const rankName = (level: number) => {
+    const rank = rankFromLevel(level);
+    if (rank.tier === "supersonicLegend") return t("tiers.supersonicLegend");
+    return t("rankName", {
+      tier: t(`tiers.${rank.tier}`),
+      subRank: ROMAN[rank.subRank - 1],
+      division: ROMAN[rank.division - 1],
+    });
+  };
 
   return (
     <section aria-labelledby="results-title" className="mt-5">
@@ -38,6 +51,7 @@ export function RaceResults({ results, userId }: Props) {
               <th scope="col">{t("accuracy")}</th>
               <th scope="col">{t("time")}</th>
               <th scope="col">{t("errors")}</th>
+              <th scope="col">{t("level")}</th>
             </tr>
           </thead>
           <tbody>
@@ -57,11 +71,33 @@ export function RaceResults({ results, userId }: Props) {
                     ` ${t("penalty", { value: decimal(result.penaltyMs / 1000) })}`}
                 </td>
                 <td>{result.errors}</td>
+                <td>
+                  {rankName(result.rankLevel)} <RankChange change={result.rankChange} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
     </section>
+  );
+}
+
+// Flèche de la division gagnée ou perdue ; le texte caché la décrit aux lecteurs d'écran.
+function RankChange({ change }: { change: number }) {
+  const t = useTranslations("RaceResults");
+  const [arrow, label, color] =
+    change > 0
+      ? ["▲", t("rankUp"), "text-correct"]
+      : change < 0
+        ? ["▼", t("rankDown"), "text-wrong"]
+        : ["=", t("rankSame"), "text-muted"];
+  return (
+    <>
+      <span aria-hidden="true" className={color}>
+        {arrow}
+      </span>
+      <span className="sr-only">{label}</span>
+    </>
   );
 }

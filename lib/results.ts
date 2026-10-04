@@ -3,6 +3,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { results, users } from "../db/schema.ts";
+import { clampRankLevel, rankMoves } from "./ranks.ts";
 import type { ErrorMode } from "./typing.ts";
 import type { ProgressMessage, RaceResult } from "./socket-messages.ts";
 
@@ -14,6 +15,9 @@ export type Racer = ProgressMessage & {
   durationMs: number;
   reachedAt: number;
 };
+
+// Place d'un coureur avant la mise à jour des rangs (#99).
+export type Placement = Omit<RaceResult, "rankLevel" | "rankChange">;
 
 // Mode tolérant : chaque faute ajoute 1 s au temps (Q-7).
 export const PENALTY_MS_PER_ERROR = 1000;
@@ -40,7 +44,7 @@ export function accuracy(keys: number, errors: number): number {
 }
 
 // Ordre d'arrivée (temps + pénalité) ; ceux qui n'ont pas fini, selon leur progression (Q-7).
-export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMode): RaceResult[] {
+export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMode): Placement[] {
   const scored = racers.map((racer) => ({
     racer,
     penaltyMs: errorMode === "tolerant" ? racer.errors * PENALTY_MS_PER_ERROR : 0,
@@ -68,7 +72,7 @@ export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMod
 }
 
 // Seuls les inscrits gardent un historique ; les invités occupent quand même leur rang.
-export async function saveResults(raceId: string, ranked: RaceResult[]) {
+export async function saveResults(raceId: string, ranked: Placement[]) {
   if (ranked.length === 0) return;
   const registered = await db
     .select({ id: users.id })
@@ -89,4 +93,29 @@ export async function saveResults(raceId: string, ranked: RaceResult[]) {
       keyErrors: result.keyErrors,
     }));
   if (rows.length > 0) await db.insert(results).values(rows);
+}
+
+export type RankUpdate = { rankLevel: number; rankChange: number };
+
+// Applique la fin de course aux joueurs, dans l'ordre d'arrivée (invités compris).
+// rankChange vaut 0 si le joueur est déjà au plancher ou au plafond.
+export async function updateRanks(orderedIds: string[]): Promise<Map<string, RankUpdate>> {
+  const updates = new Map<string, RankUpdate>();
+  if (orderedIds.length === 0) return updates;
+  const moves = rankMoves(orderedIds.length);
+  await db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ id: users.id, rankLevel: users.rankLevel })
+      .from(users)
+      .where(inArray(users.id, orderedIds));
+    const levels = new Map(rows.map((row) => [row.id, row.rankLevel]));
+    for (const [index, id] of orderedIds.entries()) {
+      const before = levels.get(id);
+      if (before === undefined) continue;
+      const after = clampRankLevel(before + moves[index]);
+      if (after !== before) await tx.update(users).set({ rankLevel: after }).where(eq(users.id, id));
+      updates.set(id, { rankLevel: after, rankChange: after - before });
+    }
+  });
+  return updates;
 }

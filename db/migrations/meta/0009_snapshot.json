@@ -1,6 +1,6 @@
 {
-  "id": "96f5547a-ec1a-44bc-8d66-e9d1132b01bc",
-  "prevId": "5699abd9-d7ec-4133-b93c-3e7306b03f82",
+  "id": "9c1165bb-2aca-4209-9dab-945e8db89c3b",
+  "prevId": "96f5547a-ec1a-44bc-8d66-e9d1132b01bc",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -650,6 +650,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
+        },
+        "stadium": {
+          "name": "stadium",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'diorama'"
         },
         "rank_level": {
           "name": "rank_level",
