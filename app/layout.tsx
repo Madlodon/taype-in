@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { SiteNav } from "@/components/site-nav";
+import { getAvatarVersion } from "@/lib/avatars";
 import { getCurrentUser } from "@/lib/session-cookie";
 import "./globals.css";
 
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const t = await getTranslations("Footer");
   const d = await getTranslations("Design");
   const user = await getCurrentUser();
+  const registered = user && !user.isGuest ? user : null;
 
   return (
     <html
@@ -56,7 +58,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 <Image src="/octane-dark.png" alt="Taype-in" width={88} height={50} className="hidden dark:block" />
                 <span aria-hidden="true">taype<span className="text-primary">-in</span><small>{d("brandTag")}</small></span>
               </Link>
-              <SiteNav username={user && !user.isGuest ? user.username : undefined} />
+              <SiteNav
+                username={registered?.username}
+                userId={registered?.id}
+                avatarVersion={registered && await getAvatarVersion(registered.id)}
+              />
               <div className="header-settings"><ThemeSwitcher /><LocaleSwitcher /></div>
             </header>
             {children}

@@ -993,6 +993,10 @@ a, button, input {
   gap: 10px;
 }
 
+.site-nav a .avatar {
+  margin-right: 8px;
+}
+
 .race-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
