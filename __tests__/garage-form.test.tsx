@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { GarageForm } from "../components/garage-form";
 import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, DEFAULT_LOADOUT } from "../lib/garage-items";
 import en from "../messages/en.json";
+import fr from "../messages/fr.json";
 
 function garage(guest = false) {
   render(<NextIntlClientProvider locale="en" messages={en}>
@@ -12,6 +13,29 @@ function garage(guest = false) {
 }
 
 afterEach(cleanup);
+
+test.each([["en", en], ["fr", fr]] as const)("Should_PreviewAndSubmitGoldSet_When_LocaleIs_%s", (locale, messages) => {
+  render(<NextIntlClientProvider locale={locale} messages={messages}>
+    <GarageForm action={vi.fn()} initial={DEFAULT_LOADOUT} guest={false} />
+  </NextIntlClientProvider>);
+  const items = messages.Garage.items;
+  for (const label of [items.boost.alpha, items.hat["alpha-cap"], items.ball.gold]) {
+    fireEvent.click(screen.getByLabelText(label));
+  }
+  for (const car of CARS) {
+    fireEvent.click(screen.getByLabelText(items.car[car]));
+    const preview = screen.getByRole("img");
+    for (const item of ["alpha", "alpha-cap", "gold"]) {
+      expect(preview.querySelector(`[data-item="${item}"]`)).toBeTruthy();
+    }
+    for (const label of [items.car[car], items.boost.alpha, items.hat["alpha-cap"], items.ball.gold]) {
+      expect(preview.getAttribute("aria-label")).toContain(label);
+    }
+    expect(Object.fromEntries(new FormData(document.querySelector("form")!))).toEqual({
+      ...DEFAULT_LOADOUT, car, boost: "alpha", hat: "alpha-cap", ball: "gold",
+    });
+  }
+});
 
 test.each(STADIUMS)("Should_PreviewSubmitAndRestoreStadium_When_Selecting_%s", stadium => {
   garage();

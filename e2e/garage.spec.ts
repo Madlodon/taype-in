@@ -36,11 +36,13 @@ test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
   }
 
   await page.getByRole("radio", { name: "Boost Alpha", exact: true }).check();
+  await page.getByRole("radio", { name: "Ballon doré", exact: true }).check();
   await page.getByRole("button", { name: "Enregistrer mon garage" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Garage enregistré." })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("radio", { name: "Boost Alpha", exact: true })).toBeChecked();
-  await expect(page.getByRole("img", { name: /avec le boost Boost Alpha/ })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Ballon doré", exact: true })).toBeChecked();
+  await expect(page.getByRole("img", { name: "Fennec avec le boost Boost Alpha, chapeau : Chapeau de sorcier, ballon : Ballon doré" })).toBeVisible();
   const plume = page.locator(".car-boost-alpha .boost-plume");
   await expect(plume).toHaveCSS("animation-name", "boost-flicker");
   await page.emulateMedia({ reducedMotion: "reduce" });

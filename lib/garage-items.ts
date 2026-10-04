@@ -7,7 +7,7 @@ export const CARS = ["octane", "fennec", "dominus", "merc"] as const;
 export const BOOSTS = ["standard", "flames", "ion", "sparkles", "alpha"] as const;
 export const HATS = ["none", "cone", "alpha-cap", "top-hat", "pirate", "wizard"] as const;
 // « none » garde le ballon standard.
-export const BALLS = ["none", "beach", "emerald", "glacier", "solar"] as const;
+export const BALLS = ["none", "beach", "emerald", "glacier", "solar", "gold"] as const;
 export const STADIUMS = ["diorama", "cutaway", "top-down"] as const;
 export type Stadium = (typeof STADIUMS)[number];
 export const STADIUM_IMAGES: Record<Stadium, string> = {
