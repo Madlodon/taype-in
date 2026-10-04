@@ -564,7 +564,7 @@ a, button, input {
   font-weight: 600;
 }
 
-.field input, .field textarea, .typing-input {
+.field input, .field select, .field textarea, .typing-input {
   width: 100%;
   min-height: 48px;
   padding: 12px 14px;
@@ -575,7 +575,7 @@ a, button, input {
   font-size: 14px;
 }
 
-.field input:focus, .field textarea:focus, .typing-input:focus {
+.field input:focus, .field select:focus, .field textarea:focus, .typing-input:focus {
   outline-offset: 2px;
 }
 
@@ -774,6 +774,40 @@ a, button, input {
 
 .participants li:nth-child(even)::before {
   background: var(--accent);
+}
+
+/* Ajout d'un bot par l'hôte (BOT-1) : le niveau et le bouton sur une ligne. */
+.bot-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-top: 20px;
+}
+
+.bot-form .field {
+  flex: 1 1 180px;
+}
+
+/* BOT-3 : à côté du nom, aussi dans le classement où les span flottent à droite. */
+.bot-badge,
+.ranking li .bot-badge {
+  float: none;
+  margin: 0 0 0 8px;
+  padding: 3px 6px;
+  color: var(--primary);
+}
+
+.participant-remove {
+  float: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+.participant-remove:hover {
+  color: var(--wrong);
 }
 
 .race-board {

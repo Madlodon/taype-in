@@ -2,7 +2,7 @@
 
 import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { io, type Socket } from "socket.io-client";
 import {
   MIN_RACERS,
@@ -15,7 +15,9 @@ import {
   type RaceStartedMessage,
 } from "@/lib/socket-messages";
 import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
+import { BOT_LEVELS, type Bot } from "@/lib/bots";
 import { Arena } from "@/components/arena";
+import { BotBadge } from "@/components/bot-badge";
 import { RaceResults } from "@/components/race-results";
 import { RaceTyping } from "@/components/race-typing";
 import type { Typing } from "@/lib/typing";
@@ -25,6 +27,14 @@ type Props = { code: string; hostId: string; isHost: boolean; userId: string; st
 
 function toProgress({ typed, errors, keys, keyErrors }: Typing) {
   return { typed, errors, keys, keyErrors };
+}
+
+// Les bots reçoivent leur nom dans la langue de l'interface : « Bot Débutant 1 » (BOT-3).
+function withBotNames<T extends { username: string; bot?: Bot }>(
+  entries: T[],
+  botName: (bot: Bot) => string,
+): T[] {
+  return entries.map((entry) => (entry.bot ? { ...entry, username: botName(entry.bot) } : entry));
 }
 
 // Durée d'affichage d'un dépassement (CRS-3).
@@ -67,12 +77,20 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
   const typingRef = useRef<Typing>(null);
   const [resumed, setResumed] = useState<Typing>();
   const [finished, setFinished] = useState(false);
+  // Lu par les gestionnaires du socket, branchés une seule fois.
+  const botNameRef = useRef<(bot: Bot) => string>(null);
+  useEffect(() => {
+    botNameRef.current = (bot) =>
+      t("botName", { level: t(`botLevels.${bot.level}`), number: bot.number });
+  });
 
   useEffect(() => {
     const socket = io();
     socketRef.current = socket;
+    const named = <T extends { username: string; bot?: Bot }>(entries: T[]) =>
+      withBotNames(entries, botNameRef.current!);
     socket.on("lobby:participants", (message: ParticipantsMessage) =>
-      setParticipants(message.participants),
+      setParticipants(named(message.participants)),
     );
     // Lobby fermé par l'hôte : tout le monde retourne à la liste avec un message (LOB-10).
     socket.on("lobby:closed", () => router.replace("/lobbies?closed=1"));
@@ -109,14 +127,15 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
       }
     });
     socket.on("race:positions", (message: RacePositionsMessage) => {
-      const cue = detectOvertake(positionsRef.current, message.positions, userId);
-      positionsRef.current = message.positions;
+      const positions = named(message.positions);
+      const cue = detectOvertake(positionsRef.current, positions, userId);
+      positionsRef.current = positions;
       if (cue) setOvertake({ ...cue, at: Date.now() });
-      setPositions(message.positions);
+      setPositions(positions);
     });
     socket.on("race:ended", (message: RaceEndedMessage) => {
       setEndReason(message.reason);
-      setResults(message.results);
+      setResults(named(message.results));
     });
     // Socket.IO se reconnecte seul après une coupure ; il abandonne seulement si le serveur refuse (ex. non connecté).
     socket.on("connect_error", (err) => {
@@ -157,6 +176,21 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
   // L'hôte court avec les autres ou regarde seulement (LOB-8).
   function start(watch: boolean) {
     socketRef.current?.emit("race:start", { watch }, (ack: Ack) => {
+      if (!ack.ok) setError(ack.error);
+    });
+  }
+
+  // L'hôte ajoute des bots avant le départ ; ils comptent comme participants (BOT-1).
+  function addBot(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const level = new FormData(event.currentTarget).get("level");
+    socketRef.current?.emit("lobby:addBot", { level }, (ack: Ack) => {
+      if (!ack.ok) setError(ack.error);
+    });
+  }
+
+  function removeBot(id: string) {
+    socketRef.current?.emit("lobby:removeBot", { id }, (ack: Ack) => {
       if (!ack.ok) setError(ack.error);
     });
   }
@@ -231,6 +265,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
                 .join(" ")}
             >
               {entry.username}
+              {entry.bot && <BotBadge />}
               {entry.id === userId && ` ${t("you")}`}
               <span>{t("percent", { value: percent(entry.position) })}</span>
             </li>
@@ -305,8 +340,19 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
           {participants.map((participant) => (
             <li key={participant.id}>
               {participant.username}
+              {participant.bot && <BotBadge />}
               {participant.id === hostId && ` ${t("host")}`}
               {participant.id === hostId && hostWatching && ` ${t("watching")}`}
+              {participant.bot && isHost && countdown === undefined && !race && (
+                <button
+                  type="button"
+                  className="participant-remove"
+                  aria-label={`${t("removeBot")} ${participant.username}`}
+                  onClick={() => removeBot(participant.id)}
+                >
+                  {t("removeBot")}
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -335,6 +381,21 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
         )}
         {isHost && countdown === undefined && !race && (
           <>
+            <form className="bot-form" onSubmit={addBot}>
+              <label className="field">
+                {t("botLevel")}
+                <select name="level">
+                  {BOT_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {t(`botLevels.${level}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" className="btn btn-secondary">
+                {t("addBot")}
+              </button>
+            </form>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"

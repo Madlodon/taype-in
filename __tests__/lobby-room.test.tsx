@@ -178,7 +178,11 @@ test("Should_DisableStartAndExplain_When_HostIsAlone", () => {
   act(() => handlers["lobby:participants"]({ participants: [{ id: "u1", username: "alex" }] }));
 
   expect(startButton()!.hasAttribute("disabled")).toBe(true);
-  expect(screen.getByText("Il faut au moins 2 participants pour lancer la course.")).toBeTruthy();
+  expect(
+    screen.getByText(
+      "Il faut au moins 2 participants pour lancer la course : invite un joueur ou ajoute un bot.",
+    ),
+  ).toBeTruthy();
 });
 
 test("Should_AskServerToStart_When_HostClicksStart", () => {
@@ -836,4 +840,114 @@ test("Should_ShowNoOvertake_When_NextRaceStartsAfterRelaunch", () => {
   sendOrder("u1", "u2");
 
   expect(overtakeText(container)).toBe("");
+});
+
+// L'hôte u1 et un bot débutant : assez pour lancer une course d'entraînement (BOT-1).
+function sendHostAndBot() {
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "b1", username: "Bot beginner 1", bot: { level: "beginner", number: 1 } },
+      ],
+    }),
+  );
+}
+
+test("Should_NameBotInFrenchWithBadge_When_ServerSendsBot", () => {
+  renderRoom();
+
+  sendHostAndBot();
+
+  expect(listedNames()).toEqual(["alex (hôte)", "Bot Débutant 1Bot"]);
+  expect(screen.getByText("Bot", { selector: ".bot-badge" })).toBeTruthy();
+});
+
+test("Should_NameBotInEnglish_When_LocaleIsEnglish", () => {
+  renderRoom("en");
+
+  sendHostAndBot();
+
+  expect(listedNames()[1]).toBe("Bot Beginner 1Bot");
+});
+
+test("Should_EnableStart_When_HostIsAloneWithABot", () => {
+  renderRoom("fr", true);
+
+  sendHostAndBot();
+
+  expect(startButton()!.hasAttribute("disabled")).toBe(false);
+});
+
+test("Should_AskServerToAddBotOfChosenLevel_When_HostAddsBot", () => {
+  renderRoom("fr", true);
+  sendHostAndBot();
+
+  fireEvent.change(screen.getByLabelText("Niveau du bot"), { target: { value: "expert" } });
+  fireEvent.click(screen.getByRole("button", { name: "Ajouter un bot" }));
+
+  expect(socket.emit).toHaveBeenCalledWith(
+    "lobby:addBot",
+    { level: "expert" },
+    expect.any(Function),
+  );
+});
+
+test("Should_AskServerToRemoveBot_When_HostClicksRemove", () => {
+  renderRoom("fr", true);
+  sendHostAndBot();
+
+  fireEvent.click(screen.getByRole("button", { name: "Retirer Bot Débutant 1" }));
+
+  expect(socket.emit).toHaveBeenCalledWith("lobby:removeBot", { id: "b1" }, expect.any(Function));
+});
+
+test("Should_ShowError_When_AddingBotIsRefused", () => {
+  renderRoom("fr", true);
+  sendHostAndBot();
+  fireEvent.click(screen.getByRole("button", { name: "Ajouter un bot" }));
+  const ack = socket.emit.mock.calls[1][2] as Handler;
+
+  act(() => ack({ ok: false, error: "lobbyFull" }));
+
+  expect(screen.getByRole("alert").textContent).toBe("La course est pleine (300 participants)");
+});
+
+test("Should_NotShowBotControls_When_UserIsNotHost", () => {
+  renderRoom();
+
+  sendHostAndBot();
+
+  expect(screen.queryByRole("button", { name: "Ajouter un bot" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Retirer/ })).toBeNull();
+});
+
+test("Should_HideBotControls_When_RaceStarts", () => {
+  renderRoom("fr", true);
+  sendHostAndBot();
+
+  act(() => handlers["race:countdown"]({ seconds: 5 }));
+
+  expect(screen.queryByRole("button", { name: "Ajouter un bot" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Retirer/ })).toBeNull();
+});
+
+test("Should_NameBotInRankingAndOvertake_When_BotPassesUser", () => {
+  const { container } = renderRoom();
+  startRace(["u2", "b1"]);
+  const bot = { id: "b1", username: "Bot expert 1", bot: { level: "expert", number: 1 } };
+  act(() =>
+    handlers["race:positions"]({
+      positions: [{ id: "u2", username: "moi", position: 2 }, { ...bot, position: 1 }],
+    }),
+  );
+
+  act(() =>
+    handlers["race:positions"]({
+      positions: [{ ...bot, position: 3 }, { id: "u2", username: "moi", position: 2 }],
+    }),
+  );
+
+  expect(ranking()[0].textContent).toBe("Bot Expert 1Bot20 %");
+  expect(overtakeText(container)).toBe("▼ Bot Expert 1 t'a dépassé · 2e");
 });

@@ -71,7 +71,7 @@
     "host": "(hôte)",
     "close": "Fermer la course",
     "confirmClose": "Fermer la course ? Tous les participants seront renvoyés à la liste des courses.",
-    "needMore": "Il faut au moins {count} participants pour lancer la course.",
+    "needMore": "Il faut au moins {count} participants pour lancer la course : invite un joueur ou ajoute un bot.",
     "countdown": "Départ dans {seconds}",
     "raceText": "Texte de la course",
     "timeLeft": "Temps restant : {time}",
@@ -103,7 +103,8 @@
       "raceNotRunning": "Aucune course en cours",
       "notRacer": "Tu ne cours pas dans cette course",
       "cannotGiveUp": "Tu ne peux plus abandonner",
-      "raceNotFinished": "La course n'est pas terminée"
+      "raceNotFinished": "La course n'est pas terminée",
+      "botNotFound": "Bot introuvable"
     },
     "startRacing": "Lancer et courir",
     "startWatching": "Lancer et regarder",
@@ -111,7 +112,18 @@
     "watching": "(regarde)",
     "hostWatching": "Tu regardes la course sans courir.",
     "relaunch": "Relancer la course",
-    "waitingForHost": "En attente de l'hôte : il choisit les réglages et lance la prochaine course."
+    "waitingForHost": "En attente de l'hôte : il choisit les réglages et lance la prochaine course.",
+    "bot": "Bot",
+    "botName": "Bot {level} {number}",
+    "botLevel": "Niveau du bot",
+    "addBot": "Ajouter un bot",
+    "removeBot": "Retirer",
+    "botLevels": {
+      "beginner": "Débutant",
+      "intermediate": "Intermédiaire",
+      "advanced": "Avancé",
+      "expert": "Expert"
+    }
   },
   "LobbySettings": {
     "title": "Réglages de la prochaine course",
