@@ -6,6 +6,7 @@ const COLORS = {
   flames: ["#f04416", "#ffae28", "#fff4bb"],
   ion: ["#6254ff", "#80cbff", "#e9fcff"],
   sparkles: ["#9d62ef", "#edbaff", "#fff3ff"],
+  alpha: ["#e98a16", "#ffd844", "#fff5ad"],
 } as const;
 
 export function CarBoost({ boost }: { boost: Loadout["boost"] }) {
@@ -28,6 +29,19 @@ export function CarBoost({ boost }: { boost: Loadout["boost"] }) {
         <filter id={`${id}-soft`} x="-30%" y="-100%" width="160%" height="300%">
           <feGaussianBlur stdDeviation="1.6" />
         </filter>
+        {boost === "alpha" && <>
+          <linearGradient id={`${id}-gold-rush`} x1="0" x2="1">
+            <stop stopColor="#b96010" stopOpacity="0" />
+            <stop offset=".16" stopColor={edge} stopOpacity=".65" />
+            <stop offset=".42" stopColor="#ffbf28" />
+            <stop offset=".78" stopColor={middle} />
+            <stop offset="1" stopColor={core} />
+          </linearGradient>
+          <filter id={`${id}-turbulence`} x="-10%" y="-50%" width="120%" height="200%">
+            <feTurbulence type="fractalNoise" baseFrequency=".16 .3" numOctaves="2" seed="7" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </>}
       </defs>
       <ellipse cx="-27" rx="51" ry={boost === "flames" ? 17 : 11} fill={`url(#${id}-glow)`} />
       <g className="boost-plume" fill={`url(#${id}-jet)`}>
@@ -51,14 +65,27 @@ export function CarBoost({ boost }: { boost: Loadout["boost"] }) {
           <path d="M2-4 Q-33-9-93 0 Q-33 9 2 4Z" opacity=".55" filter={`url(#${id}-soft)`} />
           <path d="M2-2 Q-17-4-48 0 Q-17 4 2 2Z" />
         </>}
+        {boost === "alpha" && <>
+          {/* Gold Rush : flamme dense et granuleuse, bord ambré et cœur jaune pâle. */}
+          <path d="M2-4 C-12-8-26-12-43-10 S-74-13-96-7 L-91 0 L-99 7 Q-72 14-50 10 T-24 9 Q-9 8 2 4Z" fill={edge} opacity=".65" filter={`url(#${id}-soft)`} />
+          <g filter={`url(#${id}-turbulence)`}>
+            <path d="M2-4 Q-8-5-17-8 L-24-7 L-31-11 L-37-8 L-45-12 L-51-9 L-61-12 L-65-8 L-77-11 L-74-6 L-91-7 L-85-2 L-98 2 L-84 5 L-91 10 L-75 7 L-68 12 L-61 8 L-51 11 L-44 8 L-35 11 L-28 7 L-21 9 Q-9 7 2 4Z" fill={`url(#${id}-gold-rush)`} />
+            <path d="M1-3 Q-13-8-21-4 T-36-5 L-44-8 L-43-3 L-58-6 L-54-1 L-73-3 L-65 2 L-80 5 L-61 5 L-53 8 L-47 4 L-37 7 L-29 4 Q-12 8 1 3Z" fill={middle} />
+            <path d="M2-2 Q-9-5-19-2 L-25-5 L-28-1 L-41-3 L-36 1 L-53 3 L-39 5 L-28 2 L-19 5 Q-7 3 2 2Z" fill={core} />
+            {Array.from({ length: 18 }, (_, i) => <ellipse key={i}
+              cx={-11 - (i * 13 % 72)} cy={(i * 7 % 15) - 7}
+              rx={2 + i % 3} ry={1.1 + i % 2}
+              fill={i % 3 ? core : edge} opacity={i % 3 ? .5 : .65} />)}
+          </g>
+        </>}
       </g>
-      {Array.from({ length: boost === "sparkles" ? 16 : 9 }, (_, i) => {
+      {Array.from({ length: boost === "sparkles" ? 16 : boost === "alpha" ? 20 : 9 }, (_, i) => {
         const x = -8 - (i * 19 % 79);
         const y = ((i * 7 % 17) - 8) * (boost === "ion" ? .4 : 1);
         return <g key={i} className="boost-particle" style={{ "--boost-delay": `${-i * .137}s` } as CSSProperties}>
           {boost === "sparkles"
             ? <path d={`M${x} ${y - 2.5} l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z`} fill={i % 3 ? core : middle} />
-            : <ellipse cx={x} cy={y} rx={boost === "ion" ? 2 : 1.2} ry=".65" fill={i % 2 ? middle : core} />}
+            : <ellipse cx={x} cy={y} rx={boost === "ion" ? 2 : 1.2} ry=".65" fill={boost === "alpha" && i % 3 === 0 ? edge : i % 2 ? middle : core} />}
         </g>;
       })}
       <ellipse cx="-1" rx="6" ry="5" fill={`url(#${id}-glow)`} />
