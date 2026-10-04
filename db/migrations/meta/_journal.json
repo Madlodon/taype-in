@@ -64,6 +64,13 @@
       "when": 1791067108117,
       "tag": "0008_rank_level",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791075654854,
+      "tag": "0009_avatars",
+      "breakpoints": true
     }
   ]
 }
