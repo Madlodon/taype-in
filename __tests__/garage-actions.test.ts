@@ -5,7 +5,7 @@ import { saveLoadoutAction } from "../app/actions/garage";
 import { saveLoadout } from "../lib/garage";
 import { getCurrentUser } from "../lib/session-cookie";
 import { revalidatePath } from "next/cache";
-import { STADIUMS } from "../lib/garage-items";
+import { BOOSTS, STADIUMS } from "../lib/garage-items";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(() => {
@@ -80,7 +80,7 @@ test("Should_RefuseWithoutSaving_When_BoostIsMissing", async () => {
   expect(saveLoadout).not.toHaveBeenCalled();
 });
 
-test.each(["standard", "flames", "ion", "sparkles"])("Should_SaveBoost_When_Selecting_%s", async (boost) => {
+test.each(BOOSTS)("Should_SaveBoost_When_Selecting_%s", async (boost) => {
   const loadout = { ...choice, boost };
   expect(await saveLoadoutAction(undefined, form(loadout))).toEqual({ saved: true });
   expect(saveLoadout).toHaveBeenCalledWith("user-1", loadout);

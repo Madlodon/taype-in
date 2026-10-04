@@ -1259,12 +1259,18 @@ a, button, input {
 .car-boost-ion .boost-plume {
   animation-duration: 650ms;
 }
+.car-boost-alpha .boost-plume {
+  animation-duration: 110ms;
+}
 .boost-particle {
   animation: boost-drift 700ms linear infinite;
   animation-delay: var(--boost-delay);
 }
 .car-boost-sparkles .boost-particle {
   animation-duration: 1100ms;
+}
+.car-boost-alpha .boost-particle {
+  animation-duration: 450ms;
 }
 /* During a race the cars already move with typing: an animated SVG repaints every frame and slows down keystrokes. */
 .race-board .boost-plume,

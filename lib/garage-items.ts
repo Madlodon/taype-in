@@ -4,7 +4,7 @@ import { z } from "zod";
 // Le premier de chaque liste est le choix par défaut.
 export const CARS = ["octane", "fennec", "dominus", "merc"] as const;
 // Pas de « none » : une voiture a toujours un boost.
-export const BOOSTS = ["standard", "flames", "ion", "sparkles"] as const;
+export const BOOSTS = ["standard", "flames", "ion", "sparkles", "alpha"] as const;
 export const HATS = ["none", "cone", "alpha-cap", "top-hat", "pirate", "wizard"] as const;
 // « none » garde le ballon standard.
 export const BALLS = ["none", "beach", "emerald", "glacier", "solar"] as const;
