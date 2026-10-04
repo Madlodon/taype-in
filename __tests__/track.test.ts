@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { selectShown } from "../lib/track";
+import { detectOvertake, selectShown } from "../lib/track";
 
 // Classement de `count` joueurs : p1 en tête, puis p2, p3…
 function positions(count: number) {
@@ -48,4 +48,56 @@ test("Should_KeepPlayerData_When_Selected", () => {
     position: 1,
     rank: 2,
   });
+});
+
+// Classement dans l'ordre donné ; le joueur « p » a l'id p et le nom joueur-p.
+function order(...ids: string[]) {
+  return ids.map((id, index) => ({
+    id,
+    username: `joueur-${id}`,
+    position: ids.length - index,
+  }));
+}
+
+test("Should_ReportPassedPlayer_When_UserMovesUp", () => {
+  expect(detectOvertake(order("a", "me", "b"), order("me", "a", "b"), "me")).toEqual({
+    direction: "up",
+    names: ["joueur-a"],
+    rank: 1,
+  });
+});
+
+test("Should_ReportPasser_When_UserMovesDown", () => {
+  expect(detectOvertake(order("a", "me", "b"), order("a", "b", "me"), "me")).toEqual({
+    direction: "down",
+    names: ["joueur-b"],
+    rank: 3,
+  });
+});
+
+test("Should_ReportEveryPassedPlayer_When_UserPassesSeveralAtOnce", () => {
+  expect(detectOvertake(order("a", "b", "me"), order("me", "a", "b"), "me")?.names).toEqual([
+    "joueur-a",
+    "joueur-b",
+  ]);
+});
+
+test("Should_ReportNothing_When_UserRankIsUnchanged", () => {
+  expect(detectOvertake(order("a", "me", "b"), order("a", "me", "b"), "me")).toBeNull();
+});
+
+test("Should_ReportNothing_When_OthersSwapAroundUser", () => {
+  expect(detectOvertake(order("a", "b", "me"), order("b", "a", "me"), "me")).toBeNull();
+});
+
+test("Should_ReportNothing_When_FirstPositionsArrive", () => {
+  expect(detectOvertake([], order("a", "me"), "me")).toBeNull();
+});
+
+test("Should_ReportNothing_When_UserIsNotRacing", () => {
+  expect(detectOvertake(order("a", "b"), order("b", "a"), "spectateur")).toBeNull();
+});
+
+test("Should_ReportNothing_When_RankChangesOnlyBecauseNewPlayerAppears", () => {
+  expect(detectOvertake(order("a", "me"), order("a", "new", "me"), "me")).toBeNull();
 });
