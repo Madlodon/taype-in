@@ -381,6 +381,32 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
   }
 });
 
+test("Should_ShowSessionStatsAndKeepThemOnSignUp_When_GuestRaced", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+  await expect(player.page.getByRole("textbox", { name: "Tape le texte" })).toBeVisible({ timeout: 8000 });
+  for (const { page } of [player, host]) {
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Abandonner" }).click();
+  }
+
+  await expect(player.page.getByRole("region", { name: "Cette session : 1 course" })).toBeVisible();
+
+  const username = `e2e_${Math.random().toString(36).slice(2, 10)}`;
+  await player.page.goto("/signup");
+  await player.page.getByLabel("Nom d'utilisateur").fill(username);
+  await player.page.getByLabel("Mot de passe").fill("motdepasse123");
+  await player.page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(player.page).toHaveURL("/");
+  await player.page.goto(`/profile/${username}`);
+  const history = player.page.getByRole("table", { name: "Historique des courses" });
+  await expect(history.getByRole("row")).toHaveCount(2);
+});
+
 test("Should_RaceWithoutHost_When_HostStartsAndWatches", async ({ browser }) => {
   const host = await newGuest(browser);
   const code = await createRace(host.page, /Non répertoriée/);
