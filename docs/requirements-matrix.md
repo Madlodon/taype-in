@@ -160,9 +160,9 @@ Statut :
 
 | ID    | Exigence                     | Prio. | Issue      | PR  | Tests | Statut   |
 | ----- | ---------------------------- | ----- | ---------- | --- | ----- | -------- |
-| BOT-1 | L'hôte ajoute des bots       | S     | [#76][i76] | —   | —     | En cours |
-| BOT-2 | Niveaux de bots              | S     | [#76][i76] | —   | —     | En cours |
-| BOT-3 | Bots identifiés visuellement | S     | [#76][i76] | —   | —     | En cours |
+| BOT-1 | L'hôte ajoute des bots       | S     | [#76][i76] | —   | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
+| BOT-2 | Niveaux de bots              | S     | [#76][i76] | —   | [bots.test.ts](../__tests__/bots.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | Fait |
+| BOT-3 | Bots identifiés visuellement | S     | [#76][i76] | —   | [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [race-results.test.tsx](../__tests__/race-results.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 
 ## Bonus (BON)
 
