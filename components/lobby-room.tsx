@@ -19,8 +19,9 @@ import { Arena } from "@/components/arena";
 import { RaceResults } from "@/components/race-results";
 import { RaceTyping } from "@/components/race-typing";
 import type { Typing } from "@/lib/typing";
+import type { Stadium } from "@/lib/garage-items";
 
-type Props = { code: string; hostId: string; isHost: boolean; userId: string };
+type Props = { code: string; hostId: string; isHost: boolean; userId: string; stadium?: Stadium };
 
 function toProgress({ typed, errors, keys, keyErrors }: Typing) {
   return { typed, errors, keys, keyErrors };
@@ -39,7 +40,7 @@ function formatTime(totalSeconds: number): string {
 // Salle d'attente : la liste des participants suit les arrivées et départs ;
 // l'hôte lance la course, tous voient le même compte à rebours puis le même texte (CRS-1).
 // Les coureurs tapent le texte ; ceux arrivés en cours de route le regardent.
-export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
+export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
   const t = useTranslations("LobbyRoom");
   const router = useRouter();
   const socketRef = useRef<Socket>(null);
@@ -152,10 +153,11 @@ export function LobbyRoom({ code, hostId, isHost, userId }: Props) {
   const percent = (position: number) => Math.round((position / race!.content.length) * 100);
   const track =
     shown.length === 0 ? (
-      <Arena progress={0} />
+      <Arena progress={0} stadium={stadium} />
     ) : (
       <div className="race-board">
         <Arena
+          stadium={stadium}
           cars={shown.map((entry) => ({
             id: entry.id,
             name: entry.username,

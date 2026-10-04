@@ -134,9 +134,14 @@ des murs courbes, des buts en retrait, des gradins et des marques sur le gazon.
 **Direction retenue : le diorama 3D**, sans les cinq traits colorés dans chaque
 coin avant. Les gradins restent proches des buts sans les traverser ; le dégagement
 supplémentaire est sur les côtés. Des semelles en béton, des poteaux et des
-contreventements en acier soutiennent les gradins. L'arène de l'application reste
-inchangée pendant cette étude.
-La vue du dessus nécessiterait une adaptation pour montrer le parcours mur/plafond.
+contreventements en acier soutiennent les gradins.
+
+Le garage propose les trois stades, avec aperçu immédiat et sauvegarde pour les
+comptes inscrits. Le choix personnel s'applique à `/race` et aux courses des
+lobbies, sans changer le stade des autres joueurs. Les fonds de jeu dans
+`public/stadiums` ne contiennent pas de voitures : les coureurs sont dessinés
+par-dessus. Le même parcours est projeté dans chaque caméra ; la vue du dessus
+aplatit les déplacements verticaux. Le diorama est le choix par défaut.
 
 Le [modèle Blender](mockups/assets/arena.blend) et les deux rendus se régénèrent avec :
 
