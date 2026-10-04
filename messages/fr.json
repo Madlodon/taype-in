@@ -272,7 +272,19 @@
     "hardestKeys": "Touches les plus difficiles",
     "noHardKeys": "Aucune faute enregistrée.",
     "space": "Espace",
-    "errors": "{count, plural, one {# faute} other {# fautes}}"
+    "errors": "{count, plural, one {# faute} other {# fautes}}",
+    "photo": {
+      "label": "Photo de profil (PNG, JPEG ou WebP, 2 Mo max)",
+      "upload": "Téléverser",
+      "replace": "Remplacer",
+      "remove": "Retirer la photo",
+      "errors": {
+        "tooLarge": "Ce fichier dépasse 2 Mo.",
+        "type": "Choisis une image PNG, JPEG ou WebP.",
+        "missing": "Choisis une image.",
+        "guest": "Crée un compte pour avoir une photo de profil."
+      }
+    }
   },
   "Garage": {
     "tag": "Ton bolide. Ton style.",

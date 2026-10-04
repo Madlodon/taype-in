@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -48,6 +49,21 @@ export const users = pgTable(
     uniqueIndex("users_username_lower_idx").on(sql`lower(${table.username})`),
   ],
 );
+
+// postgres-js renvoie un Buffer pour une colonne bytea.
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
+
+// Photo de profil (PROF-1) ; tout l'accès passe par lib/avatars.ts.
+export const avatars = pgTable("avatars", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  data: bytea("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),

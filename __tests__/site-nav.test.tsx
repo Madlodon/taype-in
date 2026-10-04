@@ -7,10 +7,10 @@ import fr from "../messages/fr.json";
 
 vi.mock("next/navigation", () => ({ usePathname: vi.fn() }));
 
-function renderNav(username?: string) {
+function renderNav(username?: string, userId?: string, avatarVersion?: number | null) {
   render(
     <NextIntlClientProvider locale="fr" messages={fr}>
-      <SiteNav username={username} />
+      <SiteNav username={username} userId={userId} avatarVersion={avatarVersion} />
     </NextIntlClientProvider>,
   );
 }
@@ -55,4 +55,18 @@ test("Should_MarkLobbiesCurrent_When_InsideALobby", () => {
 
   expect(screen.getByRole("link", { name: "Trouver une course" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByRole("link", { name: "Accueil" }).getAttribute("aria-current")).toBeNull();
+});
+
+test("Should_ShowPhotoInProfileLink_When_UserIsRegistered", () => {
+  renderNav("alex", "user-1", 1234);
+
+  const link = screen.getByRole("link", { name: "Mon profil" });
+  expect(link.querySelector("img")?.getAttribute("src")).toBe("/avatars/user-1?v=1234");
+});
+
+test("Should_ShowInitialsInProfileLink_When_UserHasNoPhoto", () => {
+  renderNav("alex", "user-1", null);
+
+  const link = screen.getByRole("link", { name: "Mon profil" });
+  expect(link.querySelector("img")?.getAttribute("src")).toBe("/avatars/user-1");
 });

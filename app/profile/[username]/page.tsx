@@ -1,6 +1,10 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { removeAvatarAction, uploadAvatarAction } from "@/app/actions/avatar";
+import { Avatar } from "@/components/avatar";
+import { AvatarForm } from "@/components/avatar-form";
 import { ProgressionChart } from "@/components/progression-chart";
+import { getAvatarVersion, MAX_AVATAR_BYTES } from "@/lib/avatars";
 import {
   computeStats,
   findProfileUser,
@@ -22,6 +26,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   if (!profile) notFound();
   const isOwner = (await getCurrentUser())?.id === profile.id;
   const history = await listRaceHistory(profile.id);
+  const avatarVersion = await getAvatarVersion(profile.id);
   const stats = computeStats(history);
   const progression = progressionPoints(history);
   const t = await getTranslations("Profile");
@@ -35,12 +40,23 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   return (
     <main id="main" className="page-shell">
       <div className="section-heading">
-        <div>
-          <p className="eyebrow">{t("eyebrow")}</p>
-          <h1 className="page-title">{profile.username}</h1>
+        <div className="profile-identity">
+          <Avatar userId={profile.id} version={avatarVersion} size={96} />
+          <div>
+            <p className="eyebrow">{t("eyebrow")}</p>
+            <h1 className="page-title">{profile.username}</h1>
+          </div>
         </div>
         {isOwner && <span className="badge">{t("you")}</span>}
       </div>
+      {isOwner && (
+        <AvatarForm
+          upload={uploadAvatarAction}
+          remove={removeAvatarAction}
+          hasPhoto={avatarVersion !== null}
+          maxBytes={MAX_AVATAR_BYTES}
+        />
+      )}
       <dl className="race-stats" aria-label={t("stats")}>
         <div>
           <dt>{t("bestWpm")}</dt>
