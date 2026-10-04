@@ -92,7 +92,7 @@ Statut :
 | AUTH-4 | « Se souvenir de moi »                       | S     | [#72][i72] | —          | —                                                                                                                                             | En cours |
 | AUTH-5 | Aucune récupération de mot de passe          | E     | [#8][i8]   | [#25][p25] | Aucun (absence de fonction)                                                                                                                   | Fait     |
 | AUTH-6 | Mots de passe hachés, cookies httpOnly       | E     | [#8][i8]   | [#25][p25] | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [e2e/auth.spec.ts](../e2e/auth.spec.ts) | Fait     |
-| AUTH-7 | L'invité qui s'inscrit garde ses stats       | S     | [#70][i70] | —          | —                                                                                                                                             | En cours |
+| AUTH-7 | L'invité qui s'inscrit garde ses stats       | S     | [#70][i70] | —          | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [results.test.ts](../__tests__/results.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait     |
 
 ## Profil et statistiques (PROF)
 
@@ -102,7 +102,7 @@ Statut :
 | PROF-2 | Historique des courses                      | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | Fait |
 | PROF-3 | Statistiques globales                       | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx) | Fait |
 | PROF-4 | Graphique de progression                    | S     | [#69][i69]             | —   | —     | En cours |
-| PROF-5 | Statistiques de session de courses          | S     | [#70][i70]             | —   | —     | En cours |
+| PROF-5 | Statistiques de session de courses          | S     | [#70][i70]             | —   | [session-stats.test.ts](../__tests__/session-stats.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | PROF-6 | Signaler une photo de profil                | —     | [#66][i66]             | —   | —     | En cours |
 | PROF-7 | Changer son nom d'utilisateur               | —     | [#67][i67]             | —   | —     | En cours |
 | PROF-8 | Bloquer les noms d'utilisateur inappropriés | —     | [#68][i68]             | —   | —     | En cours |
