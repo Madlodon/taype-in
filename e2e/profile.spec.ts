@@ -7,25 +7,21 @@ const PNG = Buffer.from(
 );
 
 async function signUp(page: Page, prefix: string) {
-  const username = `${prefix}_${Date.now().toString(36)}`;
+  const username = `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(page).toHaveURL("/");
   await page.getByRole("navigation").getByRole("link", { name: "Mon profil" }).click();
-  await expect(page).toHaveURL(`/profile/${username}`);
+  // Sur la CI, le serveur de dev compile la page du profil à la première visite : ça dépasse parfois 5 s.
+  await expect(page).toHaveURL(`/profile/${username}`, { timeout: 15_000 });
   return username;
 }
 
 test("Should_ShowYouBadgeOnlyToOwner_When_VisitingAProfile", async ({ page }) => {
-  const username = `e2e_${Date.now().toString(36)}`;
-  await page.goto("/signup");
-  await page.getByLabel("Nom d'utilisateur").fill(username);
-  await page.getByLabel("Mot de passe").fill("motdepasse123");
-  await page.getByRole("button", { name: "Créer le compte" }).click();
+  const username = await signUp(page, "e2e");
 
-  await page.getByRole("navigation").getByRole("link", { name: "Mon profil" }).click();
-  await expect(page).toHaveURL(`/profile/${username}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(username);
   await expect(page.getByText("Toi", { exact: true })).toBeVisible();
   await expect(page.getByText("Aucune course pour l’instant.")).toBeVisible();
