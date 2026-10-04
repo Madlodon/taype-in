@@ -274,12 +274,13 @@
   "Garage": {
     "tag": "Ton bolide. Ton style.",
     "title": "Garage",
-    "description": "Choisis ta voiture et personnalise-la. Purement esthétique : ta vitesse ne change jamais.",
+    "description": "Choisis ta voiture, tes accessoires et ton stade. Purement esthétique : ta vitesse ne change jamais.",
     "categories": {
       "car": "Voiture",
       "boost": "Boost",
       "hat": "Chapeau",
-      "ball": "Ballon"
+      "ball": "Ballon",
+      "stadium": "Stade"
     },
     "items": {
       "car": {
@@ -308,6 +309,11 @@
         "emerald": "Émeraude",
         "glacier": "Glacier",
         "solar": "Solaire"
+      },
+      "stadium": {
+        "diorama": "Diorama 3D",
+        "cutaway": "Stade en coupe",
+        "top-down": "Vue du dessus"
       }
     },
     "preview": "Aperçu",
@@ -319,6 +325,7 @@
     "errors": {
       "guest": "Crée un compte pour enregistrer ton garage.",
       "invalid": "Cet objet n'existe pas."
-    }
+    },
+    "stadiumPreview": "Aperçu du stade"
   }
 }

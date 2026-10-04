@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { LobbyRoom } from "../components/lobby-room";
 import en from "../messages/en.json";
 import fr from "../messages/fr.json";
+import { STADIUMS, type Stadium } from "../lib/garage-items";
 
 type Handler = (...args: unknown[]) => void;
 
@@ -24,10 +25,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 // u1 est l'hôte ; l'utilisateur courant est u1 s'il est hôte, sinon u2.
 // Le socket se connecte aussitôt rendu.
-function renderRoom(locale: "fr" | "en" = "fr", isHost = false) {
+function renderRoom(locale: "fr" | "en" = "fr", isHost = false, stadium?: Stadium) {
   const result = render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} />
+      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} stadium={stadium} />
     </NextIntlClientProvider>,
   );
   act(() => handlers["connect"]());
@@ -592,6 +593,15 @@ test("Should_DrawOneCarTagPerShownPlayer_When_ServerSendsPositions", () => {
   sendPositions(30, 15);
 
   expect(container.querySelectorAll(".car-tag")).toHaveLength(13);
+});
+
+test.each(STADIUMS)("Should_KeepPersonalStadium_When_LobbyRaceStarts_In_%s", stadium => {
+  const { container } = renderRoom("en", false, stadium);
+  expect(container.querySelector(".arena")?.getAttribute("data-stadium")).toBe(stadium);
+  startRace(["u1", "u2"]);
+  sendPositions(2, 1);
+  expect(container.querySelector(".arena")?.getAttribute("data-stadium")).toBe(stadium);
+  expect(container.querySelectorAll(".car-tag")).toHaveLength(2);
 });
 
 test("Should_KeepRanking_When_RaceHasEnded", () => {

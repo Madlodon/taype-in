@@ -36,6 +36,7 @@ export const users = pgTable(
     boost: text("boost").notNull().default("standard"),
     hat: text("hat").notNull().default("none"),
     ball: text("ball").notNull().default("none"),
+    stadium: text("stadium").notNull().default("diorama"),
     // Rang façon Rocket League (#99) : 0 = Bronze I div. I, voir lib/ranks.ts.
     rankLevel: integer("rank_level").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })

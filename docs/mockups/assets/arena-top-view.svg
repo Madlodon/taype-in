@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" role="img" aria-labelledby="title desc">
+  <title id="title">Taype-in — tactical arena</title>
+  <desc id="desc">A top-down car soccer stadium with a striped grass pitch, rounded banked walls, recessed blue and orange goals, six large boost pads and two cars.</desc>
+  <defs>
+    <radialGradient id="backdrop"><stop stop-color="#172b40"/><stop offset="1" stop-color="#080f1c"/></radialGradient>
+    <linearGradient id="turf" x2="0" y2="1"><stop stop-color="#295745"/><stop offset=".5" stop-color="#306651"/><stop offset="1" stop-color="#214b3e"/></linearGradient>
+    <linearGradient id="bank" x2="0" y2="1"><stop stop-color="#64848a"/><stop offset=".15" stop-color="#354f57"/><stop offset=".8" stop-color="#253c43"/><stop offset="1" stop-color="#88a1a2"/></linearGradient>
+    <radialGradient id="blueHalo"><stop stop-color="#208aff" stop-opacity=".3"/><stop offset="1" stop-color="#208aff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="orangeHalo"><stop stop-color="#ff8e27" stop-opacity=".26"/><stop offset="1" stop-color="#ff8e27" stop-opacity="0"/></radialGradient>
+    <radialGradient id="ball"><stop offset="0" stop-color="#fff"/><stop offset=".65" stop-color="#d6dedb"/><stop offset="1" stop-color="#718b91"/></radialGradient>
+    <pattern id="seats" width="19" height="17" patternUnits="userSpaceOnUse"><rect x="3" y="3" width="11" height="8" rx="2" fill="#657e97" opacity=".35"/><path d="M3 13h11" stroke="#030916" stroke-width="3"/></pattern>
+    <pattern id="net" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="#b4d3de" stroke-opacity=".4"/></pattern>
+    <pattern id="mowing" width="156" height="560" patternUnits="userSpaceOnUse"><rect width="78" height="560" fill="#a4d3aa" opacity=".045"/></pattern>
+    <pattern id="grain" width="7" height="9" patternUnits="userSpaceOnUse"><path d="M1 2l1 2m3 2v2" stroke="#abd4a1" opacity=".065" stroke-width=".8"/></pattern>
+    <pattern id="hatchBlue" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><rect width="5" height="16" fill="#66bcff" opacity=".32"/></pattern>
+    <pattern id="hatchOrange" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="5" height="16" fill="#ffa559" opacity=".32"/></pattern>
+    <clipPath id="pitch"><rect x="213" y="204" width="974" height="492" rx="82"/></clipPath>
+    <filter id="shadow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4"/></filter>
+    <g id="boost"><circle r="13" fill="#0c2026" stroke="#788482" stroke-width="2"/><circle r="8" fill="#ffb644" opacity=".2" filter="url(#glow)"/><circle r="6" fill="#ffd178"/><path d="M-2-4h4L0 1h3l-6 5 2-5h-3z" fill="#fff5d3"/></g>
+    <g id="smallBoost"><circle r="6" fill="#14292b" stroke="#9c9c78"/><circle r="2.5" fill="#eabe71"/></g>
+    <g id="car">
+      <rect x="-27" y="-17" width="54" height="34" rx="13" fill="#000" opacity=".5" filter="url(#shadow)" transform="translate(3 5)"/>
+      <g fill="#090e17" stroke="#526070" stroke-width="1.2"><rect x="-19" y="-19" width="14" height="8" rx="3"/><rect x="12" y="-19" width="13" height="8" rx="3"/><rect x="-19" y="11" width="14" height="8" rx="3"/><rect x="12" y="11" width="13" height="8" rx="3"/></g>
+      <path d="M-25-11-15-15 20-13 28-8V8L20 13-15 15-25 11Z" fill="currentColor" stroke="#d6ebf3" stroke-opacity=".5" stroke-width="1"/>
+      <path d="M-12-11 4-10 13-7V7L4 10-12 11-16 6V-6Z" fill="#102c40" stroke="#96cae0" stroke-opacity=".4"/>
+      <path d="M-9-9H2L5 9H-9Z" fill="currentColor"/><path d="M-9-2H4V2H-9Z" fill="#dfe9ef"/>
+      <path d="M15-11 24-7M15 11 24 7" stroke="#baf2ff" stroke-width="3"/>
+      <rect x="-25" y="-18" width="5" height="36" rx="1.5" fill="currentColor" stroke="#e6eafa" stroke-opacity=".5"/>
+      <path d="M-27-6h-5M-27 6h-5" stroke="#ffcb8b" stroke-width="4"/>
+    </g>
+  </defs>
+  <rect width="1400" height="900" fill="url(#backdrop)"/>
+  <ellipse cx="700" cy="730" rx="580" ry="110" fill="#000" opacity=".45" filter="url(#shadow)"/>
+  <rect x="64" y="67" width="1272" height="766" rx="205" fill="#131e2c" stroke="#394959" stroke-width="2"/>
+  <rect x="81" y="84" width="1238" height="732" rx="190" fill="#1b2937" stroke="#050d16" stroke-width="7"/>
+  <path d="M700 103H278a181 181 0 0 0-181 181v332a181 181 0 0 0 181 181h422" fill="#14304c"/>
+  <path d="M700 103h422a181 181 0 0 1 181 181v332a181 181 0 0 1-181 181H700" fill="#49352c"/>
+  <rect x="97" y="103" width="1206" height="694" rx="181" fill="url(#seats)"/>
+  <g fill="none" stroke="#08141f" stroke-width="5">
+    <rect x="113" y="120" width="1174" height="660" rx="166"/><rect x="133" y="140" width="1134" height="620" rx="146"/><rect x="153" y="160" width="1094" height="580" rx="125"/>
+  </g>
+  <path d="M690 112v58m20-58v58M690 730v58m20-58v58M315 111l16 58m754-58-16 58M315 789l16-58m754 58-16-58" stroke="#71808b" stroke-opacity=".6" stroke-width="7"/>
+  <rect x="180" y="178" width="1040" height="544" rx="110" fill="#0d1f2b" stroke="#8fa5b2" stroke-width="2"/>
+  <path d="M700 181H289a106 106 0 0 0-106 106v326a106 106 0 0 0 106 106h411" fill="none" stroke="#48acff" stroke-width="5"/>
+  <path d="M700 181h411a106 106 0 0 1 106 106v326a106 106 0 0 1-106 106H700" fill="none" stroke="#ff9b4b" stroke-width="5"/>
+  <rect x="193" y="188" width="1014" height="524" rx="99" fill="url(#bank)"/>
+  <rect x="213" y="204" width="974" height="492" rx="82" fill="url(#turf)" stroke="#102f32" stroke-width="3"/>
+  <g clip-path="url(#pitch)">
+    <rect x="200" y="200" width="1000" height="500" fill="url(#mowing)"/>
+    <rect x="200" y="200" width="1000" height="500" fill="url(#grain)"/>
+    <ellipse cx="235" cy="450" rx="350" ry="380" fill="url(#blueHalo)"/><ellipse cx="1165" cy="450" rx="350" ry="380" fill="url(#orangeHalo)"/>
+    <path d="M212 245H305V655H212Z" fill="url(#hatchBlue)" opacity=".6"/><path d="M1188 245H1095V655H1188Z" fill="url(#hatchOrange)" opacity=".6"/>
+    <g fill="none" stroke="#d7e6d9" stroke-opacity=".63" stroke-width="2.5">
+      <rect x="235" y="226" width="930" height="448" rx="67"/><path d="M700 205V696"/><circle cx="700" cy="450" r="87"/>
+      <path d="M213 308H358L383 333V567L358 592H213M1187 308H1042L1017 333V567L1042 592H1187"/>
+      <path d="M213 351H295V549H213M1187 351H1105V549H1187"/>
+      <path d="M383 393a70 70 0 0 1 0 114M1017 393a70 70 0 0 0 0 114" stroke-opacity=".4"/>
+    </g>
+    <circle cx="700" cy="450" r="5" fill="#d7e6d9"/>
+    <g fill="#bfcebf"><circle cx="331" cy="450" r="3"/><circle cx="1069" cy="450" r="3"/></g>
+    <path d="M218 309h139l25 25v232l-25 25H218" fill="none" stroke="#55aefa" stroke-width="5" opacity=".6"/>
+    <path d="M1182 309h-139l-25 25v232l25 25h139" fill="none" stroke="#f5a261" stroke-width="5" opacity=".6"/>
+  </g>
+  <g>
+    <path d="M215 361H140L121 380V520L140 539H215" fill="#102c48" stroke="#67baff" stroke-width="4"/>
+    <path d="M1185 361h75l19 19v140l-19 19h-75" fill="#4b3325" stroke="#ffb363" stroke-width="4"/>
+    <path d="M213 370h-67l-15 15v130l15 15h67Z" fill="url(#net)"/><path d="M1187 370h67l15 15v130l-15 15h-67Z" fill="url(#net)"/>
+    <path d="M213 361V539" stroke="#a5dcff" stroke-width="5"/><path d="M1187 361V539" stroke="#ffe0af" stroke-width="5"/>
+    <path d="M129 389v122" stroke="#369aff" stroke-width="5" filter="url(#glow)"/><path d="M1271 389v122" stroke="#ff922e" stroke-width="5" filter="url(#glow)"/>
+  </g>
+  <g id="boost-pads">
+    <use href="#boost" x="329" y="282"/><use href="#boost" x="329" y="618"/><use href="#boost" x="1071" y="282"/><use href="#boost" x="1071" y="618"/><use href="#boost" x="700" y="264"/><use href="#boost" x="700" y="636"/>
+    <use href="#smallBoost" x="492" y="363"/><use href="#smallBoost" x="492" y="537"/><use href="#smallBoost" x="908" y="363"/><use href="#smallBoost" x="908" y="537"/>
+    <use href="#smallBoost" x="586" y="290"/><use href="#smallBoost" x="814" y="290"/><use href="#smallBoost" x="586" y="610"/><use href="#smallBoost" x="814" y="610"/>
+    <use href="#smallBoost" x="700" y="345"/><use href="#smallBoost" x="700" y="555"/><use href="#smallBoost" x="410" y="450"/><use href="#smallBoost" x="990" y="450"/>
+  </g>
+  <path d="M450 520l-70 15 70-3" fill="#67b9ff" opacity=".15"/><path d="M450 522l-44 8 44-3" fill="#b8efff" opacity=".5"/>
+  <use href="#car" color="#3c95f3" transform="translate(480 519) rotate(-14)"/>
+  <use href="#car" color="#f69445" transform="translate(917 369) rotate(164)"/>
+  <ellipse cx="616" cy="490" rx="20" ry="16" fill="#030f16" opacity=".6" filter="url(#shadow)"/>
+  <circle cx="612" cy="482" r="15" fill="url(#ball)"/>
+  <path d="M607 475l9-1 5 8-5 7-9-3Z" fill="#344b58"/><path d="M598 480l7-6-1-5m20 6-7-7m-16 24 8-5m17 1-7-1" fill="none" stroke="#536a74" stroke-width="2"/>
+  <g fill="#d0e4ed" stroke="#233649" stroke-width="3">
+    <rect x="302" y="94" width="81" height="9" rx="3"/><rect x="534" y="94" width="81" height="9" rx="3"/><rect x="785" y="94" width="81" height="9" rx="3"/><rect x="1017" y="94" width="81" height="9" rx="3"/>
+    <rect x="302" y="797" width="81" height="9" rx="3"/><rect x="534" y="797" width="81" height="9" rx="3"/><rect x="785" y="797" width="81" height="9" rx="3"/><rect x="1017" y="797" width="81" height="9" rx="3"/>
+  </g>
+</svg>

@@ -274,12 +274,13 @@
   "Garage": {
     "tag": "Your ride. Your style.",
     "title": "Garage",
-    "description": "Pick your car and dress it up. Purely cosmetic: it never changes your speed.",
+    "description": "Pick your car, accessories, and stadium. Purely cosmetic: it never changes your speed.",
     "categories": {
       "car": "Car",
       "boost": "Boost",
       "hat": "Hat",
-      "ball": "Ball"
+      "ball": "Ball",
+      "stadium": "Stadium"
     },
     "items": {
       "car": {
@@ -308,6 +309,11 @@
         "emerald": "Emerald",
         "glacier": "Glacier",
         "solar": "Solar"
+      },
+      "stadium": {
+        "diorama": "3D diorama",
+        "cutaway": "Stadium cutaway",
+        "top-down": "Top-down"
       }
     },
     "preview": "Preview",
@@ -319,6 +325,7 @@
     "errors": {
       "guest": "Create an account to save your garage.",
       "invalid": "This item doesn't exist."
-    }
+    },
+    "stadiumPreview": "Stadium preview"
   }
 }

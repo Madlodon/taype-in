@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "stadium" text DEFAULT 'diorama' NOT NULL;

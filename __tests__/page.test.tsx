@@ -18,6 +18,7 @@ const aUser = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  stadium: "diorama",
   rankLevel: 0,
   createdAt: new Date(),
 };

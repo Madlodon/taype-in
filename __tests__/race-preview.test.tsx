@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { RacePreview } from "../components/race-preview";
 import { arenaPosition } from "../components/arena";
+import { STADIUMS } from "../lib/garage-items";
 import en from "../messages/en.json";
 import fr from "../messages/fr.json";
 
@@ -14,6 +15,20 @@ function preview(locale: "en" | "fr" = "en") {
 }
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+
+test.each(STADIUMS)("Should_UseSelectedStadiumThroughoutTypingAndRestart_When_%s", stadium => {
+  const { container } = render(<NextIntlClientProvider locale="en" messages={en}>
+    <RacePreview stadium={stadium} />
+  </NextIntlClientProvider>);
+  const arena = container.querySelector(".arena")!;
+  const start = arena.querySelector("svg > g > g")!.getAttribute("transform");
+  expect(arena.getAttribute("data-stadium")).toBe(stadium);
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: en.Race.prompt } });
+  expect(arena.querySelector("svg > g > g")!.getAttribute("transform")).not.toBe(start);
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(en.Race.restart) }));
+  expect(arena.getAttribute("data-stadium")).toBe(stadium);
+  expect(arena.querySelector("svg > g > g")!.getAttribute("transform")).toBe(start);
+});
 
 test("Should_StopAtFirstMistake_And_AdvanceAfterCorrection", () => {
   const input = preview();
