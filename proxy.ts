@@ -15,6 +15,8 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
+// Les photos de profil n'ont pas besoin de la session : une image encore en route
+// remettrait sinon le cookie après une déconnexion.
 export const config = {
-  matcher: "/((?!_next/static|_next/image|favicon.ico).*)",
+  matcher: "/((?!_next/static|_next/image|favicon.ico|avatars/).*)",
 };

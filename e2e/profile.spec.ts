@@ -83,3 +83,13 @@ test("Should_RefuseFile_When_ItIsNotAnImage", async ({ page }) => {
   await expect(page.getByText("Choisis une image PNG, JPEG ou WebP.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Retirer la photo" })).toHaveCount(0);
 });
+
+test("Should_LeaveSessionCookieAlone_When_LoadingAPhoto", async ({ page }) => {
+  await signUp(page, "e2e_cookie");
+  const src = (await page.locator("nav img.avatar").getAttribute("src"))!;
+
+  const response = await page.request.get(src);
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()["set-cookie"]).toBeUndefined();
+});
