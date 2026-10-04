@@ -269,7 +269,19 @@
     "hardestKeys": "Hardest keys",
     "noHardKeys": "No errors recorded.",
     "space": "Space",
-    "errors": "{count, plural, one {# error} other {# errors}}"
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "photo": {
+      "label": "Profile photo (PNG, JPEG or WebP, 2 MB max)",
+      "upload": "Upload",
+      "replace": "Replace",
+      "remove": "Remove photo",
+      "errors": {
+        "tooLarge": "This file is larger than 2 MB.",
+        "type": "Choose a PNG, JPEG or WebP image.",
+        "missing": "Choose an image.",
+        "guest": "Create an account to have a profile photo."
+      }
+    }
   },
   "Garage": {
     "tag": "Your ride. Your style.",

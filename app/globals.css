@@ -949,6 +949,50 @@ a, button, input {
   max-width: 760px;
 }
 
+/* Photo de profil ou initiales (PROF-1) */
+.avatar {
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--border);
+}
+
+.profile-identity {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  min-width: 0;
+}
+
+.avatar-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+
+.avatar-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.avatar-form input[type="file"] {
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.avatar-form .form-error {
+  flex-basis: 100%;
+}
+
+.avatar-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .race-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
