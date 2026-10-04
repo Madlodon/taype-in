@@ -294,6 +294,23 @@ test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser
   await expect(ranking.nth(1)).toHaveText(`${host.name} (toi)0 %`);
 });
 
+test("Should_ShowOvertakeAboveText_When_RacerPassesAnother", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  const ranking = player.page.getByRole("list", { name: "Classement" }).getByRole("listitem");
+  await expect(ranking.first()).toHaveText(`${host.name}0 %`, { timeout: 8000 });
+  const text = (await player.page.locator(".typing-text").textContent())!;
+
+  await player.page.keyboard.type(text.slice(0, 10));
+
+  await expect(player.page.locator(".overtake")).toHaveText(`▲ Tu as dépassé ${host.name} · 1er`);
+  await expect(host.page.locator(".overtake")).toHaveText(`▼ ${player.name} t'a dépassé · 2e`);
+});
+
 test("Should_ResumeAtExactPositionWithErrors_When_RacerReloadsMidRace", async ({ browser }) => {
   const host = await newGuest(browser);
   const code = await createRace(host.page, /Non répertoriée/);

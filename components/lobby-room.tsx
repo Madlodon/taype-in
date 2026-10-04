@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
@@ -14,7 +14,7 @@ import {
   type RaceResult,
   type RaceStartedMessage,
 } from "@/lib/socket-messages";
-import { selectShown } from "@/lib/track";
+import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
 import { Arena } from "@/components/arena";
 import { RaceResults } from "@/components/race-results";
 import { RaceTyping } from "@/components/race-typing";
@@ -26,6 +26,9 @@ type Props = { code: string; hostId: string; isHost: boolean; userId: string; st
 function toProgress({ typed, errors, keys, keyErrors }: Typing) {
   return { typed, errors, keys, keyErrors };
 }
+
+// Durée d'affichage d'un dépassement (CRS-3).
+const OVERTAKE_MS = 2500;
 
 // 125 → « 2:05 », 3725 → « 1:02:05 ».
 function formatTime(totalSeconds: number): string {
@@ -42,6 +45,7 @@ function formatTime(totalSeconds: number): string {
 // Les coureurs tapent le texte ; ceux arrivés en cours de route le regardent.
 export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
   const t = useTranslations("LobbyRoom");
+  const format = useFormatter();
   const router = useRouter();
   const socketRef = useRef<Socket>(null);
   const [participants, setParticipants] = useState<ParticipantsMessage["participants"]>([]);
@@ -52,6 +56,10 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
   const [endReason, setEndReason] = useState<RaceEndedMessage["reason"]>();
   const [results, setResults] = useState<RaceResult[]>([]);
   const [positions, setPositions] = useState<RacePositionsMessage["positions"]>([]);
+  // Classement précédent, pour repérer qui tu viens de dépasser ou qui t'a dépassé.
+  const positionsRef = useRef<RacePositionsMessage["positions"]>([]);
+  // `at` relance l'animation quand un nouveau dépassement remplace le précédent.
+  const [overtake, setOvertake] = useState<Overtake & { at: number }>();
   // Ta propre position, sans attendre le serveur : ta voiture suit chaque frappe.
   const [myPosition, setMyPosition] = useState<number>();
   const [gaveUp, setGaveUp] = useState(false);
@@ -83,7 +91,12 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
         setFinished(message.mine.typed.length === message.content.length);
       }
     });
-    socket.on("race:positions", (message: RacePositionsMessage) => setPositions(message.positions));
+    socket.on("race:positions", (message: RacePositionsMessage) => {
+      const cue = detectOvertake(positionsRef.current, message.positions, userId);
+      positionsRef.current = message.positions;
+      if (cue) setOvertake({ ...cue, at: Date.now() });
+      setPositions(message.positions);
+    });
     socket.on("race:ended", (message: RaceEndedMessage) => {
       setEndReason(message.reason);
       setResults(message.results);
@@ -102,7 +115,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
     return () => {
       socket.disconnect();
     };
-  }, [code, router]);
+  }, [code, router, userId]);
 
   // Décompte local ; le serveur envoie le « Go » au bon moment, on s'arrête donc à 1.
   useEffect(() => {
@@ -117,6 +130,12 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
     const timer = setTimeout(() => setSecondsLeft(secondsLeft - 1), 1000);
     return () => clearTimeout(timer);
   }, [secondsLeft, endReason]);
+
+  useEffect(() => {
+    if (!overtake) return;
+    const timer = setTimeout(() => setOvertake(undefined), OVERTAKE_MS);
+    return () => clearTimeout(timer);
+  }, [overtake]);
 
   function start() {
     socketRef.current?.emit("race:start", (ack: Ack) => {
@@ -217,7 +236,21 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
             errorMode={race.errorMode}
             initial={resumed}
             onProgress={progress}
-          />
+          >
+            {/* Toujours là, même vide : le champ ne bouge pas quand un dépassement s'affiche. */}
+            <p aria-live="polite" className="overtake">
+              {overtake && (
+                <span key={overtake.at} className={`overtake-${overtake.direction}`}>
+                  <span aria-hidden="true">{overtake.direction === "up" ? "▲ " : "▼ "}</span>
+                  {t(`overtake.${overtake.direction}`, {
+                    names: format.list(overtake.names),
+                    count: overtake.names.length,
+                    rank: overtake.rank,
+                  })}
+                </span>
+              )}
+            </p>
+          </RaceTyping>
           {timeLeft}
           {!finished && (
             <button type="button" className="btn btn-secondary btn-lg mt-5" onClick={giveUp}>

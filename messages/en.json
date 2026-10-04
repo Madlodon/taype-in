@@ -85,6 +85,10 @@
     "you": "(you)",
     "percent": "{value}%",
     "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
+    "overtake": {
+      "up": "You passed {names} · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+      "down": "{names} passed you · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}"
+    },
     "giveUp": "Give up",
     "confirmGiveUp": "Give up the race? You'll become a spectator and won't be able to type anymore.",
     "gaveUp": "You gave up: you're watching the rest of the race.",
