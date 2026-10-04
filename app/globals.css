@@ -897,6 +897,26 @@ a, button, input {
   overflow-wrap: break-word;
 }
 
+/* Graphiques de progression du profil (PROF-4). */
+.progression {
+  margin-bottom: 20px;
+}
+
+.progression-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.progression-chart figcaption {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font: 10px var(--font-jetbrains-mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 /* Touches les plus difficiles du profil (PROF-3). */
 .hard-keys {
   display: flex;
@@ -1109,7 +1129,8 @@ a, button, input {
     padding-top: 32px;
   }
   .split-layout,
-  .race-board {
+  .race-board,
+  .progression-charts {
     grid-template-columns: 1fr;
   }
   /* Sur une colonne, l'aperçu du garage passe au-dessus des choix. */
