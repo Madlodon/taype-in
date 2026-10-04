@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { saveLoadout } from "@/lib/garage";
 import { loadoutSchema } from "@/lib/garage-items";
 import { getCurrentUser } from "@/lib/session-cookie";
@@ -20,5 +21,6 @@ export async function saveLoadoutAction(
   const loadout = loadoutSchema.safeParse(Object.fromEntries(formData));
   if (!loadout.success) return { error: "invalid" };
   await saveLoadout(user.id, loadout.data);
+  revalidatePath("/", "layout");
   return { saved: true };
 }

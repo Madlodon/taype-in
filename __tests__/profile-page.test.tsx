@@ -20,6 +20,7 @@ const alex = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  stadium: "diorama",
   createdAt: new Date(),
 };
 const sam = { ...alex, id: "2", username: "sam" };

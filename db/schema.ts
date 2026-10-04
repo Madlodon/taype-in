@@ -36,6 +36,7 @@ export const users = pgTable(
     boost: text("boost").notNull().default("standard"),
     hat: text("hat").notNull().default("none"),
     ball: text("ball").notNull().default("none"),
+    stadium: text("stadium").notNull().default("diorama"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

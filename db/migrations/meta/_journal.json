@@ -57,6 +57,13 @@
       "when": 1790995425569,
       "tag": "0007_garage",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791074867445,
+      "tag": "0008_stadium_choice",
+      "breakpoints": true
     }
   ]
 }

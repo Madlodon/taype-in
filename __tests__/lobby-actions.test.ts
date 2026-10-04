@@ -40,6 +40,7 @@ const aGuest = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  stadium: "diorama",
   createdAt: new Date(),
 };
 const aLobby = {
