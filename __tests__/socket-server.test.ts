@@ -16,6 +16,7 @@ import {
   findOpenLobby,
   listParticipants,
   MAX_PARTICIPANTS,
+  updateLobbySettings,
 } from "../lib/lobbies";
 import { createSocketServer } from "../lib/socket-server";
 import type {
@@ -1020,6 +1021,105 @@ describe("race:positions", () => {
       [guest.id, content.length],
       [host.id, content.length],
     ]);
+  });
+});
+
+// Après une course, l'hôte relance le même lobby (LOB-9).
+describe("lobby:restart", () => {
+  async function finishedRace() {
+    const setup = await lobbyWithTwo();
+    const { content } = await startRace(setup.hostClient);
+    const ended = next(setup.hostClient, "race:ended");
+    await progress(setup.hostClient, typing(content, 0));
+    await progress(setup.guestClient, typing(content, 0));
+    await ended;
+    return setup;
+  }
+
+  test("Should_SendEveryoneBackToWaitingAndKeepLobby_When_HostRelaunches", async () => {
+    const { lobby, hostClient, guestClient } = await finishedRace();
+    const hostNotified = next(hostClient, "lobby:restarted");
+    const guestNotified = next(guestClient, "lobby:restarted");
+
+    expect(await hostClient.emitWithAck("lobby:restart")).toEqual({ ok: true });
+
+    await Promise.all([hostNotified, guestNotified]);
+    expect((await findOpenLobby(lobby.code))?.id).toBe(lobby.id);
+  });
+
+  test("Should_StartNewRaceInSameLobby_When_HostStartsAfterRelaunch", async () => {
+    const { lobby, hostClient } = await finishedRace();
+    await hostClient.emitWithAck("lobby:restart");
+
+    await startRace(hostClient);
+
+    expect(await db.select().from(races).where(eq(races.lobbyId, lobby.id))).toHaveLength(2);
+  });
+
+  test("Should_UseNewSettings_When_HostChangedThemBeforeRelaunching", async () => {
+    const { lobby, hostClient, guestClient } = await finishedRace();
+    await hostClient.emitWithAck("lobby:restart");
+    await updateLobbySettings(lobby.id, {
+      textLanguage: "en",
+      textLength: 50,
+      errorMode: "tolerant",
+      timeLimitSeconds: null,
+    });
+    const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
+
+    await hostClient.emitWithAck("race:start", { watch: false });
+
+    expect(await guestSees).toMatchObject({ errorMode: "tolerant", secondsLeft: null });
+  });
+
+  test("Should_SendNoOldResults_When_PlayerJoinsAfterRelaunch", async () => {
+    const { lobby, hostClient } = await finishedRace();
+    await hostClient.emitWithAck("lobby:restart");
+    const late = await newClient();
+    let sawResults = false;
+    late.on("race:ended", () => (sawResults = true));
+
+    await join(late, { code: lobby.code });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(sawResults).toBe(false);
+  });
+
+  test("Should_AckRaceNotFinished_When_NoRaceHasRun", async () => {
+    const { hostClient } = await lobbyWithTwo();
+
+    expect(await hostClient.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "raceNotFinished",
+    });
+  });
+
+  test("Should_AckRaceNotFinished_When_RaceIsRunning", async () => {
+    const { hostClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+
+    expect(await hostClient.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "raceNotFinished",
+    });
+  });
+
+  test("Should_AckNotHost_When_PlayerIsNotHost", async () => {
+    const { guestClient } = await finishedRace();
+
+    expect(await guestClient.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "notHost",
+    });
+  });
+
+  test("Should_AckLobbyNotFound_When_SocketHasNotJoinedALobby", async () => {
+    const client = await newClient();
+
+    expect(await client.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "lobbyNotFound",
+    });
   });
 });
 

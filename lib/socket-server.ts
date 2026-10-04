@@ -80,6 +80,7 @@ export function createSocketServer(
     {
       "lobby:participants": (message: ParticipantsMessage) => void;
       "lobby:closed": () => void;
+      "lobby:restarted": () => void;
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
       "race:positions": (message: RacePositionsMessage) => void;
@@ -93,7 +94,7 @@ export function createSocketServer(
   const liveRaces = new Map<string, LiveRace>();
 
   // Faux si la machine à états refuse l'événement (ex. fermer pendant la course).
-  function canDo(lobby: Lobby, event: "start" | "close"): boolean {
+  function canDo(lobby: Lobby, event: "start" | "close" | "restart"): boolean {
     try {
       nextLobbyState(liveRaces.get(lobby.id)?.state ?? "waiting", event);
       return true;
@@ -262,12 +263,14 @@ export function createSocketServer(
     // Seul l'hôte lance la course ; tous reçoivent le même compte à rebours, puis le même texte (CRS-1).
     // L'hôte court avec les autres ou regarde seulement (LOB-8).
     socket.on("race:start", async (payload: unknown, ack?: (response: Ack) => void) => {
-      const { lobby, user } = socket.data;
+      const { user } = socket.data;
       const message = startRaceSchema.safeParse(payload);
       if (!message.success) {
         ack?.({ ok: false, error: "invalidMessage" });
         return;
       }
+      // Relu à chaque départ : l'hôte a pu changer les réglages avant de relancer (LOB-9).
+      const lobby = socket.data.lobby && (await findOpenLobby(socket.data.lobby.code));
       if (!lobby) {
         ack?.({ ok: false, error: "lobbyNotFound" });
         return;
@@ -415,6 +418,28 @@ export function createSocketServer(
       player.state = nextPlayerState(player.state, "abandon");
       player.doneAt = Date.now();
       await endIfNobodyRacing(lobby, live);
+      ack?.({ ok: true });
+    });
+
+    // Après une course, l'hôte relance le même lobby : tous reviennent à la salle d'attente (LOB-9).
+    socket.on("lobby:restart", async (ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      if (!lobby) {
+        ack?.({ ok: false, error: "lobbyNotFound" });
+        return;
+      }
+      if (lobby.hostId !== user.id) {
+        ack?.({ ok: false, error: "notHost" });
+        return;
+      }
+      // Seulement après la fin d'une course (#3).
+      if (!canDo(lobby, "restart")) {
+        ack?.({ ok: false, error: "raceNotFinished" });
+        return;
+      }
+
+      liveRaces.delete(lobby.id);
+      io.to(lobby.code).emit("lobby:restarted");
       ack?.({ ok: true });
     });
 

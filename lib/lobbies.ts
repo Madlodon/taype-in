@@ -1,4 +1,4 @@
-// Création et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10).
+// Création, réglages et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10).
 import { randomBytes, randomInt } from "node:crypto";
 import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.ts";
@@ -51,6 +51,11 @@ export type LobbySettings = Pick<
   Lobby,
   "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds"
 >;
+
+// Nouveaux réglages avant de relancer le lobby ; copiés dans la prochaine course (LOB-9).
+export async function updateLobbySettings(lobbyId: string, settings: LobbySettings) {
+  await db.update(lobbies).set(settings).where(eq(lobbies.id, lobbyId));
+}
 
 export async function findOpenLobby(code: string): Promise<Lobby | null> {
   const [lobby] = await db

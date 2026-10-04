@@ -7,6 +7,7 @@ import {
   createLobbyAction,
   joinInviteAction,
   joinLobbyAction,
+  updateLobbySettingsAction,
 } from "../app/actions/lobbies";
 import * as auth from "../lib/auth";
 import * as lobbies from "../lib/lobbies";
@@ -29,6 +30,7 @@ vi.mock("../lib/lobbies", () => ({
   createInvites: vi.fn(),
   createLobby: vi.fn(),
   findOpenLobby: vi.fn(),
+  updateLobbySettings: vi.fn(),
 }));
 
 const aGuest = {
@@ -339,5 +341,57 @@ describe("joinInviteAction", () => {
     await expect(joinInviteAction(form({ token: "abc" }))).rejects.toThrow("NEXT_REDIRECT");
 
     expect(redirect).toHaveBeenCalledWith("/invite/abc");
+  });
+});
+
+describe("updateLobbySettingsAction", () => {
+  test("Should_SaveSettingsAndReturnToLobby_When_HostSubmits", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
+
+    await expect(
+      updateLobbySettingsAction(
+        form({ code: "K7P3XM", textLanguage: "en", textLength: "50", errorMode: "tolerant", noTimer: "on" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.updateLobbySettings).toHaveBeenCalledWith("lobby-1", {
+      textLanguage: "en",
+      textLength: 50,
+      errorMode: "tolerant",
+      timeLimitSeconds: null,
+    });
+    expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
+  });
+
+  test("Should_RedirectWithoutSaving_When_UserIsNotHost", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue({ ...aLobby, hostId: "someone-else" });
+
+    await expect(updateLobbySettingsAction(form({ code: "K7P3XM" }))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(lobbies.updateLobbySettings).not.toHaveBeenCalled();
+    expect(redirect).toHaveBeenCalledWith("/lobbies");
+  });
+
+  test("Should_RedirectWithoutSaving_When_LobbyIsClosedOrUnknown", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue(null);
+
+    await expect(updateLobbySettingsAction(form({ code: "ZZZZZZ" }))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(lobbies.updateLobbySettings).not.toHaveBeenCalled();
+  });
+
+  test("Should_RedirectHomeWithoutSaving_When_NobodyIsLoggedIn", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+    await expect(updateLobbySettingsAction(form({ code: "K7P3XM" }))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(redirect).toHaveBeenCalledWith("/");
+    expect(lobbies.updateLobbySettings).not.toHaveBeenCalled();
   });
 });

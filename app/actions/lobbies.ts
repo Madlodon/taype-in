@@ -13,6 +13,7 @@ import {
   findOpenLobby,
   MAX_INVITES,
   MAX_TIMER_MINUTES,
+  updateLobbySettings,
   type LobbySettings,
 } from "@/lib/lobbies";
 import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
@@ -21,7 +22,7 @@ import { TEXT_LENGTHS } from "@/lib/texts";
 // error est une clé de traduction (Lobbies.errors).
 export type JoinFormState = { error?: string; code?: string } | undefined;
 
-// Réglages de la course choisis par l'hôte.
+// Réglages communs à la création et à la relance d'un lobby.
 function parseSettings(formData: FormData): LobbySettings {
   // Langue du texte indépendante de celle de l'interface (TXT-1, TXT-2).
   const textLanguage = z.enum(["fr", "en"]).catch("fr").parse(formData.get("textLanguage"));
@@ -90,6 +91,17 @@ export async function createInvitesAction(formData: FormData) {
   }
   await createInvites(lobby.id, count.data);
   refresh();
+}
+
+// L'hôte change les réglages avant de relancer le même lobby, puis y retourne (LOB-9).
+export async function updateLobbySettingsAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
+  const lobby = await findOpenLobby(String(formData.get("code") ?? ""));
+  if (!lobby || lobby.hostId !== user.id) redirect("/lobbies");
+  await updateLobbySettings(lobby.id, parseSettings(formData));
+  redirect(`/lobbies/${lobby.code}`);
 }
 
 // Sans session, ouvrir un lien fait jouer en invité.

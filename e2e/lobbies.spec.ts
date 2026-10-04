@@ -383,3 +383,34 @@ test("Should_RaceWithoutHost_When_HostStartsAndWatches", async ({ browser }) => 
   await expect(participants(host.page).first()).toHaveText(`${host.name} (hôte) (regarde)`);
   await expect(host.page.getByRole("heading", { name: "Participants (2)" })).toBeVisible();
 });
+
+test("Should_SendEveryoneToWaitingRoomAndKeepCode_When_HostRelaunchesWithNewSettings", async ({
+  browser,
+}) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+  for (const { page } of [host, player]) {
+    await expect(page.getByRole("button", { name: "Abandonner" })).toBeVisible({ timeout: 8000 });
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Abandonner" }).click();
+  }
+  await expect(player.page.getByRole("heading", { name: "Résultats" })).toBeVisible();
+
+  await host.page.getByRole("button", { name: "Relancer la course" }).click();
+
+  await expect(host.page).toHaveURL(`/lobbies/${code}/settings`);
+  await expect(player.page.getByRole("heading", { name: "Résultats" })).toHaveCount(0);
+  await expect(player.page.getByText(/En attente de l'hôte/)).toBeVisible();
+
+  await host.page.getByLabel(/Tolérant/).check();
+  await host.page.getByRole("button", { name: "Enregistrer et retourner à la salle" }).click();
+  await expect(host.page).toHaveURL(`/lobbies/${code}`);
+  await expect(participants(player.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+
+  await expect(player.page.getByText(/Mode tolérant/)).toBeVisible({ timeout: 8000 });
+});

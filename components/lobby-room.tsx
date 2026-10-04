@@ -68,6 +68,20 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
     );
     // Lobby fermé par l'hôte : tout le monde retourne à la liste avec un message (LOB-10).
     socket.on("lobby:closed", () => router.replace("/lobbies?closed=1"));
+    // L'hôte relance le lobby : tout le monde revient à la salle d'attente (LOB-9).
+    socket.on("lobby:restarted", () => {
+      setCountdown(undefined);
+      setRace(undefined);
+      setSecondsLeft(null);
+      setEndReason(undefined);
+      setResults([]);
+      setPositions([]);
+      setMyPosition(undefined);
+      setGaveUp(false);
+      typingRef.current = null;
+      setResumed(undefined);
+      setFinished(false);
+    });
     socket.on("race:countdown", (message: CountdownMessage) => setCountdown(message.seconds));
     socket.on("race:started", (message: RaceStartedMessage) => {
       setCountdown(undefined);
@@ -138,6 +152,14 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
     if (!window.confirm(t("confirmGiveUp"))) return;
     socketRef.current?.emit("race:giveUp", (ack: Ack) => {
       if (ack.ok) setGaveUp(true);
+      else setError(ack.error);
+    });
+  }
+
+  // L'hôte choisit ensuite les réglages de la prochaine course (LOB-9).
+  function relaunch() {
+    socketRef.current?.emit("lobby:restart", (ack: Ack) => {
+      if (ack.ok) router.push(`/lobbies/${encodeURIComponent(code)}/settings`);
       else setError(ack.error);
     });
   }
@@ -307,8 +329,14 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
             )}
           </>
         )}
+        {!isHost && countdown === undefined && !race && (
+          <p className="form-note">{t("waitingForHost")}</p>
+        )}
         {isHost && endReason && (
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button type="button" className="btn btn-primary" onClick={relaunch}>
+              {t("relaunch")}
+            </button>
             <button type="button" className="btn btn-secondary" onClick={close}>
               {t("close")}
             </button>
