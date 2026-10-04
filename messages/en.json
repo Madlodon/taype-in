@@ -71,7 +71,6 @@
     "host": "(host)",
     "close": "Close the race",
     "confirmClose": "Close the race? Every participant will be sent back to the race list.",
-    "start": "Start the race",
     "needMore": "At least {count} participants are needed to start the race.",
     "countdown": "Starting in {seconds}",
     "raceText": "Race text",
@@ -100,7 +99,12 @@
       "raceNotRunning": "No race is running",
       "notRacer": "You are not racing in this race",
       "cannotGiveUp": "You can't give up anymore"
-    }
+    },
+    "startRacing": "Start and race",
+    "startWatching": "Start and watch",
+    "needMoreWatching": "To watch without racing, you need at least {count} other participants.",
+    "watching": "(watching)",
+    "hostWatching": "You're watching this race without racing."
   },
   "RaceResults": {
     "title": "Results",

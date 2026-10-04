@@ -264,7 +264,7 @@ describe("race:start", () => {
     const guestSees = next<CountdownMessage>(guestClient, "race:countdown");
     const started = next(guestClient, "race:started");
 
-    expect(await hostClient.emitWithAck("race:start")).toEqual({ ok: true });
+    expect(await hostClient.emitWithAck("race:start", { watch: false })).toEqual({ ok: true });
 
     expect(await hostSees).toEqual({ seconds: 1 });
     expect(await guestSees).toEqual({ seconds: 1 });
@@ -276,7 +276,7 @@ describe("race:start", () => {
     const hostSees = next<RaceStartedMessage>(hostClient, "race:started");
     const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
 
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
 
     const message = await hostSees;
     expect(message.content).not.toBe("");
@@ -290,7 +290,7 @@ describe("race:start", () => {
       const { guestClient, hostClient } = await lobbyWithTwo({ errorMode });
       const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
 
-      await hostClient.emitWithAck("race:start");
+      await hostClient.emitWithAck("race:start", { watch: false });
 
       expect((await guestSees).errorMode).toBe(errorMode);
     },
@@ -300,7 +300,7 @@ describe("race:start", () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     const started = next<RaceStartedMessage>(hostClient, "race:started");
 
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
     const { content } = await started;
 
     const [race] = await db.select().from(races).where(eq(races.lobbyId, lobby.id));
@@ -311,7 +311,7 @@ describe("race:start", () => {
   test("Should_AckNotHost_When_PlayerIsNotHost", async () => {
     const { guestClient } = await lobbyWithTwo();
 
-    expect(await guestClient.emitWithAck("race:start")).toEqual({
+    expect(await guestClient.emitWithAck("race:start", { watch: false })).toEqual({
       ok: false,
       error: "notHost",
     });
@@ -323,7 +323,7 @@ describe("race:start", () => {
     const hostClient = await newClient(host);
     await join(hostClient, { code: lobby.code });
 
-    expect(await hostClient.emitWithAck("race:start")).toEqual({
+    expect(await hostClient.emitWithAck("race:start", { watch: false })).toEqual({
       ok: false,
       error: "notEnoughParticipants",
     });
@@ -332,7 +332,7 @@ describe("race:start", () => {
   test("Should_AckLobbyNotFound_When_SocketHasNotJoinedALobby", async () => {
     const client = await newClient();
 
-    expect(await client.emitWithAck("race:start")).toEqual({
+    expect(await client.emitWithAck("race:start", { watch: false })).toEqual({
       ok: false,
       error: "lobbyNotFound",
     });
@@ -341,9 +341,9 @@ describe("race:start", () => {
   test("Should_AckRaceInProgress_When_RaceAlreadyStarted", async () => {
     const { hostClient } = await lobbyWithTwo();
     const started = next(hostClient, "race:started");
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
 
-    expect(await hostClient.emitWithAck("race:start")).toEqual({
+    expect(await hostClient.emitWithAck("race:start", { watch: false })).toEqual({
       ok: false,
       error: "raceInProgress",
     });
@@ -355,8 +355,8 @@ describe("race:start", () => {
     const started = next(hostClient, "race:started");
 
     const acks = await Promise.all([
-      hostClient.emitWithAck("race:start"),
-      hostClient.emitWithAck("race:start"),
+      hostClient.emitWithAck("race:start", { watch: false }),
+      hostClient.emitWithAck("race:start", { watch: false }),
     ]);
     await started;
 
@@ -368,7 +368,7 @@ describe("race:start", () => {
   test("Should_SendCountdown_When_PlayerJoinsDuringCountdown", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     const started = next(hostClient, "race:started");
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
     const late = await newClient();
     const lateSees = next<CountdownMessage>(late, "race:countdown");
 
@@ -381,7 +381,7 @@ describe("race:start", () => {
   test("Should_SendTextWithoutRacingHim_When_PlayerJoinsDuringRace", async () => {
     const { host, guest, lobby, hostClient } = await lobbyWithTwo();
     const started = next<RaceStartedMessage>(hostClient, "race:started");
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
     const { content } = await started;
     const late = await newClient();
     const lateSees = next<RaceStartedMessage>(late, "race:started");
@@ -396,10 +396,80 @@ describe("race:start", () => {
   });
 });
 
+// L'hôte regarde la course sans courir (LOB-8).
+describe("race:start as spectator host", () => {
+  // Un hôte et deux invités : assez de coureurs sans l'hôte.
+  async function lobbyWithThree() {
+    const { host, guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const other = await newUser();
+    const otherClient = await newClient(other);
+    await join(otherClient, { code: lobby.code });
+    return { host, guest, other, lobby, hostClient, guestClient, otherClient };
+  }
+
+  test("Should_LeaveHostOutOfRacers_When_HostWatches", async () => {
+    const { guest, other, hostClient, guestClient } = await lobbyWithThree();
+    const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
+
+    expect(await hostClient.emitWithAck("race:start", { watch: true })).toEqual({ ok: true });
+
+    expect((await guestSees).racerIds).toEqual([guest.id, other.id]);
+  });
+
+  test("Should_AckNotEnoughParticipants_When_HostWatchesWithOnlyOneOther", async () => {
+    const { hostClient } = await lobbyWithTwo();
+
+    expect(await hostClient.emitWithAck("race:start", { watch: true })).toEqual({
+      ok: false,
+      error: "notEnoughParticipants",
+    });
+  });
+
+  test("Should_AckNotRacer_When_SpectatorHostSendsProgress", async () => {
+    const { hostClient } = await lobbyWithThree();
+    const started = next<RaceStartedMessage>(hostClient, "race:started");
+    await hostClient.emitWithAck("race:start", { watch: true });
+    const { content } = await started;
+
+    expect(await progress(hostClient, typing(content, 0))).toEqual({
+      ok: false,
+      error: "notRacer",
+    });
+  });
+
+  test("Should_EndRaceWithoutHostInResults_When_EveryRacerFinishes", async () => {
+    const { host, hostClient, guestClient, otherClient } = await lobbyWithThree();
+    const started = next<RaceStartedMessage>(hostClient, "race:started");
+    await hostClient.emitWithAck("race:start", { watch: true });
+    const { content } = await started;
+    const hostSees = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(guestClient, typing(content, 0));
+    await progress(otherClient, typing(content, 0));
+
+    const { reason, results } = await hostSees;
+    expect(reason).toBe("allFinished");
+    expect(results).toHaveLength(2);
+    expect(results.map((result) => result.id)).not.toContain(host.id);
+  });
+
+  test.each([undefined, {}, { watch: "yes" }])(
+    "Should_AckInvalidMessage_When_PayloadIs_%j",
+    async (payload) => {
+      const { hostClient } = await lobbyWithTwo();
+
+      expect(await hostClient.emitWithAck("race:start", payload)).toEqual({
+        ok: false,
+        error: "invalidMessage",
+      });
+    },
+  );
+});
+
 // Lance la course et attend le « Go ».
 async function startRace(hostClient: Socket): Promise<RaceStartedMessage> {
   const started = next<RaceStartedMessage>(hostClient, "race:started");
-  await hostClient.emitWithAck("race:start");
+  await hostClient.emitWithAck("race:start", { watch: false });
   return started;
 }
 
@@ -957,7 +1027,7 @@ describe("lobby:close", () => {
   test("Should_AckRaceInProgressAndKeepLobbyOpen_When_RaceHasStarted", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     const started = next(hostClient, "race:started");
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
 
     expect(await hostClient.emitWithAck("lobby:close")).toEqual({
       ok: false,

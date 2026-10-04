@@ -162,7 +162,8 @@ test("Should_ReturnToLobbyListWithMessage_When_LobbyIsClosed", () => {
   expect(router.replace).toHaveBeenCalledWith("/lobbies?closed=1");
 });
 
-const startButton = () => screen.queryByRole("button", { name: "Lancer la course" });
+const startButton = () => screen.queryByRole("button", { name: "Lancer et courir" });
+const watchButton = () => screen.queryByRole("button", { name: "Lancer et regarder" });
 
 test("Should_NotShowStartButton_When_UserIsNotHost", () => {
   renderRoom();
@@ -186,14 +187,43 @@ test("Should_AskServerToStart_When_HostClicksStart", () => {
 
   fireEvent.click(startButton()!);
 
-  expect(socket.emit).toHaveBeenCalledWith("race:start", expect.any(Function));
+  expect(socket.emit).toHaveBeenCalledWith("race:start", { watch: false }, expect.any(Function));
+});
+
+test("Should_AskServerToStartWithHostWatching_When_HostClicksWatch", () => {
+  renderRoom("fr", true);
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "u2", username: "Invité-123456" },
+        { id: "u3", username: "sam" },
+      ],
+    }),
+  );
+
+  fireEvent.click(watchButton()!);
+
+  expect(socket.emit).toHaveBeenCalledWith("race:start", { watch: true }, expect.any(Function));
+});
+
+test("Should_DisableWatchOnlyAndExplain_When_HostHasOneOtherParticipant", () => {
+  renderRoom("fr", true);
+
+  sendParticipants();
+
+  expect(startButton()!.hasAttribute("disabled")).toBe(false);
+  expect(watchButton()!.hasAttribute("disabled")).toBe(true);
+  expect(
+    screen.getByText("Pour regarder sans courir, il faut au moins 2 autres participants."),
+  ).toBeTruthy();
 });
 
 test("Should_ShowError_When_StartIsRefused", () => {
   renderRoom("fr", true);
   sendParticipants();
   fireEvent.click(startButton()!);
-  const ack = socket.emit.mock.calls[1][1] as Handler;
+  const ack = socket.emit.mock.calls[1][2] as Handler;
 
   act(() => ack({ ok: false, error: "notEnoughParticipants" }));
 
@@ -338,6 +368,26 @@ test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
 
   expect(screen.getByRole("button", { name: "Fermer la course" })).toBeTruthy();
   expect(startButton()).toBeNull();
+});
+
+test("Should_MarkHostWatchingAndNotCountHim_When_HostWatchesRace", () => {
+  renderRoom("fr", true);
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "u2", username: "Invité-123456" },
+        { id: "u3", username: "sam" },
+      ],
+    }),
+  );
+
+  startRace(["u2", "u3"]);
+
+  expect(listedNames()).toEqual(["alex (hôte) (regarde)", "Invité-123456", "sam"]);
+  expect(screen.getByRole("heading", { name: "Participants (2)" })).toBeTruthy();
+  expect(screen.getByText("Tu regardes la course sans courir.")).toBeTruthy();
+  expect(screen.queryByRole("textbox")).toBeNull();
 });
 
 test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {

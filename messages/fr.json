@@ -71,7 +71,6 @@
     "host": "(hôte)",
     "close": "Fermer la course",
     "confirmClose": "Fermer la course ? Tous les participants seront renvoyés à la liste des courses.",
-    "start": "Lancer la course",
     "needMore": "Il faut au moins {count} participants pour lancer la course.",
     "countdown": "Départ dans {seconds}",
     "raceText": "Texte de la course",
@@ -100,7 +99,12 @@
       "raceNotRunning": "Aucune course en cours",
       "notRacer": "Tu ne cours pas dans cette course",
       "cannotGiveUp": "Tu ne peux plus abandonner"
-    }
+    },
+    "startRacing": "Lancer et courir",
+    "startWatching": "Lancer et regarder",
+    "needMoreWatching": "Pour regarder sans courir, il faut au moins {count} autres participants.",
+    "watching": "(regarde)",
+    "hostWatching": "Tu regardes la course sans courir."
   },
   "RaceResults": {
     "title": "Résultats",

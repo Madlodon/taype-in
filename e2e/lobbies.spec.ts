@@ -220,13 +220,13 @@ test("Should_ShowSameCountdownThenSameTextAndTimeLeft_When_HostStartsRace", asyn
   const code = await createRace(host.page, /Non répertoriée/, (page) =>
     page.getByLabel(/Durée en minutes/).fill("2"),
   );
-  const start = host.page.getByRole("button", { name: "Lancer la course" });
+  const start = host.page.getByRole("button", { name: "Lancer et courir" });
   await expect(start).toBeDisabled();
 
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
   await expect(participants(host.page)).toHaveCount(2);
-  await expect(player.page.getByRole("button", { name: "Lancer la course" })).toHaveCount(0);
+  await expect(player.page.getByRole("button", { name: "Lancer et courir" })).toHaveCount(0);
   await start.click();
 
   for (const { page } of [host, player]) {
@@ -249,7 +249,7 @@ test("Should_ShowNoTimeLeft_When_HostChoosesNoTimer", async ({ browser }) => {
   await player.page.goto(`/lobbies/${code}`);
   await expect(participants(host.page)).toHaveCount(2);
 
-  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
 
   await expect(player.page.locator(".typing-text")).toBeVisible({ timeout: 8000 });
   await expect(player.page.getByRole("timer")).toHaveCount(0);
@@ -261,7 +261,7 @@ test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
   await expect(participants(host.page)).toHaveCount(2);
-  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
 
   const input = player.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused({ timeout: 8000 });
@@ -280,7 +280,7 @@ test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
   await expect(participants(host.page)).toHaveCount(2);
-  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
 
   const ranking = host.page.getByRole("list", { name: "Classement" }).getByRole("listitem");
   await expect(ranking).toHaveCount(2, { timeout: 8000 });
@@ -300,7 +300,7 @@ test("Should_ResumeAtExactPositionWithErrors_When_RacerReloadsMidRace", async ({
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
   await expect(participants(host.page)).toHaveCount(2);
-  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const input = player.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused({ timeout: 8000 });
   const text = (await player.page.locator(".typing-text").textContent())!;
@@ -321,7 +321,7 @@ test("Should_BecomeSpectator_When_RacerGivesUp", async ({ browser }) => {
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
   await expect(participants(host.page)).toHaveCount(2);
-  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const input = player.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeVisible({ timeout: 8000 });
 
@@ -341,7 +341,7 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
   await expect(participants(host.page)).toHaveCount(2);
-  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const input = host.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused({ timeout: 8000 });
   player.page.once("dialog", (dialog) => dialog.accept());
@@ -362,4 +362,24 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
     await expect(rows.nth(1)).toContainText("Bronze I · Div. II");
     await expect(rows.nth(2)).toContainText("Bronze I · Div. I");
   }
+});
+
+test("Should_RaceWithoutHost_When_HostStartsAndWatches", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const players = [await newGuest(browser), await newGuest(browser)];
+  for (const { page } of players) await page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(3);
+
+  await host.page.getByRole("button", { name: "Lancer et regarder" }).click();
+
+  for (const { page } of players) {
+    await expect(page.getByRole("textbox", { name: "Tape le texte" })).toBeVisible({
+      timeout: 8000,
+    });
+  }
+  await expect(host.page.getByText("Tu regardes la course sans courir.")).toBeVisible();
+  await expect(host.page.getByRole("textbox")).toHaveCount(0);
+  await expect(participants(host.page).first()).toHaveText(`${host.name} (hôte) (regarde)`);
+  await expect(host.page.getByRole("heading", { name: "Participants (2)" })).toBeVisible();
 });
