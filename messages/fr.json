@@ -85,6 +85,10 @@
     "you": "(toi)",
     "percent": "{value} %",
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
+    "overtake": {
+      "up": "Tu as dépassé {names} · {rank, selectordinal, one {#er} other {#e}}",
+      "down": "{names} {count, plural, one {t'a dépassé} other {t'ont dépassé}} · {rank, selectordinal, one {#er} other {#e}}"
+    },
     "giveUp": "Abandonner",
     "confirmGiveUp": "Abandonner la course ? Tu deviendras spectateur et ne pourras plus taper.",
     "gaveUp": "Tu as abandonné : tu regardes la fin de la course.",

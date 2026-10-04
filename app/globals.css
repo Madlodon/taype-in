@@ -823,6 +823,38 @@ a, button, input {
   border-top: 1px dashed var(--border);
 }
 
+/* Dépassement entre le texte et le champ (CRS-3) : la hauteur est réservée pour que rien ne bouge. */
+.overtake {
+  min-height: 38px;
+  margin: -10px 0 8px;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.overtake > span {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 5px;
+  animation: overtake-pop 2.5s ease-out forwards;
+}
+
+.overtake-up {
+  color: var(--correct);
+  background: color-mix(in srgb, var(--correct) 15%, var(--surface));
+}
+
+.overtake-down {
+  color: var(--wrong);
+  background: var(--wrong-surface);
+}
+
+@keyframes overtake-pop {
+  from { transform: scale(1.15); }
+  10% { transform: scale(1); }
+  80% { opacity: 1; }
+  to { opacity: 0; }
+}
+
 /* Podium du top 3 : le premier au centre, sur la plus haute marche (FIN-1). */
 .podium {
   display: flex;

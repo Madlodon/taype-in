@@ -631,3 +631,88 @@ test("Should_ShowRankingInEnglish_When_LocaleIsEnglish", () => {
     within(screen.getByRole("list", { name: "Ranking" })).getAllByRole("listitem")[1].textContent,
   ).toBe("moi (you)0%");
 });
+
+// Classement dans l'ordre donné : u2 s'appelle « moi », les autres portent leur id comme nom.
+function sendOrder(...ids: string[]) {
+  const positions = ids.map((id, index) => ({
+    id,
+    username: id === "u2" ? "moi" : id,
+    position: ids.length - index,
+  }));
+  act(() => handlers["race:positions"]({ positions }));
+}
+
+function overtakeText(container: HTMLElement) {
+  return container.querySelector(".overtake")?.textContent;
+}
+
+test("Should_ShowWhoYouPassed_When_UserMovesUp", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2", "u3"]);
+  sendOrder("u1", "u3", "u2");
+
+  sendOrder("u2", "u1", "u3");
+
+  expect(overtakeText(container)).toBe("▲ Tu as dépassé u1 et u3 · 1er");
+  expect(container.querySelector(".overtake-up")).toBeTruthy();
+});
+
+test("Should_ShowWhoPassedYou_When_UserMovesDown", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2", "u3"]);
+  sendOrder("u1", "u2", "u3");
+
+  sendOrder("u1", "u3", "u2");
+
+  expect(overtakeText(container)).toBe("▼ u3 t'a dépassé · 3e");
+  expect(container.querySelector(".overtake-down")).toBeTruthy();
+});
+
+test("Should_ShowOvertakeInEnglish_When_LocaleIsEnglish", () => {
+  const { container } = renderRoom("en");
+  startRace(["u1", "u2", "u3"]);
+  sendOrder("u1", "u2", "u3");
+
+  sendOrder("u2", "u1", "u3");
+
+  expect(overtakeText(container)).toBe("▲ You passed u1 · 1st");
+});
+
+test("Should_ShowNoOvertake_When_UserRankIsUnchanged", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2", "u3"]);
+  sendOrder("u1", "u2", "u3");
+
+  sendOrder("u1", "u2", "u3");
+
+  expect(overtakeText(container)).toBe("");
+});
+
+test("Should_HideOvertake_When_ShownLongEnough", () => {
+  vi.useFakeTimers();
+  const { container } = renderRoom();
+  startRace(["u1", "u2"]);
+  sendOrder("u1", "u2");
+  sendOrder("u2", "u1");
+
+  act(() => vi.advanceTimersByTime(2500));
+
+  expect(overtakeText(container)).toBe("");
+});
+
+test("Should_AnnounceOvertake_When_ScreenReaderIsUsed", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2"]);
+
+  expect(container.querySelector(".overtake")?.getAttribute("aria-live")).toBe("polite");
+});
+
+test("Should_ShowNoOvertake_When_UserIsSpectating", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u3"]);
+  sendOrder("u1", "u3");
+
+  sendOrder("u3", "u1");
+
+  expect(container.querySelector(".overtake")).toBeNull();
+});
