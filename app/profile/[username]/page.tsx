@@ -1,6 +1,13 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { computeStats, findProfileUser, listRaceHistory, type HistoryEntry } from "@/lib/profile";
+import { ProgressionChart } from "@/components/progression-chart";
+import {
+  computeStats,
+  findProfileUser,
+  listRaceHistory,
+  progressionPoints,
+  type HistoryEntry,
+} from "@/lib/profile";
 import { getCurrentUser } from "@/lib/session-cookie";
 
 // Premiers mots d'un texte écrit par l'hôte, qui n'a pas de titre.
@@ -16,12 +23,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const isOwner = (await getCurrentUser())?.id === profile.id;
   const history = await listRaceHistory(profile.id);
   const stats = computeStats(history);
+  const progression = progressionPoints(history);
   const t = await getTranslations("Profile");
   const format = await getFormatter();
   const wpm = (value: number | null) => (value === null ? "—" : Math.round(value));
   const percent = (value: number | null) =>
     value === null ? "—" : t("percent", { value: Math.round(value) });
   const text = (entry: HistoryEntry) => entry.textTitle ?? excerpt(entry.content);
+  const chartDate = (date: Date) => format.dateTime(date, { day: "numeric", month: "short" });
 
   return (
     <main id="main" className="page-shell">
@@ -46,6 +55,37 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <dd>{percent(stats.averageAccuracy)}</dd>
         </div>
       </dl>
+      <section className="panel progression" aria-labelledby="progression-title">
+        <h2 id="progression-title">{t("progression")}</h2>
+        {progression.length === 0 ? (
+          <p className="description mt-5">{t("noProgression")}</p>
+        ) : (
+          <>
+            <p className="description mt-2">{t("progressionHint", { count: progression.length })}</p>
+            <div className="progression-charts">
+              <ProgressionChart
+                title={t("wpm")}
+                color="var(--primary)"
+                points={progression.map((point) => ({
+                  date: chartDate(point.date),
+                  value: Math.round(point.wpm),
+                  display: String(Math.round(point.wpm)),
+                }))}
+              />
+              <ProgressionChart
+                title={t("accuracy")}
+                color="var(--accent)"
+                max={100}
+                points={progression.map((point) => ({
+                  date: chartDate(point.date),
+                  value: Math.round(point.accuracy),
+                  display: percent(point.accuracy),
+                }))}
+              />
+            </div>
+          </>
+        )}
+      </section>
       <div className="split-layout">
         <section className="panel">
           <h2 id="history-title">{t("history")}</h2>
