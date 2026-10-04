@@ -431,3 +431,25 @@ test("Should_SendEveryoneToWaitingRoomAndKeepCode_When_HostRelaunchesWithNewSett
 
   await expect(player.page.getByText(/Mode tolérant/)).toBeVisible({ timeout: 8000 });
 });
+
+test("Should_RaceAgainstBotThatEveryoneSees_When_HostAddsBot", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const start = host.page.getByRole("button", { name: "Lancer et courir" });
+  await expect(start).toBeDisabled();
+
+  await host.page.getByLabel("Niveau du bot").selectOption({ label: "Expert" });
+  await host.page.getByRole("button", { name: "Ajouter un bot" }).click();
+
+  await expect(participants(host.page).nth(1)).toHaveText("Bot Expert 1BotRetirer");
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(player.page).nth(2)).toHaveText("Bot Expert 1Bot");
+  await start.click();
+  const bot = player.page
+    .getByRole("list", { name: "Classement" })
+    .getByRole("listitem")
+    .filter({ hasText: "Bot Expert 1" });
+  await expect(bot).toBeVisible({ timeout: 8000 });
+  await expect(bot).not.toContainText(/^Bot Expert 1Bot0 %$/, { timeout: 5000 });
+});
