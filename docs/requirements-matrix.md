@@ -98,7 +98,7 @@ Statut :
 
 | ID     | Exigence                                    | Prio. | Issue                  | PR  | Tests | Statut   |
 | ------ | ------------------------------------------- | ----- | ---------------------- | --- | ----- | -------- |
-| PROF-1 | Photo de profil                             | S     | [#65][i65], [#71][i71] | —   | —     | En cours |
+| PROF-1 | Photo de profil                             | S     | [#65][i65], [#71][i71] | —   | [avatars.test.ts](../__tests__/avatars.test.ts), [avatar-actions.test.ts](../__tests__/avatar-actions.test.ts), [avatar-route.test.ts](../__tests__/avatar-route.test.ts), [avatar-form.test.tsx](../__tests__/avatar-form.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | Partiel |
 | PROF-2 | Historique des courses                      | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | Fait |
 | PROF-3 | Statistiques globales                       | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx) | Fait |
 | PROF-4 | Graphique de progression                    | S     | [#69][i69]             | —   | —     | En cours |
