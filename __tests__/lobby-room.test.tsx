@@ -21,6 +21,7 @@ const socket = {
 vi.mock("socket.io-client", () => ({ io: () => socket }));
 
 const router = { replace: vi.fn(), push: vi.fn() };
+const loadSessionStats = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 // u1 est l'hôte ; l'utilisateur courant est u1 s'il est hôte, sinon u2.
@@ -28,7 +29,8 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 function renderRoom(locale: "fr" | "en" = "fr", isHost = false, stadium?: Stadium) {
   const result = render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} stadium={stadium} />
+      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} stadium={stadium}
+        loadSessionStats={loadSessionStats} />
     </NextIntlClientProvider>,
   );
   act(() => handlers["connect"]());
@@ -55,6 +57,7 @@ function listedNames() {
 beforeEach(() => {
   vi.clearAllMocks();
   socket.active = false;
+  loadSessionStats.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -363,6 +366,46 @@ test("Should_SayRaceIsOverInEnglish_When_LocaleIsEnglish", () => {
   act(() => handlers["race:ended"]({ reason: "timeUp", results: [] }));
 
   expect(screen.getByRole("status").textContent).toBe("Race over: time is up.");
+});
+
+test("Should_ShowSessionStats_When_RaceEnds", async () => {
+  loadSessionStats.mockResolvedValue({ races: 6, averageWpm: 48.4, bestWpm: 61.6, averageAccuracy: 96.2 });
+  renderRoom();
+  startRace(["u1", "u2"]);
+  expect(loadSessionStats).not.toHaveBeenCalled();
+
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  const panel = await screen.findByRole("region", { name: "Cette session : 6 courses d’affilée" });
+  expect(within(panel).getAllByRole("definition").map((stat) => stat.textContent)).toEqual([
+    "48",
+    "62",
+    "96 %",
+  ]);
+});
+
+test("Should_HideSessionStats_When_UserHasNoRaceInSession", async () => {
+  loadSessionStats.mockResolvedValue({ races: 0, averageWpm: null, bestWpm: null, averageAccuracy: null });
+  renderRoom();
+
+  await act(async () => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  expect(loadSessionStats).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("region", { name: /Cette session/ })).toBeNull();
+});
+
+test("Should_ShowDashes_When_NoSessionRaceWasFinished", async () => {
+  loadSessionStats.mockResolvedValue({ races: 1, averageWpm: null, bestWpm: null, averageAccuracy: null });
+  renderRoom("en");
+
+  act(() => handlers["race:ended"]({ reason: "timeUp", results: [] }));
+
+  const panel = await screen.findByRole("region", { name: "This session: 1 race" });
+  expect(within(panel).getAllByRole("definition").map((stat) => stat.textContent)).toEqual([
+    "—",
+    "—",
+    "—",
+  ]);
 });
 
 test("Should_LetHostCloseOrRelaunchButNotStart_When_RaceHasEnded", () => {

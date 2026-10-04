@@ -151,6 +151,13 @@
       "supersonicLegend": "Légende supersonique"
     }
   },
+  "SessionStats": {
+    "title": "{count, plural, one {Cette session : # course} other {Cette session : # courses d’affilée}}",
+    "averageWpm": "Vitesse moyenne (MPM)",
+    "bestWpm": "Meilleure vitesse (MPM)",
+    "averageAccuracy": "Précision moyenne",
+    "percent": "{value} %"
+  },
   "RaceTyping": {
     "label": "Tape le texte",
     "blocking": "Mode bloquant : un mauvais caractère t'arrête jusqu'à ce que tu tapes le bon.",
