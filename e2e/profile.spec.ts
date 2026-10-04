@@ -1,4 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+// Image PNG de 1 × 1 pixel.
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+async function signUp(page: Page, prefix: string) {
+  const username = `${prefix}_${Date.now().toString(36)}`;
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(username);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+  await page.getByRole("navigation").getByRole("link", { name: "Mon profil" }).click();
+  await expect(page).toHaveURL(`/profile/${username}`);
+  return username;
+}
 
 test("Should_ShowYouBadgeOnlyToOwner_When_VisitingAProfile", async ({ page }) => {
   const username = `e2e_${Date.now().toString(36)}`;
@@ -35,4 +52,38 @@ test("Should_Show404_When_UserIsUnknown", async ({ page }) => {
   const response = await page.goto("/profile/personne_inconnue_xyz");
 
   expect(response?.status()).toBe(404);
+});
+
+test("Should_ShowPhotoThenInitials_When_OwnerUploadsThenRemovesPhoto", async ({ page }) => {
+  await signUp(page, "e2e_pic");
+  const avatar = page.locator("main img.avatar");
+  const contentType = async () =>
+    (await page.request.get((await avatar.getAttribute("src"))!)).headers()["content-type"];
+  expect(await contentType()).toBe("image/svg+xml");
+
+  await page.getByLabel(/Photo de profil/).setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: PNG });
+  await page.getByRole("button", { name: "Téléverser" }).click();
+
+  await expect(avatar).toHaveAttribute("src", /\?v=\d+$/);
+  await expect(page.locator("nav img.avatar")).toHaveAttribute("src", /\?v=\d+$/);
+  expect(await contentType()).toBe("image/png");
+
+  await page.getByRole("button", { name: "Retirer la photo" }).click();
+
+  await expect(avatar).toHaveAttribute("src", /^\/avatars\/[0-9a-f-]+$/);
+  expect(await contentType()).toBe("image/svg+xml");
+});
+
+test("Should_RefuseFile_When_ItIsNotAnImage", async ({ page }) => {
+  await signUp(page, "e2e_badpic");
+
+  await page.getByLabel(/Photo de profil/).setInputFiles({
+    name: "photo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("pas une image"),
+  });
+  await page.getByRole("button", { name: "Téléverser" }).click();
+
+  await expect(page.getByText("Choisis une image PNG, JPEG ou WebP.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retirer la photo" })).toHaveCount(0);
 });
