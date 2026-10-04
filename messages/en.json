@@ -71,7 +71,6 @@
     "host": "(host)",
     "close": "Close the race",
     "confirmClose": "Close the race? Every participant will be sent back to the race list.",
-    "start": "Start the race",
     "needMore": "At least {count} participants are needed to start the race.",
     "countdown": "Starting in {seconds}",
     "raceText": "Race text",
@@ -103,8 +102,22 @@
       "noText": "No text available in this language",
       "raceNotRunning": "No race is running",
       "notRacer": "You are not racing in this race",
-      "cannotGiveUp": "You can't give up anymore"
-    }
+      "cannotGiveUp": "You can't give up anymore",
+      "raceNotFinished": "The race isn't over"
+    },
+    "startRacing": "Start and race",
+    "startWatching": "Start and watch",
+    "needMoreWatching": "To watch without racing, you need at least {count} other participants.",
+    "watching": "(watching)",
+    "hostWatching": "You're watching this race without racing.",
+    "relaunch": "Relaunch the race",
+    "waitingForHost": "Waiting for the host to choose the settings and start the next race."
+  },
+  "LobbySettings": {
+    "title": "Next race settings",
+    "description": "Change the settings, then start the race from the waiting room.",
+    "back": "Back to the waiting room",
+    "submit": "Save and go back to the room"
   },
   "RaceResults": {
     "title": "Results",

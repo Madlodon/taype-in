@@ -71,7 +71,6 @@
     "host": "(hôte)",
     "close": "Fermer la course",
     "confirmClose": "Fermer la course ? Tous les participants seront renvoyés à la liste des courses.",
-    "start": "Lancer la course",
     "needMore": "Il faut au moins {count} participants pour lancer la course.",
     "countdown": "Départ dans {seconds}",
     "raceText": "Texte de la course",
@@ -103,8 +102,22 @@
       "noText": "Aucun texte disponible dans cette langue",
       "raceNotRunning": "Aucune course en cours",
       "notRacer": "Tu ne cours pas dans cette course",
-      "cannotGiveUp": "Tu ne peux plus abandonner"
-    }
+      "cannotGiveUp": "Tu ne peux plus abandonner",
+      "raceNotFinished": "La course n'est pas terminée"
+    },
+    "startRacing": "Lancer et courir",
+    "startWatching": "Lancer et regarder",
+    "needMoreWatching": "Pour regarder sans courir, il faut au moins {count} autres participants.",
+    "watching": "(regarde)",
+    "hostWatching": "Tu regardes la course sans courir.",
+    "relaunch": "Relancer la course",
+    "waitingForHost": "En attente de l'hôte : il choisit les réglages et lance la prochaine course."
+  },
+  "LobbySettings": {
+    "title": "Réglages de la prochaine course",
+    "description": "Change les réglages, puis lance la course depuis la salle d'attente.",
+    "back": "Retour à la salle d'attente",
+    "submit": "Enregistrer et retourner à la salle"
   },
   "RaceResults": {
     "title": "Résultats",

@@ -19,7 +19,10 @@ export const progressSchema = z.object({
 
 export type ProgressMessage = z.infer<typeof progressSchema>;
 
-// LOB-6 : au moins 2 participants pour démarrer.
+// L'hôte lance la course en courant ou seulement en regardant (LOB-8).
+export const startRaceSchema = z.object({ watch: z.boolean() });
+
+// LOB-6 : au moins 2 coureurs pour démarrer ; un hôte qui regarde ne compte pas (LOB-8).
 export const MIN_RACERS = 2;
 
 // Réponse (ack) du serveur à un message du client ; error est une clé de traduction (LobbyRoom.errors).

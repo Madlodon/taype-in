@@ -76,6 +76,23 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
     );
     // Lobby fermé par l'hôte : tout le monde retourne à la liste avec un message (LOB-10).
     socket.on("lobby:closed", () => router.replace("/lobbies?closed=1"));
+    // L'hôte relance le lobby : tout le monde revient à la salle d'attente (LOB-9).
+    socket.on("lobby:restarted", () => {
+      setCountdown(undefined);
+      setRace(undefined);
+      setSecondsLeft(null);
+      setEndReason(undefined);
+      setResults([]);
+      setPositions([]);
+      // Sinon le départ de la prochaine course passerait pour des dépassements.
+      positionsRef.current = [];
+      setOvertake(undefined);
+      setMyPosition(undefined);
+      setGaveUp(false);
+      typingRef.current = null;
+      setResumed(undefined);
+      setFinished(false);
+    });
     socket.on("race:countdown", (message: CountdownMessage) => setCountdown(message.seconds));
     socket.on("race:started", (message: RaceStartedMessage) => {
       setCountdown(undefined);
@@ -137,8 +154,9 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
     return () => clearTimeout(timer);
   }, [overtake]);
 
-  function start() {
-    socketRef.current?.emit("race:start", (ack: Ack) => {
+  // L'hôte court avec les autres ou regarde seulement (LOB-8).
+  function start(watch: boolean) {
+    socketRef.current?.emit("race:start", { watch }, (ack: Ack) => {
       if (!ack.ok) setError(ack.error);
     });
   }
@@ -160,12 +178,26 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
     });
   }
 
+  // L'hôte choisit ensuite les réglages de la prochaine course (LOB-9).
+  function relaunch() {
+    socketRef.current?.emit("lobby:restart", (ack: Ack) => {
+      if (ack.ok) router.push(`/lobbies/${encodeURIComponent(code)}/settings`);
+      else setError(ack.error);
+    });
+  }
+
   function close() {
     if (!window.confirm(t("confirmClose"))) return;
     socketRef.current?.emit("lobby:close", (ack: Ack) => {
       if (!ack.ok) setError(ack.error);
     });
   }
+
+  // Un hôte qui regarde ne compte pas parmi les participants (LOB-8).
+  const hostWatching = race !== undefined && !race.racerIds.includes(hostId);
+  const participantCount = participants.filter(
+    (participant) => !(hostWatching && participant.id === hostId),
+  ).length;
 
   // Pendant et après la course : le top 10 et tes voisins, sur la piste et dans le classement (CRS-2).
   const shown = race ? selectShown(positions, userId) : [];
@@ -267,13 +299,14 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
       {track}
       <section className="panel">
         <h2 className="text-xl font-semibold">
-          {t("participants", { count: participants.length })}
+          {t("participants", { count: participantCount })}
         </h2>
         <ul aria-label={t("participantsList")} className="participants">
           {participants.map((participant) => (
             <li key={participant.id}>
               {participant.username}
               {participant.id === hostId && ` ${t("host")}`}
+              {participant.id === hostId && hostWatching && ` ${t("watching")}`}
             </li>
           ))}
         </ul>
@@ -293,7 +326,11 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
           <>
             <h2 className="text-xl font-semibold mt-5">{t("raceText")}</h2>
             <p className="typing-text">{race.content}</p>
-            {!endReason && <p className="form-note">{t(gaveUp ? "gaveUp" : "spectating")}</p>}
+            {!endReason && (
+              <p className="form-note">
+                {t(gaveUp ? "gaveUp" : isHost ? "hostWatching" : "spectating")}
+              </p>
+            )}
           </>
         )}
         {isHost && countdown === undefined && !race && (
@@ -302,22 +339,40 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={start}
+                onClick={() => start(false)}
                 disabled={participants.length < MIN_RACERS}
               >
-                {t("start")}
+                {t("startRacing")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => start(true)}
+                disabled={participants.length - 1 < MIN_RACERS}
+              >
+                {t("startWatching")}
               </button>
               <button type="button" className="btn btn-secondary" onClick={close}>
                 {t("close")}
               </button>
             </div>
-            {participants.length < MIN_RACERS && (
+            {participants.length < MIN_RACERS ? (
               <p className="form-note">{t("needMore", { count: MIN_RACERS })}</p>
+            ) : (
+              participants.length - 1 < MIN_RACERS && (
+                <p className="form-note">{t("needMoreWatching", { count: MIN_RACERS })}</p>
+              )
             )}
           </>
         )}
+        {!isHost && countdown === undefined && !race && (
+          <p className="form-note">{t("waitingForHost")}</p>
+        )}
         {isHost && endReason && (
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button type="button" className="btn btn-primary" onClick={relaunch}>
+              {t("relaunch")}
+            </button>
             <button type="button" className="btn btn-secondary" onClick={close}>
               {t("close")}
             </button>

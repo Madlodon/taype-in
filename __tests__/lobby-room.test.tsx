@@ -20,7 +20,7 @@ const socket = {
 
 vi.mock("socket.io-client", () => ({ io: () => socket }));
 
-const router = { replace: vi.fn() };
+const router = { replace: vi.fn(), push: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 // u1 est l'hôte ; l'utilisateur courant est u1 s'il est hôte, sinon u2.
@@ -162,7 +162,8 @@ test("Should_ReturnToLobbyListWithMessage_When_LobbyIsClosed", () => {
   expect(router.replace).toHaveBeenCalledWith("/lobbies?closed=1");
 });
 
-const startButton = () => screen.queryByRole("button", { name: "Lancer la course" });
+const startButton = () => screen.queryByRole("button", { name: "Lancer et courir" });
+const watchButton = () => screen.queryByRole("button", { name: "Lancer et regarder" });
 
 test("Should_NotShowStartButton_When_UserIsNotHost", () => {
   renderRoom();
@@ -186,14 +187,50 @@ test("Should_AskServerToStart_When_HostClicksStart", () => {
 
   fireEvent.click(startButton()!);
 
-  expect(socket.emit).toHaveBeenCalledWith("race:start", expect.any(Function));
+  expect(socket.emit).toHaveBeenCalledWith("race:start", { watch: false }, expect.any(Function));
+});
+
+test("Should_AskServerToStartWithHostWatching_When_HostClicksWatch", () => {
+  renderRoom("fr", true);
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "u2", username: "Invité-123456" },
+        { id: "u3", username: "sam" },
+      ],
+    }),
+  );
+
+  fireEvent.click(watchButton()!);
+
+  expect(socket.emit).toHaveBeenCalledWith("race:start", { watch: true }, expect.any(Function));
+});
+
+test("Should_DisableWatchOnlyAndExplain_When_HostHasOneOtherParticipant", () => {
+  renderRoom("fr", true);
+
+  sendParticipants();
+
+  expect(startButton()!.hasAttribute("disabled")).toBe(false);
+  expect(watchButton()!.hasAttribute("disabled")).toBe(true);
+  expect(
+    screen.getByText("Pour regarder sans courir, il faut au moins 2 autres participants."),
+  ).toBeTruthy();
+});
+
+test("Should_SayWaitingForHost_When_UserIsNotHostAndNoRaceIsOn", () => {
+  renderRoom();
+  sendParticipants();
+
+  expect(screen.getByText(/En attente de l'hôte/)).toBeTruthy();
 });
 
 test("Should_ShowError_When_StartIsRefused", () => {
   renderRoom("fr", true);
   sendParticipants();
   fireEvent.click(startButton()!);
-  const ack = socket.emit.mock.calls[1][1] as Handler;
+  const ack = socket.emit.mock.calls[1][2] as Handler;
 
   act(() => ack({ ok: false, error: "notEnoughParticipants" }));
 
@@ -328,7 +365,7 @@ test("Should_SayRaceIsOverInEnglish_When_LocaleIsEnglish", () => {
   expect(screen.getByRole("status").textContent).toBe("Race over: time is up.");
 });
 
-test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
+test("Should_LetHostCloseOrRelaunchButNotStart_When_RaceHasEnded", () => {
   renderRoom("fr", true);
   sendParticipants();
   startRace(["u1", "u2"], "blocking", 300);
@@ -337,7 +374,78 @@ test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
   act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
 
   expect(screen.getByRole("button", { name: "Fermer la course" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Relancer la course" })).toBeTruthy();
   expect(startButton()).toBeNull();
+});
+
+test("Should_NotShowRelaunch_When_UserIsNotHost", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  expect(screen.queryByRole("button", { name: "Relancer la course" })).toBeNull();
+});
+
+function endRaceAsHost() {
+  renderRoom("fr", true);
+  sendParticipants();
+  startRace(["u1", "u2"]);
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+  fireEvent.click(screen.getByRole("button", { name: "Relancer la course" }));
+  const call = socket.emit.mock.calls.find(([event]) => event === "lobby:restart")!;
+  return call[1] as Handler;
+}
+
+test("Should_OpenSettingsPage_When_HostRelaunches", () => {
+  const ack = endRaceAsHost();
+
+  act(() => ack({ ok: true }));
+
+  expect(router.push).toHaveBeenCalledWith("/lobbies/K7P3XM/settings");
+});
+
+test("Should_ShowErrorAndStay_When_RelaunchIsRefused", () => {
+  const ack = endRaceAsHost();
+
+  act(() => ack({ ok: false, error: "raceNotFinished" }));
+
+  expect(screen.getByRole("alert").textContent).toBe("La course n'est pas terminée");
+  expect(router.push).not.toHaveBeenCalled();
+});
+
+test("Should_ReturnToWaitingRoom_When_LobbyIsRestarted", () => {
+  renderRoom();
+  sendParticipants();
+  startRace(["u1", "u2"]);
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  act(() => handlers["lobby:restarted"]());
+
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByText("Un texte court.")).toBeNull();
+  expect(screen.queryByRole("list", { name: "Classement" })).toBeNull();
+  expect(screen.getByText(/En attente de l'hôte/)).toBeTruthy();
+});
+
+test("Should_MarkHostWatchingAndNotCountHim_When_HostWatchesRace", () => {
+  renderRoom("fr", true);
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "u2", username: "Invité-123456" },
+        { id: "u3", username: "sam" },
+      ],
+    }),
+  );
+
+  startRace(["u2", "u3"]);
+
+  expect(listedNames()).toEqual(["alex (hôte) (regarde)", "Invité-123456", "sam"]);
+  expect(screen.getByRole("heading", { name: "Participants (2)" })).toBeTruthy();
+  expect(screen.getByText("Tu regardes la course sans courir.")).toBeTruthy();
+  expect(screen.queryByRole("textbox")).toBeNull();
 });
 
 test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {
@@ -715,4 +823,17 @@ test("Should_ShowNoOvertake_When_UserIsSpectating", () => {
   sendOrder("u3", "u1");
 
   expect(container.querySelector(".overtake")).toBeNull();
+});
+
+test("Should_ShowNoOvertake_When_NextRaceStartsAfterRelaunch", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2"]);
+  sendOrder("u2", "u1");
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+  act(() => handlers["lobby:restarted"]());
+  startRace(["u1", "u2"]);
+
+  sendOrder("u1", "u2");
+
+  expect(overtakeText(container)).toBe("");
 });

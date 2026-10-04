@@ -91,7 +91,7 @@ test("Should_TypeAndSeeRanking_When_RacingOnThisScreen", async ({ browser }) => 
   await expect(player.page.getByRole("list", { name: "Participants" })).toBeVisible();
   await expectNoHorizontalScroll(host.page);
 
-  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const input = player.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused({ timeout: 8000 });
   await expect(input).toBeInViewport();

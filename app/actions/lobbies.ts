@@ -13,6 +13,8 @@ import {
   findOpenLobby,
   MAX_INVITES,
   MAX_TIMER_MINUTES,
+  updateLobbySettings,
+  type LobbySettings,
 } from "@/lib/lobbies";
 import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
 import { TEXT_LENGTHS } from "@/lib/texts";
@@ -20,15 +22,8 @@ import { TEXT_LENGTHS } from "@/lib/texts";
 // error est une clé de traduction (Lobbies.errors).
 export type JoinFormState = { error?: string; code?: string } | undefined;
 
-// Tout utilisateur connecté, invité compris, peut créer une course (LOB-5).
-export async function createLobbyAction(formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/");
-
-  const visibility = z
-    .enum(["public", "unlisted", "private"])
-    .catch("unlisted")
-    .parse(formData.get("visibility"));
+// Réglages communs à la création et à la relance d'un lobby.
+function parseSettings(formData: FormData): LobbySettings {
   // Langue du texte indépendante de celle de l'interface (TXT-1, TXT-2).
   const textLanguage = z.enum(["fr", "en"]).catch("fr").parse(formData.get("textLanguage"));
   const textLength = z.coerce
@@ -47,12 +42,19 @@ export async function createLobbyAction(formData: FormData) {
     .catch(DEFAULT_TIMER_MINUTES)
     .parse(formData.get("timerMinutes"));
   const timeLimitSeconds = formData.get("noTimer") ? null : timerMinutes * 60;
-  const lobby = await createLobby(user.id, visibility, {
-    textLanguage,
-    textLength,
-    errorMode,
-    timeLimitSeconds,
-  });
+  return { textLanguage, textLength, errorMode, timeLimitSeconds };
+}
+
+// Tout utilisateur connecté, invité compris, peut créer une course (LOB-5).
+export async function createLobbyAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
+  const visibility = z
+    .enum(["public", "unlisted", "private"])
+    .catch("unlisted")
+    .parse(formData.get("visibility"));
+  const lobby = await createLobby(user.id, visibility, parseSettings(formData));
   redirect(`/lobbies/${lobby.code}`);
 }
 
@@ -89,6 +91,17 @@ export async function createInvitesAction(formData: FormData) {
   }
   await createInvites(lobby.id, count.data);
   refresh();
+}
+
+// L'hôte change les réglages avant de relancer le même lobby, puis y retourne (LOB-9).
+export async function updateLobbySettingsAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
+  const lobby = await findOpenLobby(String(formData.get("code") ?? ""));
+  if (!lobby || lobby.hostId !== user.id) redirect("/lobbies");
+  await updateLobbySettings(lobby.id, parseSettings(formData));
+  redirect(`/lobbies/${lobby.code}`);
 }
 
 // Sans session, ouvrir un lien fait jouer en invité.
