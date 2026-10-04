@@ -34,9 +34,7 @@ export function normalizeCode(input: string): string {
 export async function createLobby(
   hostId: string,
   visibility: Lobby["visibility"],
-  settings?: Partial<
-    Pick<Lobby, "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds">
-  >,
+  settings?: Partial<LobbySettings>,
 ): Promise<Lobby> {
   // On réessaie en cas de collision avec un code existant.
   for (;;) {
@@ -48,6 +46,11 @@ export async function createLobby(
     if (lobby) return lobby;
   }
 }
+
+export type LobbySettings = Pick<
+  Lobby,
+  "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds"
+>;
 
 export async function findOpenLobby(code: string): Promise<Lobby | null> {
   const [lobby] = await db
