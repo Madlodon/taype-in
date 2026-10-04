@@ -258,6 +258,9 @@
     "bestWpm": "Best speed (WPM)",
     "averageWpm": "Average speed (WPM)",
     "averageAccuracy": "Average accuracy",
+    "progression": "Progression",
+    "progressionHint": "{count, plural, one {Last race} other {Last # races}}, without bonuses.",
+    "noProgression": "Finish a race without bonuses to see your progress.",
     "history": "Race history",
     "noRaces": "No races yet.",
     "date": "Date",
@@ -286,12 +289,13 @@
   "Garage": {
     "tag": "Your ride. Your style.",
     "title": "Garage",
-    "description": "Pick your car and dress it up. Purely cosmetic: it never changes your speed.",
+    "description": "Pick your car, accessories, and stadium. Purely cosmetic: it never changes your speed.",
     "categories": {
       "car": "Car",
       "boost": "Boost",
       "hat": "Hat",
-      "ball": "Ball"
+      "ball": "Ball",
+      "stadium": "Stadium"
     },
     "items": {
       "car": {
@@ -320,6 +324,11 @@
         "emerald": "Emerald",
         "glacier": "Glacier",
         "solar": "Solar"
+      },
+      "stadium": {
+        "diorama": "3D diorama",
+        "cutaway": "Stadium cutaway",
+        "top-down": "Top-down"
       }
     },
     "preview": "Preview",
@@ -331,6 +340,7 @@
     "errors": {
       "guest": "Create an account to save your garage.",
       "invalid": "This item doesn't exist."
-    }
+    },
+    "stadiumPreview": "Stadium preview"
   }
 }

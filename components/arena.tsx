@@ -4,6 +4,8 @@ import { CarHat } from "@/components/car-hat";
 import { CarBoost } from "@/components/car-boost";
 import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
+import { STADIUM_IMAGES, type Stadium } from "@/lib/garage-items";
+import { stadiumPosition, stadiumRoute } from "@/lib/stadium-track";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
 export function arenaPosition(progress: number) {
@@ -55,11 +57,28 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
 // Une voiture par joueur affiché sur la piste (CRS-2) : la tienne en bleu, les autres en orange.
 export type TrackCar = { id: string; name: string; progress: number; you: boolean };
 
-type ArenaProps = { progress?: number; cars?: TrackCar[]; className?: string };
+type ArenaProps = { progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium };
 
-export function Arena({ progress, cars, className = "" }: ArenaProps) {
+export function Arena({ progress, cars, className = "", stadium }: ArenaProps) {
   const id = useId().replaceAll(":", "");
   const position = arenaPosition(progress ?? 0.16);
+  if (stadium) {
+    const racers = cars ?? [{ id: "preview", name: "", progress: progress ?? .16, you: true }];
+    return <svg className={`arena ${className}`} viewBox="0 0 1400 900" fill="none" aria-hidden="true" data-stadium={stadium}>
+      <image href={STADIUM_IMAGES[stadium]} width="1400" height="900" />
+      <path d={stadiumRoute(stadium).map((point, index) => `${index ? "L" : "M"}${point.x} ${point.y}`).join(" ")}
+        stroke="#e3f3ff" strokeOpacity=".4" strokeWidth="2" strokeDasharray="5 10" />
+      {[...racers].sort((a, b) => Number(a.you) - Number(b.you)).map(car => {
+        const at = stadiumPosition(car.progress, stadium);
+        return <g key={car.id}>
+          <g transform={`translate(${at.x} ${at.y}) scale(.65)`}>
+            <Car x={0} y={0} angle={at.angle} orange={!car.you} />
+          </g>
+          {car.name && <text x={at.x} y={at.y - 22} textAnchor="middle" className="car-tag">{car.name}</text>}
+        </g>;
+      })}
+    </svg>;
+  }
   return (
     <svg className={`arena ${className}`} viewBox="0 0 960 500" fill="none" aria-hidden="true">
       <defs>

@@ -24,6 +24,7 @@ const alex = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  stadium: "diorama",
   rankLevel: 0,
   createdAt: new Date(),
 };
@@ -191,4 +192,26 @@ test.each([
   await renderProfile();
 
   expect(screen.queryByLabelText(/Photo de profil/)).toBeNull();
+});
+
+test("Should_ShowProgressionEmptyState_When_NoRaceCounts", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue([entry({ finished: false })]);
+
+  await renderProfile();
+
+  expect(screen.getByText("Termine une course sans bonus pour voir ta progression.")).toBeDefined();
+  expect(screen.queryByRole("figure")).toBeNull();
+});
+
+test("Should_ShowSpeedAndAccuracyCharts_When_UserHasFinishedRaces", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue([entry({ wpm: 60 }), entry({ wpm: 40 })]);
+
+  await renderProfile();
+
+  const progression = screen.getByRole("region", { name: "Progression" });
+  expect(within(progression).getByText("2 dernières courses, sans bonus.")).toBeDefined();
+  const captions = within(progression)
+    .getAllByRole("figure")
+    .map((figure) => figure.querySelector("figcaption")?.textContent);
+  expect(captions).toEqual(["MPM", "Précision"]);
 });

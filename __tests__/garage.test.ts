@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { getLoadout, saveLoadout } from "../lib/garage";
-import { BALLS, BOOSTS, HATS, DEFAULT_LOADOUT, loadoutSchema } from "../lib/garage-items";
+import { BALLS, BOOSTS, HATS, STADIUMS, DEFAULT_LOADOUT, loadoutSchema } from "../lib/garage-items";
 
 const createdIds: string[] = [];
 
@@ -34,12 +34,12 @@ afterAll(async () => {
 test("Should_GiveOctaneWithStandardBoostAndNoHatOrBall_When_UserIsNew", async () => {
   const user = await newUser();
 
-  expect(await getLoadout(user.id)).toEqual({ car: "octane", boost: "standard", hat: "none", ball: "none" });
+  expect(await getLoadout(user.id)).toEqual({ car: "octane", boost: "standard", hat: "none", ball: "none", stadium: "diorama" });
 });
 
 test("Should_ReturnSavedChoice_When_LoadoutWasSaved", async () => {
   const user = await newUser();
-  const loadout = { car: "fennec", boost: "flames", hat: "cone", ball: "beach" } as const;
+  const loadout = { car: "fennec", boost: "flames", hat: "cone", ball: "beach", stadium: "diorama" } as const;
 
   await saveLoadout(user.id, loadout);
 
@@ -88,4 +88,17 @@ test.each(BALLS)("Should_ReturnSavedBall_When_Saving_%s", async (ball) => {
   expect(loadoutSchema.safeParse(loadout).success).toBe(true);
   await saveLoadout(user.id, loadout);
   expect(await getLoadout(user.id)).toEqual(loadout);
+});
+
+test.each(STADIUMS)("Should_RestoreSavedStadium_When_Saving_%s", async stadium => {
+  const user = await newUser();
+  const loadout = { ...DEFAULT_LOADOUT, stadium };
+  await saveLoadout(user.id, loadout);
+  expect(await getLoadout(user.id)).toEqual(loadout);
+});
+
+test("Should_DefaultOnlyStadium_When_StoredStadiumIsUnknown", async () => {
+  const user = await newUser();
+  await db.update(users).set({ stadium: "retired", car: "fennec" }).where(eq(users.id, user.id));
+  expect(await getLoadout(user.id)).toEqual({ ...DEFAULT_LOADOUT, car: "fennec" });
 });

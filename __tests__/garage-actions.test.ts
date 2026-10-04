@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { saveLoadoutAction } from "../app/actions/garage";
 import { saveLoadout } from "../lib/garage";
 import { getCurrentUser } from "../lib/session-cookie";
+import { revalidatePath } from "next/cache";
+import { STADIUMS } from "../lib/garage-items";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(() => {
@@ -12,6 +14,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("../lib/garage", () => ({ saveLoadout: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const aUser = {
   id: "user-1",
@@ -22,6 +25,7 @@ const aUser = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  stadium: "diorama",
   rankLevel: 0,
   createdAt: new Date(),
 };
@@ -33,7 +37,7 @@ function form(fields: Record<string, string>) {
   return data;
 }
 
-const choice = { car: "dominus", boost: "flames", hat: "cone", ball: "beach" };
+const choice = { car: "dominus", boost: "flames", hat: "cone", ball: "beach", stadium: "diorama" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -80,4 +84,17 @@ test.each(["standard", "flames", "ion", "sparkles"])("Should_SaveBoost_When_Sele
   const loadout = { ...choice, boost };
   expect(await saveLoadoutAction(undefined, form(loadout))).toEqual({ saved: true });
   expect(saveLoadout).toHaveBeenCalledWith("user-1", loadout);
+});
+
+test.each(STADIUMS)("Should_SaveStadiumAndRefreshRacePages_When_Selecting_%s", async stadium => {
+  const loadout = { ...choice, stadium };
+  expect(await saveLoadoutAction(undefined, form(loadout))).toEqual({ saved: true });
+  expect(saveLoadout).toHaveBeenCalledWith("user-1", loadout);
+  expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+});
+
+test("Should_RejectUnknownStadium_WithoutSaving", async () => {
+  expect(await saveLoadoutAction(undefined, form({ ...choice, stadium: "unknown" }))).toEqual({ error: "invalid" });
+  expect(saveLoadout).not.toHaveBeenCalled();
+  expect(revalidatePath).not.toHaveBeenCalled();
 });

@@ -3,8 +3,9 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Arena } from "@/components/arena";
+import type { Stadium } from "@/lib/garage-items";
 
-export function RacePreview() {
+export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
   const t = useTranslations("Race");
   const prompt = t("prompt");
   const [typed, setTyped] = useState("");
@@ -55,7 +56,7 @@ export function RacePreview() {
       </div>
     </dl>
     <div className="race-arena">
-      <Arena progress={progress} />
+      <Arena progress={progress} stadium={stadium} />
       <div className="race-track" role="progressbar" aria-label={t("track")} aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
         <div style={{ width: `${progress * 100}%` }} />
       </div>

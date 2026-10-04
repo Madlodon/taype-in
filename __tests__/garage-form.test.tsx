@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { GarageForm } from "../components/garage-form";
-import { BALLS, BOOSTS, CARS, HATS, DEFAULT_LOADOUT } from "../lib/garage-items";
+import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, DEFAULT_LOADOUT } from "../lib/garage-items";
 import en from "../messages/en.json";
 
 function garage(guest = false) {
@@ -12,6 +12,27 @@ function garage(guest = false) {
 }
 
 afterEach(cleanup);
+
+test.each(STADIUMS)("Should_PreviewSubmitAndRestoreStadium_When_Selecting_%s", stadium => {
+  garage();
+  fireEvent.click(screen.getByLabelText(en.Garage.items.stadium[stadium]));
+  expect(new FormData(document.querySelector("form")!).get("stadium")).toBe(stadium);
+  const preview = screen.getByRole("group", { name: "Stadium preview" });
+  expect(within(preview).getByRole("heading", { name: en.Garage.items.stadium[stadium] })).toBeTruthy();
+  expect(decodeURIComponent(preview.querySelector("img")!.getAttribute("src")!)).toContain(STADIUM_IMAGES[stadium]);
+  cleanup();
+  render(<NextIntlClientProvider locale="en" messages={en}>
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, stadium }} guest={false} />
+  </NextIntlClientProvider>);
+  expect((screen.getByLabelText(en.Garage.items.stadium[stadium]) as HTMLInputElement).checked).toBe(true);
+});
+
+test("Should_AllowStadiumPreviewWithoutSaving_When_UserIsGuest", () => {
+  garage(true);
+  fireEvent.click(screen.getByLabelText("Top-down"));
+  expect(within(screen.getByRole("group", { name: "Stadium preview" })).getByRole("heading", { name: "Top-down" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Save my garage" })).toBeNull();
+});
 
 test("Should_UpdatePreview_When_ChoosingItems", () => {
   garage();
