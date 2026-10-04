@@ -692,6 +692,35 @@ a, button, input {
   gap: 0 12px;
 }
 
+.stadium-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.stadium-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.stadium-option:has(input:checked) {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
+.stadium-option input { accent-color: var(--primary); }
+.stadium-option img { grid-column: 1 / -1; grid-row: 1; }
+.stadium-option img, .stadium-preview { width: 100%; height: auto; border-radius: 6px; }
+.stadium-preview { margin-top: 12px; }
+
 .garage-preview {
   width: 100%;
   height: auto;
@@ -989,6 +1018,13 @@ a, button, input {
   max-height: 260px;
   background: #142b47;
 }
+
+.race-arena .arena[data-stadium] {
+  max-height: 420px;
+  background: #080f18;
+}
+
+.arena[data-stadium] .car-tag { font-size: 30px; }
 
 .race-track {
   height: 5px;
