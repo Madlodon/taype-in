@@ -1,6 +1,6 @@
 // Résultats d'une course : vitesse, précision, temps et classement (FIN-1, FIN-2, ERR-3),
-// enregistrés dans l'historique des utilisateurs inscrits (FIN-4).
-import { and, eq, inArray } from "drizzle-orm";
+// enregistrés dans l'historique de chaque joueur, invités compris (FIN-4, PROF-5).
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { results, users } from "../db/schema.ts";
 import { clampRankLevel, rankMoves } from "./ranks.ts";
@@ -71,27 +71,19 @@ export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMod
   }));
 }
 
-// Seuls les inscrits gardent un historique ; les invités occupent quand même leur rang.
+// Invités compris : leurs stats de session (PROF-5) les suivent s'ils s'inscrivent (AUTH-7).
 export async function saveResults(raceId: string, ranked: Placement[]) {
-  if (ranked.length === 0) return;
-  const registered = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(and(inArray(users.id, ranked.map((result) => result.id)), eq(users.isGuest, false)));
-  const ids = new Set(registered.map((user) => user.id));
-  const rows = ranked
-    .filter((result) => ids.has(result.id))
-    .map((result) => ({
-      raceId,
-      userId: result.id,
-      rank: result.rank,
-      wpm: result.wpm,
-      accuracy: result.accuracy,
-      durationMs: result.durationMs,
-      errorCount: result.errors,
-      finished: result.finished,
-      keyErrors: result.keyErrors,
-    }));
+  const rows = ranked.map((result) => ({
+    raceId,
+    userId: result.id,
+    rank: result.rank,
+    wpm: result.wpm,
+    accuracy: result.accuracy,
+    durationMs: result.durationMs,
+    errorCount: result.errors,
+    finished: result.finished,
+    keyErrors: result.keyErrors,
+  }));
   if (rows.length > 0) await db.insert(results).values(rows);
 }
 
