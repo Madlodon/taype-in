@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
+import { Avatar } from "@/components/avatar";
 import { rankFromLevel } from "@/lib/ranks";
 import type { RaceResult } from "@/lib/socket-messages";
 
@@ -34,6 +35,7 @@ export function RaceResults({ results, userId }: Props) {
       <ol aria-label={t("podium")} className="podium">
         {results.slice(0, 3).map((result) => (
           <li key={result.id}>
+            <Avatar userId={result.id} size={40} />
             <span className="podium-name">{name(result)}</span>
             <span>{t("wpmValue", { value: Math.round(result.wpm) })}</span>
             <span className="podium-step">{result.rank}</span>
@@ -58,7 +60,12 @@ export function RaceResults({ results, userId }: Props) {
             {results.map((result) => (
               <tr key={result.id} className={result.id === userId ? "ranking-you" : undefined}>
                 <td>{result.rank}</td>
-                <th scope="row">{name(result)}</th>
+                <th scope="row">
+                  <span className="player-cell">
+                    <Avatar userId={result.id} size={24} />
+                    {name(result)}
+                  </span>
+                </th>
                 <td>{Math.round(result.wpm)}</td>
                 <td>{t("percent", { value: Math.round(result.accuracy) })}</td>
                 <td>

@@ -997,6 +997,12 @@ a, button, input {
   margin-right: 8px;
 }
 
+.player-cell {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .race-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

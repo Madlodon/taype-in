@@ -134,3 +134,13 @@ test("Should_ShowSupersonicLegendWithoutDivision_When_PlayerIsAtTheTop", () => {
 
   expect(rows()[0][6]).toBe("Supersonic Legend ▲up a division");
 });
+
+test("Should_ShowEachPlayerPhoto_When_RaceIsOver", () => {
+  renderResults([1, 2, 3, 4].map((rank) => result(rank)));
+
+  const table = screen.getByRole("table", { name: "Classement complet" });
+  const sources = [...table.querySelectorAll("tbody img")].map((img) => img.getAttribute("src"));
+  expect(sources).toEqual(["/avatars/u1", "/avatars/u2", "/avatars/u3", "/avatars/u4"]);
+  const podiumImages = screen.getByRole("list", { name: "Podium" }).querySelectorAll("img");
+  expect(podiumImages).toHaveLength(3);
+});
