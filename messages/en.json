@@ -322,6 +322,7 @@
     "tag": "Your ride. Your style.",
     "title": "Garage",
     "description": "Pick your car, accessories, and stadium. Purely cosmetic: it never changes your speed.",
+    "lockedAt": "Level {level}",
     "categories": {
       "car": "Car",
       "boost": "Boost",

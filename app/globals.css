@@ -686,6 +686,19 @@ a, button, input {
   flex-shrink: 0;
 }
 
+.radio-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.lock-level {
+  display: block;
+  color: var(--muted);
+  font: 10px var(--font-jetbrains-mono);
+  letter-spacing: .7px;
+  text-transform: uppercase;
+}
+
 .garage-options {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));

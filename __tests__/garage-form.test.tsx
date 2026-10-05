@@ -6,9 +6,9 @@ import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, DEFAULT_LOADOUT } 
 import en from "../messages/en.json";
 import fr from "../messages/fr.json";
 
-function garage(guest = false) {
+function garage(guest = false, level = 15) {
   render(<NextIntlClientProvider locale="en" messages={en}>
-    <GarageForm action={vi.fn()} initial={DEFAULT_LOADOUT} guest={guest} />
+    <GarageForm action={vi.fn()} initial={DEFAULT_LOADOUT} guest={guest} level={level} />
   </NextIntlClientProvider>);
 }
 
@@ -16,7 +16,7 @@ afterEach(cleanup);
 
 test.each([["en", en], ["fr", fr]] as const)("Should_PreviewAndSubmitGoldSet_When_LocaleIs_%s", (locale, messages) => {
   render(<NextIntlClientProvider locale={locale} messages={messages}>
-    <GarageForm action={vi.fn()} initial={DEFAULT_LOADOUT} guest={false} />
+    <GarageForm action={vi.fn()} initial={DEFAULT_LOADOUT} guest={false} level={15} />
   </NextIntlClientProvider>);
   const items = messages.Garage.items;
   for (const label of [items.boost.alpha, items.hat["alpha-cap"], items.ball.gold]) {
@@ -46,13 +46,13 @@ test.each(STADIUMS)("Should_PreviewSubmitAndRestoreStadium_When_Selecting_%s", s
   expect(decodeURIComponent(preview.querySelector("img")!.getAttribute("src")!)).toContain(STADIUM_IMAGES[stadium]);
   cleanup();
   render(<NextIntlClientProvider locale="en" messages={en}>
-    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, stadium }} guest={false} />
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, stadium }} guest={false} level={15} />
   </NextIntlClientProvider>);
   expect((screen.getByLabelText(en.Garage.items.stadium[stadium]) as HTMLInputElement).checked).toBe(true);
 });
 
 test("Should_AllowStadiumPreviewWithoutSaving_When_UserIsGuest", () => {
-  garage(true);
+  garage(true, 1);
   fireEvent.click(screen.getByLabelText("Top-down"));
   expect(within(screen.getByRole("group", { name: "Stadium preview" })).getByRole("heading", { name: "Top-down" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save my garage" })).toBeNull();
@@ -108,14 +108,14 @@ test.each(CARS)("Should_KeepAccessories_When_Selecting_%s", (car) => {
 
 test.each(CARS)("Should_PreviewSavedBody_When_Loading_%s", (car) => {
   render(<NextIntlClientProvider locale="en" messages={en}>
-    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, car }} guest={false} />
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, car }} guest={false} level={15} />
   </NextIntlClientProvider>);
   expect((screen.getByLabelText(en.Garage.items.car[car]) as HTMLInputElement).checked).toBe(true);
   expect(screen.getByRole("img").querySelector(`[data-body="${car}"]`)).toBeTruthy();
 });
 
 test("Should_HideSaveButtonAndInviteToSignUp_When_UserIsGuest", () => {
-  garage(true);
+  garage(true, 1);
 
   expect(screen.queryByRole("button", { name: "Save my garage" })).toBeNull();
   expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe("/signup");
@@ -130,7 +130,7 @@ test.each(BOOSTS)("Should_PreviewAndSubmitBoost_When_Selecting_%s", (boost) => {
 
 test.each(BOOSTS)("Should_PreviewSavedBoost_When_Loading_%s", (boost) => {
   render(<NextIntlClientProvider locale="en" messages={en}>
-    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, boost }} guest={false} />
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, boost }} guest={false} level={15} />
   </NextIntlClientProvider>);
   expect((screen.getByLabelText(en.Garage.items.boost[boost]) as HTMLInputElement).checked).toBe(true);
   expect(screen.getByRole("img").querySelector(`[data-item="${boost}"]`)).toBeTruthy();
@@ -153,7 +153,7 @@ test.each(HATS)("Should_PreviewSubmitAndRemoveHat_When_Selecting_%s", (hat) => {
 
 test.each(HATS)("Should_PreviewSavedHat_When_Loading_%s", (hat) => {
   render(<NextIntlClientProvider locale="en" messages={en}>
-    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, hat }} guest={false} />
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, hat }} guest={false} level={15} />
   </NextIntlClientProvider>);
   const hats = within(screen.getByRole("group", { name: "Hat" }));
   expect((hats.getByLabelText(en.Garage.items.hat[hat]) as HTMLInputElement).checked).toBe(true);
@@ -170,8 +170,30 @@ test.each(BALLS)("Should_PreviewSubmitAndRestoreBall_When_Selecting_%s", (ball) 
   if (ball !== "none") expect(screen.getByRole("img").querySelector(`[data-item="${ball}"]`)).toBeTruthy();
   cleanup();
   render(<NextIntlClientProvider locale="en" messages={en}>
-    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, ball }} guest={false} />
+    <GarageForm action={vi.fn()} initial={{ ...DEFAULT_LOADOUT, ball }} guest={false} level={15} />
   </NextIntlClientProvider>);
   expect((within(screen.getByRole("group", { name: "Ball" })).getByLabelText(en.Garage.items.ball[ball]) as HTMLInputElement).checked).toBe(true);
   if (ball !== "none") expect(screen.getByRole("img").querySelector(`[data-item="${ball}"]`)).toBeTruthy();
+});
+
+test("Should_LockItemsAboveLevel_When_PlayerIsLevelThree", () => {
+  garage(false, 3);
+
+  expect((screen.getByLabelText("Flames") as HTMLInputElement).disabled).toBe(false);
+  const ion = screen.getByLabelText(/^Ion/) as HTMLInputElement;
+  expect(ion.disabled).toBe(true);
+  expect(ion.closest("label")!.textContent).toBe("IonLevel 6");
+});
+
+test("Should_LockEveryItemButDefaultsAndStadiums_When_UserIsGuest", () => {
+  garage(true, 1);
+
+  const enabled = [...document.querySelectorAll<HTMLInputElement>("input[type=radio]:not(:disabled)")];
+  expect(enabled.map((input) => `${input.name}:${input.value}`)).toEqual([
+    "car:octane",
+    "boost:standard",
+    "hat:none",
+    "ball:none",
+    ...STADIUMS.map((stadium) => `stadium:${stadium}`),
+  ]);
 });

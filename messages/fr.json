@@ -322,6 +322,7 @@
     "tag": "Ton bolide. Ton style.",
     "title": "Garage",
     "description": "Choisis ta voiture, tes accessoires et ton stade. Purement esthétique : ta vitesse ne change jamais.",
+    "lockedAt": "Niveau {level}",
     "categories": {
       "car": "Voiture",
       "boost": "Boost",
