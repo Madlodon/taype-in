@@ -411,6 +411,34 @@ test("Should_ShowXpLevelUpAndUnlocks_When_RegisteredRacerWins", async ({ browser
   await expect(page.getByRole("radio", { name: "Cône orange", exact: true })).toBeEnabled();
 });
 
+test("Should_ColourMissedKeyForEveryone_When_RaceEndsWithErrors", async ({ browser }) => {
+  test.slow();
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+  const input = host.page.getByRole("textbox", { name: "Tape le texte" });
+  await expect(input).toBeFocused({ timeout: 8000 });
+  player.page.once("dialog", (dialog) => dialog.accept());
+  await player.page.getByRole("button", { name: "Abandonner" }).click();
+  const text = (await host.page.locator(".typing-text").textContent())!;
+
+  // Mode bloquant : deux fausses touches sur la première lettre, puis tout le texte.
+  await host.page.keyboard.type("##");
+  await host.page.keyboard.type(text);
+
+  // Chacun voit d'abord son propre clavier : le joueur a abandonné sans faute.
+  await expect(player.page.getByText("Aucune faute : une course parfaite !")).toBeVisible();
+  await player.page.getByRole("combobox", { name: "Afficher" }).selectOption({ label: host.name });
+  for (const { page } of [host, player]) {
+    const missed = page.getByRole("region", { name: "Heatmap du clavier" }).locator(".heat-4");
+    await expect(missed).toHaveCount(1);
+    await expect(missed).toContainText("2 fautes");
+  }
+});
+
 test("Should_ShowSessionStatsAndKeepThemOnSignUp_When_GuestRaced", async ({ browser }) => {
   const host = await newGuest(browser);
   const code = await createRace(host.page, /Non répertoriée/);

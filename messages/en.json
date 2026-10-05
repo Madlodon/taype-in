@@ -156,6 +156,15 @@
       "supersonicLegend": "Supersonic Legend"
     }
   },
+  "KeyboardHeatmap": {
+    "title": "Keyboard heatmap",
+    "show": "Show",
+    "wholeRace": "Whole race",
+    "space": "Space",
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "noErrors": "No errors: a clean race!",
+    "extras": "Other characters"
+  },
   "SessionStats": {
     "title": "{count, plural, one {This session: # race} other {This session: # races in a row}}",
     "averageWpm": "Average speed (WPM)",

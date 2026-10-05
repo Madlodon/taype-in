@@ -16,6 +16,7 @@ import {
 } from "@/lib/socket-messages";
 import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
 import { Arena } from "@/components/arena";
+import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
 import { RaceResults } from "@/components/race-results";
 import { RaceTyping } from "@/components/race-typing";
 import { SessionStats } from "@/components/session-stats";
@@ -331,6 +332,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
           </p>
         )}
         {endReason && <RaceResults results={results} userId={userId} />}
+        {endReason && <KeyboardHeatmap results={results} userId={userId} />}
         {endReason && <SessionStats load={loadSessionStats} />}
         {race && (
           <>
