@@ -511,6 +511,7 @@ test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {
     within(screen.getByRole("list", { name: "Podium" })).getAllByRole("listitem"),
   ).toHaveLength(2);
   expect(screen.getByRole("table", { name: "Classement complet" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Heatmap du clavier" })).toBeTruthy();
 });
 
 test("Should_ShowNoResults_When_RaceIsRunning", () => {
@@ -519,6 +520,7 @@ test("Should_ShowNoResults_When_RaceIsRunning", () => {
   startRace(["u1", "u3"]);
 
   expect(screen.queryByRole("heading", { name: "Résultats" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Heatmap du clavier" })).toBeNull();
 });
 
 test("Should_SendTypedTextAndErrorsToServer_When_RacerTypes", () => {
