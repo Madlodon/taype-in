@@ -958,6 +958,92 @@ a, button, input {
   overflow-wrap: break-word;
 }
 
+/* Heatmap du clavier en fin de course (FIN-3) : plus une touche a de fautes, plus elle est rouge.
+   Le clavier défile de côté sur un petit écran sans élargir la page. */
+.heatmap-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.heatmap-select select {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 0;
+  min-width: 100%;
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.heat-row {
+  display: flex;
+  gap: 6px;
+}
+
+.heat-extras {
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.heat-key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 46px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: var(--surface);
+  font: 11px var(--font-jetbrains-mono);
+  line-height: 1.2;
+}
+
+.heat-key kbd {
+  font: inherit;
+  font-size: 15px;
+}
+
+.heat-space {
+  min-width: 260px;
+}
+
+.heat-1 {
+  background: color-mix(in srgb, var(--wrong) 20%, var(--surface));
+}
+
+.heat-2 {
+  background: color-mix(in srgb, var(--wrong) 40%, var(--surface));
+}
+
+.heat-3 {
+  background: color-mix(in srgb, var(--wrong) 65%, var(--surface));
+}
+
+.heat-4 {
+  border-color: var(--wrong);
+  background: var(--wrong);
+  color: var(--surface);
+  font-weight: 700;
+}
+
 /* Graphiques de progression du profil (PROF-4). */
 .progression {
   margin-bottom: 20px;
