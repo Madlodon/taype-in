@@ -1,10 +1,11 @@
 // Résultats d'une course : vitesse, précision, temps et classement (FIN-1, FIN-2, ERR-3),
 // enregistrés dans l'historique de chaque joueur, invités compris (FIN-4, PROF-5).
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { results, users } from "../db/schema.ts";
 import { clampRankLevel, rankMoves } from "./ranks.ts";
 import type { ErrorMode } from "./typing.ts";
+import { raceXp } from "./xp.ts";
 import type { ProgressMessage, RaceResult } from "./socket-messages.ts";
 
 // Ce que le serveur sait d'un coureur à la fin ; reachedAt = moment où il a atteint sa position.
@@ -17,7 +18,7 @@ export type Racer = ProgressMessage & {
 };
 
 // Place d'un coureur avant la mise à jour des rangs (#99).
-export type Placement = Omit<RaceResult, "rankLevel" | "rankChange">;
+export type Placement = Omit<RaceResult, "rankLevel" | "rankChange" | "xp" | "xpGained">;
 
 // Mode tolérant : chaque faute ajoute 1 s au temps (Q-7).
 export const PENALTY_MS_PER_ERROR = 1000;
@@ -107,6 +108,39 @@ export async function updateRanks(orderedIds: string[]): Promise<Map<string, Ran
       const after = clampRankLevel(before + moves[index]);
       if (after !== before) await tx.update(users).set({ rankLevel: after }).where(eq(users.id, id));
       updates.set(id, { rankLevel: after, rankChange: after - before });
+    }
+  });
+  return updates;
+}
+
+export type XpUpdate = { xp: number | null; xpGained: number };
+
+// XP aux inscrits selon leur place (#35) ; un invité n'en gagne pas (xp = null).
+export async function awardXp(ranked: Placement[]): Promise<Map<string, XpUpdate>> {
+  const updates = new Map<string, XpUpdate>();
+  if (ranked.length === 0) return updates;
+  await db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ id: users.id, xp: users.xp, isGuest: users.isGuest })
+      .from(users)
+      .where(inArray(users.id, ranked.map((placement) => placement.id)));
+    for (const row of rows) {
+      if (row.isGuest) {
+        updates.set(row.id, { xp: null, xpGained: 0 });
+        continue;
+      }
+      const placement = ranked.find((candidate) => candidate.id === row.id)!;
+      const xpGained = raceXp(placement.rank, ranked.length, placement.finished);
+      if (xpGained === 0) {
+        updates.set(row.id, { xp: row.xp, xpGained });
+        continue;
+      }
+      const [updated] = await tx
+        .update(users)
+        .set({ xp: sql`${users.xp} + ${xpGained}` })
+        .where(eq(users.id, row.id))
+        .returning({ xp: users.xp });
+      updates.set(row.id, { xp: updated.xp, xpGained });
     }
   });
   return updates;
