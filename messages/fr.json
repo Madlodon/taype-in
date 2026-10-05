@@ -151,6 +151,15 @@
       "supersonicLegend": "Légende supersonique"
     }
   },
+  "KeyboardHeatmap": {
+    "title": "Heatmap du clavier",
+    "show": "Afficher",
+    "wholeRace": "Toute la course",
+    "space": "Espace",
+    "errors": "{count, plural, one {# faute} other {# fautes}}",
+    "noErrors": "Aucune faute : une course parfaite !",
+    "extras": "Autres caractères"
+  },
   "SessionStats": {
     "title": "{count, plural, one {Cette session : # course} other {Cette session : # courses d’affilée}}",
     "averageWpm": "Vitesse moyenne (MPM)",
