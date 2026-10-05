@@ -855,6 +855,25 @@ a, button, input {
   to { opacity: 0; }
 }
 
+/* XP gagnée à la fin d'une course (#35). */
+.xp-reward {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: baseline;
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  font-size: 13px;
+}
+
+.xp-gained {
+  font: 22px var(--font-display);
+  color: var(--accent-strong);
+}
+
 /* Podium du top 3 : le premier au centre, sur la plus haute marche (FIN-1). */
 .podium {
   display: flex;
