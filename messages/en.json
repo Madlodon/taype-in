@@ -151,6 +151,13 @@
       "supersonicLegend": "Supersonic Legend"
     }
   },
+  "SessionStats": {
+    "title": "{count, plural, one {This session: # race} other {This session: # races in a row}}",
+    "averageWpm": "Average speed (WPM)",
+    "bestWpm": "Best speed (WPM)",
+    "averageAccuracy": "Average accuracy",
+    "percent": "{value}%"
+  },
   "RaceTyping": {
     "label": "Type the text",
     "blocking": "Blocking mode: a wrong character stops you until you type the right one.",

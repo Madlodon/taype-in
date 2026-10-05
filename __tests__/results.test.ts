@@ -244,7 +244,7 @@ describe("saveResults", () => {
     ]);
   });
 
-  test("Should_SkipGuestButKeepRanks_When_GuestIsAhead", async () => {
+  test("Should_SaveGuestToo_When_GuestRaced", async () => {
     const guest = await newUser(true);
     const user = await newUser();
     const race = await newRace(user.id);
@@ -261,15 +261,15 @@ describe("saveResults", () => {
 
     const saved = await db.select().from(results).where(eq(results.raceId, race.id));
     expect(saved.map((row) => [row.userId, row.rank, row.finished])).toEqual([
+      [guest.id, 1, true],
       [user.id, 2, false],
     ]);
   });
 
-  test("Should_SaveNothing_When_OnlyGuestsRaced", async () => {
-    const guest = await newUser(true);
+  test("Should_SaveNothing_When_NobodyRaced", async () => {
     const race = await newRace((await newUser()).id);
 
-    await saveResults(race.id, rankRacers([racer({ id: guest.id })], TEXT, "blocking"));
+    await saveResults(race.id, []);
 
     expect(await db.select().from(results).where(eq(results.raceId, race.id))).toEqual([]);
   });
