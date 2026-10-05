@@ -38,6 +38,7 @@ const aUser = {
   ball: "none",
   stadium: "diorama",
   rankLevel: 0,
+  xp: 0,
   createdAt: new Date(),
 };
 const expiresAt = new Date("2026-10-29T00:00:00Z");
