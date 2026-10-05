@@ -686,6 +686,19 @@ a, button, input {
   flex-shrink: 0;
 }
 
+.radio-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.lock-level {
+  display: block;
+  color: var(--muted);
+  font: 10px var(--font-jetbrains-mono);
+  letter-spacing: .7px;
+  text-transform: uppercase;
+}
+
 .garage-options {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -853,6 +866,55 @@ a, button, input {
   10% { transform: scale(1); }
   80% { opacity: 1; }
   to { opacity: 0; }
+}
+
+/* Niveau du joueur sur son profil (#35). */
+.level-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.level-progress progress {
+  width: min(220px, 100%);
+  height: 8px;
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--border) 30%, transparent);
+  overflow: hidden;
+}
+
+.level-progress progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.level-progress progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.level-progress progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
+/* XP gagnée à la fin d'une course (#35). */
+.xp-reward {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: baseline;
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  font-size: 13px;
+}
+
+.xp-gained {
+  font: 22px var(--font-display);
+  color: var(--accent-strong);
 }
 
 /* Podium du top 3 : le premier au centre, sur la plus haute marche (FIN-1). */

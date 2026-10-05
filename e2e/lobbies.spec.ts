@@ -381,6 +381,36 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
   }
 });
 
+test("Should_ShowXpLevelUpAndUnlocks_When_RegisteredRacerWins", async ({ browser }) => {
+  test.slow();
+  const page = await (await browser.newContext()).newPage();
+  const username = `xp_${Date.now().toString(36)}`;
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(username);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  const code = await createRace(page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(page)).toHaveCount(2);
+  await page.getByRole("button", { name: "Lancer et courir" }).click();
+  await expect(page.getByRole("textbox", { name: "Tape le texte" })).toBeFocused({ timeout: 8000 });
+  player.page.once("dialog", (dialog) => dialog.accept());
+  await player.page.getByRole("button", { name: "Abandonner" }).click();
+
+  await page.keyboard.type((await page.locator(".typing-text").textContent())!);
+
+  // 1er sur 2 : 100 XP, du niveau 1 au niveau 2 (#35).
+  const reward = page.getByRole("status").filter({ hasText: "+100 XP" });
+  await expect(reward).toContainText("Niveau supérieur ! Niveau 2");
+  await expect(reward).toContainText("Débloqué : Cône orange et Ballon de plage.");
+  await expect(player.page.getByRole("heading", { name: "Résultats" })).toBeVisible();
+  await expect(player.page.getByText(/\+\d+ XP/)).toHaveCount(0);
+  await reward.getByRole("link", { name: "Voir au garage" }).click();
+  await expect(page.getByRole("radio", { name: "Cône orange", exact: true })).toBeEnabled();
+});
+
 test("Should_ColourMissedKeyForEveryone_When_RaceEndsWithErrors", async ({ browser }) => {
   test.slow();
   const host = await newGuest(browser);

@@ -1,4 +1,16 @@
 import { expect, test } from "@playwright/test";
+import postgres from "postgres";
+import { xpForLevel } from "../lib/xp";
+
+// La CI fournit DATABASE_URL ; en local, elle vient du .env.
+if (!process.env.DATABASE_URL) process.loadEnvFile();
+
+// Gagner 15 niveaux en course serait trop long : on donne l'XP directement (#35).
+async function giveLevel(username: string, level: number) {
+  const sql = postgres(process.env.DATABASE_URL!);
+  await sql`update users set xp = ${xpForLevel(level)} where username = ${username}`;
+  await sql.end();
+}
 
 test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
   // Préfixe propre à ce fichier : auth.spec.ts crée aussi des comptes en parallèle.
@@ -8,6 +20,7 @@ test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
   await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await giveLevel(username, 15);
 
   await page.getByRole("navigation").getByRole("link", { name: "Garage" }).click();
   await expect(page).toHaveURL("/garage");
@@ -49,14 +62,35 @@ test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
   await expect(plume).toHaveCSS("animation-name", "none");
 });
 
+test("Should_LockItemsAboveLevel_When_NewUserOpensGarage", async ({ page }) => {
+  const username = `garage_new_${Date.now().toString(36)}`;
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(username);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+
+  await page.goto("/garage");
+  await expect(page.getByRole("radio", { name: "Cône orange Niveau 2" })).toBeDisabled();
+  await expect(page.getByRole("radio", { name: "Fennec Niveau 12" })).toBeDisabled();
+  await expect(page.getByRole("radio", { name: "Octane", exact: true })).toBeEnabled();
+
+  await giveLevel(username, 2);
+  await page.reload();
+  await page.getByRole("radio", { name: "Cône orange", exact: true }).check();
+  await page.getByRole("button", { name: "Enregistrer mon garage" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Garage enregistré." })).toBeVisible();
+});
+
 test("Should_InviteToSignUp_When_GuestOpensGarage", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Jouer en invité" }).click();
   await expect(page.getByText(/Invité-\d{6} \(invité\)/)).toBeVisible();
   await page.getByRole("navigation").getByRole("link", { name: "Garage" }).click();
 
-  await page.getByRole("radio", { name: "Cône orange", exact: true }).check();
-  await expect(page.getByRole("img", { name: /chapeau : Cône orange/ })).toBeVisible();
+  // Les invités restent aux choix par défaut (#35).
+  await expect(page.getByRole("radio", { name: "Cône orange Niveau 2" })).toBeDisabled();
+  await page.getByRole("radio", { name: "Vue du dessus", exact: true }).check();
   await expect(page.getByRole("button", { name: "Enregistrer mon garage" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Créer un compte" })).toBeVisible();
 });

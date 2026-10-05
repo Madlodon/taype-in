@@ -13,6 +13,7 @@ import {
   type HistoryEntry,
 } from "@/lib/profile";
 import { getCurrentUser } from "@/lib/session-cookie";
+import { levelProgress } from "@/lib/xp";
 
 // Premiers mots d'un texte écrit par l'hôte, qui n'a pas de titre.
 function excerpt(content: string): string {
@@ -29,6 +30,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const avatarVersion = await getAvatarVersion(profile.id);
   const stats = computeStats(history);
   const progression = progressionPoints(history);
+  const level = levelProgress(profile.xp);
   const t = await getTranslations("Profile");
   const format = await getFormatter();
   const wpm = (value: number | null) => (value === null ? "—" : Math.round(value));
@@ -45,6 +47,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <div>
             <p className="eyebrow">{t("eyebrow")}</p>
             <h1 className="page-title">{profile.username}</h1>
+            {/* Les invités ne gagnent pas d'XP (#35). */}
+            {!profile.isGuest && (
+              <div className="level-progress">
+                <span className="badge">{t("level", { level: level.level })}</span>
+                <progress value={level.current} max={level.needed} aria-label={t("levelProgress")} />
+                <span className="description">
+                  {t("xpToNext", { current: level.current, needed: level.needed })}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         {isOwner && <span className="badge">{t("you")}</span>}

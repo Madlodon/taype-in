@@ -6,9 +6,11 @@ import { db } from "../db";
 import { lobbies, results, users } from "../db/schema";
 import { createLobby } from "../lib/lobbies";
 import { createRace } from "../lib/races";
+import { xpForLevel } from "../lib/xp";
 import {
   accuracy,
   countCorrect,
+  awardXp,
   rankRacers,
   saveResults,
   wordsPerMinute,
@@ -212,10 +214,6 @@ describe("saveResults", () => {
     await db.delete(users).where(inArray(users.id, ids));
   });
 
-  afterAll(async () => {
-    await db.$client.end();
-  });
-
   test("Should_SaveEveryStat_When_RacerIsRegistered", async () => {
     const user = await newUser();
     const race = await newRace(user.id);
@@ -273,4 +271,89 @@ describe("saveResults", () => {
 
     expect(await db.select().from(results).where(eq(results.raceId, race.id))).toEqual([]);
   });
+});
+
+describe("awardXp", () => {
+  const createdIds: string[] = [];
+
+  async function newUser({ isGuest = false, xp = 0 } = {}) {
+    const [user] = await db
+      .insert(users)
+      .values({ username: `t_${Math.random().toString(36).slice(2, 12)}`, isGuest, xp })
+      .returning();
+    createdIds.push(user.id);
+    return user;
+  }
+
+  async function savedXp(ids: string[]) {
+    const rows = await db.select({ id: users.id, xp: users.xp }).from(users).where(inArray(users.id, ids));
+    return ids.map((id) => rows.find((row) => row.id === id)!.xp);
+  }
+
+  afterEach(async () => {
+    await db.delete(users).where(inArray(users.id, createdIds.splice(0)));
+  });
+
+  test("Should_AddXpByPlace_When_EveryoneFinished", async () => {
+    const first = await newUser({ xp: 50 });
+    const second = await newUser();
+    const third = await newUser();
+    const ranked = rankRacers(
+      [
+        racer({ id: first.id, durationMs: 10_000 }),
+        racer({ id: second.id, durationMs: 20_000 }),
+        racer({ id: third.id, durationMs: 30_000 }),
+      ],
+      TEXT,
+      "blocking",
+    );
+
+    const updates = await awardXp(ranked);
+
+    expect(await savedXp([first.id, second.id, third.id])).toEqual([150, 60, 20]);
+    expect(updates.get(first.id)).toEqual({ xp: 150, xpGained: 100 });
+  });
+
+  test("Should_GiveNothing_When_RacerDidNotFinish", async () => {
+    const winner = await newUser();
+    const quitter = await newUser({ xp: xpForLevel(3) });
+    const ranked = rankRacers(
+      [racer({ id: winner.id }), racer({ id: quitter.id, typed: "c", finished: false })],
+      TEXT,
+      "blocking",
+    );
+
+    const updates = await awardXp(ranked);
+
+    expect(updates.get(quitter.id)).toEqual({ xp: xpForLevel(3), xpGained: 0 });
+    expect(await savedXp([winner.id, quitter.id])).toEqual([100, xpForLevel(3)]);
+  });
+
+  test("Should_CountGuestsButGiveThemNothing_When_GuestRaced", async () => {
+    const guest = await newUser({ isGuest: true });
+    const user = await newUser();
+    const ranked = rankRacers(
+      [racer({ id: guest.id, durationMs: 10_000 }), racer({ id: user.id, durationMs: 20_000 })],
+      TEXT,
+      "blocking",
+    );
+
+    const updates = await awardXp(ranked);
+
+    expect(updates.get(guest.id)).toEqual({ xp: null, xpGained: 0 });
+    expect(updates.get(user.id)).toEqual({ xp: 20, xpGained: 20 });
+    expect(await savedXp([guest.id])).toEqual([0]);
+  });
+
+  test("Should_GiveNothing_When_AloneInRace", async () => {
+    const user = await newUser();
+
+    const updates = await awardXp(rankRacers([racer({ id: user.id })], TEXT, "blocking"));
+
+    expect(updates.get(user.id)).toEqual({ xp: 0, xpGained: 0 });
+  });
+});
+
+afterAll(async () => {
+  await db.$client.end();
 });

@@ -26,6 +26,7 @@ const alex = {
   ball: "none",
   stadium: "diorama",
   rankLevel: 0,
+  xp: 0,
   createdAt: new Date(),
 };
 const sam = { ...alex, id: "2", username: "sam" };
@@ -214,4 +215,24 @@ test("Should_ShowSpeedAndAccuracyCharts_When_UserHasFinishedRaces", async () => 
     .getAllByRole("figure")
     .map((figure) => figure.querySelector("figcaption")?.textContent);
   expect(captions).toEqual(["MPM", "Précision"]);
+});
+
+test("Should_ShowLevelAndProgress_When_UserIsRegistered", async () => {
+  // 450 XP : niveau 3 (300 XP), 150 sur les 300 du niveau suivant.
+  vi.mocked(findProfileUser).mockResolvedValue({ ...alex, xp: 450 });
+
+  await renderProfile();
+
+  expect(screen.getByText("Niveau 3")).toBeDefined();
+  const bar = screen.getByRole("progressbar", { name: "Progression vers le niveau suivant" });
+  expect([bar.getAttribute("value"), bar.getAttribute("max")]).toEqual(["150", "300"]);
+  expect(screen.getByText("150 / 300 XP")).toBeDefined();
+});
+
+test("Should_HideLevel_When_ProfileIsGuest", async () => {
+  vi.mocked(findProfileUser).mockResolvedValue({ ...alex, isGuest: true, passwordHash: null });
+
+  await renderProfile();
+
+  expect(screen.queryByRole("progressbar")).toBeNull();
 });

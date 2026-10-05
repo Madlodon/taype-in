@@ -20,6 +20,8 @@ function result(rank: number, keyErrors: Record<string, number>): RaceResult {
     keyErrors,
     rankLevel: 0,
     rankChange: 0,
+    xp: 0,
+    xpGained: 0,
   };
 }
 

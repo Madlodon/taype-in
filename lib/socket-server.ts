@@ -15,7 +15,7 @@ import {
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
-import { rankRacers, saveResults, updateRanks } from "./results.ts";
+import { awardXp, rankRacers, saveResults, updateRanks } from "./results.ts";
 import {
   joinLobbySchema,
   MIN_RACERS,
@@ -152,9 +152,11 @@ export function createSocketServer(
     await markRaceEnded(live.raceId);
     await saveResults(live.raceId, placements);
     const ranks = await updateRanks(placements.map((placement) => placement.id));
+    const xp = await awardXp(placements);
     live.results = placements.map((placement) => ({
       ...placement,
       ...(ranks.get(placement.id) ?? { rankLevel: 0, rankChange: 0 }),
+      ...(xp.get(placement.id) ?? { xp: null, xpGained: 0 }),
     }));
     io.to(lobby.code).emit("race:ended", { reason, results: live.results });
   }

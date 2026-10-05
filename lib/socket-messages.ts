@@ -67,6 +67,9 @@ export type RaceResult = {
   // Rang après la course (lib/ranks.ts) et sa variation : +1, 0 ou -1 division (#99).
   rankLevel: number;
   rankChange: number;
+  // XP totale après la course et XP gagnée (#35) ; xp = null pour un invité.
+  xp: number | null;
+  xpGained: number;
 };
 
 // Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5), avec le classement final.
