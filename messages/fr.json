@@ -365,7 +365,8 @@
     "signUp": "Créer un compte",
     "errors": {
       "guest": "Crée un compte pour enregistrer ton garage.",
-      "invalid": "Cet objet n'existe pas."
+      "invalid": "Cet objet n'existe pas.",
+      "locked": "Cet objet n'est pas encore débloqué."
     },
     "stadiumPreview": "Aperçu du stade"
   }

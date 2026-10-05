@@ -365,7 +365,8 @@
     "signUp": "Create an account",
     "errors": {
       "guest": "Create an account to save your garage.",
-      "invalid": "This item doesn't exist."
+      "invalid": "This item doesn't exist.",
+      "locked": "This item isn't unlocked yet."
     },
     "stadiumPreview": "Stadium preview"
   }
