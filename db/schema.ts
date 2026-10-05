@@ -40,6 +40,8 @@ export const users = pgTable(
     stadium: text("stadium").notNull().default("diorama"),
     // Rang façon Rocket League (#99) : 0 = Bronze I div. I, voir lib/ranks.ts.
     rankLevel: integer("rank_level").notNull().default(0),
+    // XP cumulée (#35) ; le niveau en découle, voir lib/xp.ts.
+    xp: integer("xp").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
