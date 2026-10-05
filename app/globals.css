@@ -855,6 +855,36 @@ a, button, input {
   to { opacity: 0; }
 }
 
+/* Niveau du joueur sur son profil (#35). */
+.level-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.level-progress progress {
+  width: min(220px, 100%);
+  height: 8px;
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--border) 30%, transparent);
+  overflow: hidden;
+}
+
+.level-progress progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.level-progress progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.level-progress progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
 /* XP gagnée à la fin d'une course (#35). */
 .xp-reward {
   display: flex;

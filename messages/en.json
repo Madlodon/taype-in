@@ -283,6 +283,9 @@
   "Profile": {
     "eyebrow": "Driver profile",
     "you": "You",
+    "level": "Level {level}",
+    "levelProgress": "Progress to the next level",
+    "xpToNext": "{current} / {needed} XP",
     "stats": "Overall stats",
     "bestWpm": "Best speed (WPM)",
     "averageWpm": "Average speed (WPM)",

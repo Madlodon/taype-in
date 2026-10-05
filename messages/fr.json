@@ -283,6 +283,9 @@
   "Profile": {
     "eyebrow": "Profil de pilote",
     "you": "Toi",
+    "level": "Niveau {level}",
+    "levelProgress": "Progression vers le niveau suivant",
+    "xpToNext": "{current} / {needed} XP",
     "stats": "Statistiques globales",
     "bestWpm": "Meilleure vitesse (MPM)",
     "averageWpm": "Vitesse moyenne (MPM)",
