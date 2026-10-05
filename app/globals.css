@@ -979,10 +979,11 @@ a, button, input {
   font-size: 14px;
 }
 
+/* Rangées centrées avec margin: auto, pas align-items: center, pour que le début du clavier reste
+   atteignable en défilant quand il déborde. */
 .heatmap {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 6px;
   width: 0;
   min-width: 100%;
@@ -993,6 +994,10 @@ a, button, input {
 .heat-row {
   display: flex;
   gap: 6px;
+}
+
+.heatmap .heat-row {
+  margin-inline: auto;
 }
 
 .heat-extras {
