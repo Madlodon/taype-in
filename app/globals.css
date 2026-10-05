@@ -917,8 +917,10 @@ a, button, input {
 }
 
 /* Classement complet (FIN-2) ; défile de côté sur un petit écran.
-   width: 0 + min-width: 100% : le tableau n'élargit pas la colonne de la page. */
+   width: 0 + min-width: 100% : le tableau n'élargit pas la colonne de la page.
+   position: relative : les textes .sr-only (absolus) restent dans la zone qui défile. */
 .results-scroll {
+  position: relative;
   width: 0;
   min-width: 100%;
   overflow-x: auto;
