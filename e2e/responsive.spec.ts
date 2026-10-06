@@ -70,7 +70,7 @@ test("Should_ReachEveryPage_When_UsingTheNavigation", async ({ page }) => {
   const nav = page.getByRole("navigation");
   for (const [label, url] of [
     ["Trouver une course", "/lobbies"],
-    ["L’arène", "/race"],
+    ["Entraînement", "/race"],
     ["Garage", "/garage"],
     ["Accueil", "/"],
   ]) {
