@@ -47,6 +47,7 @@ const aGuest = {
   xp: 0,
   createdAt: new Date(),
 };
+const aMember = { ...aGuest, username: "pilote", passwordHash: "hash", isGuest: false };
 const aLobby = {
   id: "lobby-1",
   code: "K7P3XM",
@@ -69,7 +70,7 @@ function form(fields: Record<string, string>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getCurrentUser).mockResolvedValue(aGuest);
+  vi.mocked(getCurrentUser).mockResolvedValue(aMember);
   vi.mocked(lobbies.createLobby).mockResolvedValue(aLobby);
   vi.mocked(lobbies.canEnterLobby).mockResolvedValue(true);
 });
@@ -85,9 +86,18 @@ test("Should_RedirectHomeWithoutCreating_When_NobodyIsLoggedIn", async () => {
   expect(lobbies.createLobby).not.toHaveBeenCalled();
 });
 
-test("Should_MakeGuestHostAndOpenLobby_When_GuestCreatesLobby", async () => {
+test("Should_SendToSignUpWithoutCreating_When_GuestCreatesLobby", async () => {
   vi.mocked(getCurrentUser).mockResolvedValue(aGuest);
 
+  await expect(createLobbyAction(form({ visibility: "public" }))).rejects.toThrow(
+    "NEXT_REDIRECT",
+  );
+
+  expect(redirect).toHaveBeenCalledWith("/signup?next=/lobbies/new");
+  expect(lobbies.createLobby).not.toHaveBeenCalled();
+});
+
+test("Should_MakeUserHostAndOpenLobby_When_RegisteredUserCreatesLobby", async () => {
   await expect(createLobbyAction(form({ visibility: "public" }))).rejects.toThrow(
     "NEXT_REDIRECT",
   );
@@ -108,8 +118,6 @@ test.each([
   ["missing", {}],
   ["unknown", { visibility: "secret" }],
 ])("Should_CreateUnlistedLobby_When_VisibilityIs_%s", async (_, fields) => {
-  vi.mocked(getCurrentUser).mockResolvedValue(aGuest);
-
   await expect(createLobbyAction(form(fields))).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.anything());
