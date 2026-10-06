@@ -233,7 +233,7 @@ test("Should_ShowSameCountdownThenSameTextAndTimeLeft_When_HostStartsRace", asyn
   await start.click();
 
   for (const { page } of [host, player]) {
-    await expect(page.getByRole("timer")).toHaveText(/^Départ dans [1-5]$/);
+    await expect(page.getByRole("timer")).toHaveText(/^Départ dans [1-3]$/);
   }
   const hostText = host.page.locator(".typing-text");
   await expect(hostText).toBeVisible({ timeout: 8000 });

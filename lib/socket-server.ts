@@ -84,11 +84,12 @@ function readCookie(header: string | undefined, name: string): string | undefine
 
 export function createSocketServer(
   httpServer: HttpServer,
+  // COURSE-03 : compte à rebours de 3 secondes (3, 2, 1).
   // CRS-5 : la course s'arrête après 2 min sans aucune frappe.
   // CRS-2 : les positions partent au plus toutes les 250 ms, seulement si quelqu'un a bougé.
   // botSpeedup accélère les bots, pour des tests rapides.
   {
-    countdownMs = 5000,
+    countdownMs = 3000,
     idleMs = 2 * 60 * 1000,
     positionsMs = 250,
     botSpeedup = 1,

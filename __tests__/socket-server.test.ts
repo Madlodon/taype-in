@@ -43,7 +43,13 @@ beforeAll(async () => {
 
 // Compte à rebours raccourci et bots accélérés pour garder les tests rapides.
 async function startServer(
-  options: { idleMs?: number; shotMs?: number; shotRandom?: () => number; goalChance?: number } = {},
+  options: {
+    countdownMs?: number;
+    idleMs?: number;
+    shotMs?: number;
+    shotRandom?: () => number;
+    goalChance?: number;
+  } = {},
 ) {
   const httpServer = createServer();
   io = createSocketServer(httpServer, { countdownMs: 100, botSpeedup: 1000, ...options });
@@ -276,6 +282,21 @@ describe("race:start", () => {
     expect(await guestSees).toEqual({ seconds: 1 });
     await started;
   });
+
+  test("Should_CountDownThreeSecondsBeforeText_When_DefaultCountdown", async () => {
+    await io.close();
+    await startServer({ countdownMs: undefined });
+    const { hostClient } = await lobbyWithTwo();
+    const countdown = next<CountdownMessage>(hostClient, "race:countdown");
+    const started = next(hostClient, "race:started");
+
+    const sentAt = Date.now();
+    await hostClient.emitWithAck("race:start", { watch: false });
+
+    expect(await countdown).toEqual({ seconds: 3 });
+    await started;
+    expect(Date.now() - sentAt).toBeGreaterThanOrEqual(2900);
+  }, 6000);
 
   test("Should_SendSameTextToEveryone_When_CountdownEnds", async () => {
     const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
