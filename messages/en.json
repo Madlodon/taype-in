@@ -106,11 +106,13 @@
       "notRacer": "You are not racing in this race",
       "cannotGiveUp": "You can't give up anymore",
       "raceNotFinished": "The race isn't over",
-      "botNotFound": "Bot not found"
+      "botNotFound": "Bot not found",
+      "noHumanRacer": "At least one human player must race"
     },
     "startRacing": "Start and race",
     "startWatching": "Start and watch",
     "needMoreWatching": "To watch without racing, you need at least {count} other participants.",
+    "needHumanWatching": "To watch without racing, you need at least one other human player: bots can't race alone.",
     "watching": "(watching)",
     "hostWatching": "You're watching this race without racing.",
     "relaunch": "Relaunch the race",

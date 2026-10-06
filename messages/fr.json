@@ -106,11 +106,13 @@
       "notRacer": "Tu ne cours pas dans cette course",
       "cannotGiveUp": "Tu ne peux plus abandonner",
       "raceNotFinished": "La course n'est pas terminée",
-      "botNotFound": "Bot introuvable"
+      "botNotFound": "Bot introuvable",
+      "noHumanRacer": "Il faut au moins un joueur humain qui court"
     },
     "startRacing": "Lancer et courir",
     "startWatching": "Lancer et regarder",
     "needMoreWatching": "Pour regarder sans courir, il faut au moins {count} autres participants.",
+    "needHumanWatching": "Pour regarder sans courir, il faut au moins un autre joueur humain : les bots ne courent pas seuls.",
     "watching": "(regarde)",
     "hostWatching": "Tu regardes la course sans courir.",
     "relaunch": "Relancer la course",

@@ -411,6 +411,11 @@ export function createSocketServer(
         ack?.({ ok: false, error: "notEnoughParticipants" });
         return;
       }
+      // Les bots comptent dans le minimum, mais il faut au moins un humain qui court (COURSE-02).
+      if (racers.every((racer) => racer.bot)) {
+        ack?.({ ok: false, error: "noHumanRacer" });
+        return;
+      }
       // Vérifié après le dernier await : un double clic ne lance pas deux courses.
       if (!canDo(lobby, "start")) {
         ack?.({ ok: false, error: "raceInProgress" });
