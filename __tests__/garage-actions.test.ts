@@ -6,6 +6,7 @@ import { saveLoadout } from "../lib/garage";
 import { getCurrentUser } from "../lib/session-cookie";
 import { revalidatePath } from "next/cache";
 import { BALLS, BOOSTS, STADIUMS } from "../lib/garage-items";
+import { xpForLevel } from "../lib/xp";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(() => {
@@ -27,6 +28,8 @@ const aUser = {
   ball: "none",
   stadium: "diorama",
   rankLevel: 0,
+  // Tout est débloqué au niveau 15 (#35).
+  xp: xpForLevel(15),
   createdAt: new Date(),
 };
 const aGuest = { ...aUser, username: "Invité-123456", passwordHash: null, isGuest: true };
@@ -54,6 +57,19 @@ test("Should_RefuseWithoutSaving_When_UserIsGuest", async () => {
 
   expect(await saveLoadoutAction(undefined, form(choice))).toEqual({ error: "guest" });
   expect(saveLoadout).not.toHaveBeenCalled();
+});
+
+test("Should_RefuseWithoutSaving_When_ItemIsAboveLevel", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue({ ...aUser, xp: xpForLevel(6) });
+
+  expect(await saveLoadoutAction(undefined, form(choice))).toEqual({ error: "locked" });
+  expect(saveLoadout).not.toHaveBeenCalled();
+});
+
+test("Should_SaveLoadout_When_ItemIsExactlyAtLevel", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue({ ...aUser, xp: xpForLevel(7) });
+
+  expect(await saveLoadoutAction(undefined, form(choice))).toEqual({ saved: true });
 });
 
 test("Should_RedirectHome_When_NobodyIsLoggedIn", async () => {

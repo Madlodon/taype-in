@@ -17,6 +17,7 @@ import {
   findOpenLobby,
   listParticipants,
   MAX_PARTICIPANTS,
+  updateLobbySettings,
 } from "../lib/lobbies";
 import { createSocketServer } from "../lib/socket-server";
 import type {
@@ -40,10 +41,10 @@ beforeAll(async () => {
   await migrate(db, { migrationsFolder: "db/migrations" });
 });
 
-// Compte à rebours raccourci pour garder les tests rapides.
+// Compte à rebours raccourci et bots accélérés pour garder les tests rapides.
 async function startServer(options: { idleMs?: number; shotMs?: number; shotRandom?: () => number } = {}) {
   const httpServer = createServer();
-  io = createSocketServer(httpServer, { countdownMs: 100, ...options });
+  io = createSocketServer(httpServer, { countdownMs: 100, botSpeedup: 1000, ...options });
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
   url = `http://localhost:${(httpServer.address() as AddressInfo).port}`;
 }
@@ -267,7 +268,7 @@ describe("race:start", () => {
     const guestSees = next<CountdownMessage>(guestClient, "race:countdown");
     const started = next(guestClient, "race:started");
 
-    expect(await hostClient.emitWithAck("race:start")).toEqual({ ok: true });
+    expect(await hostClient.emitWithAck("race:start", { watch: false })).toEqual({ ok: true });
 
     expect(await hostSees).toEqual({ seconds: 1 });
     expect(await guestSees).toEqual({ seconds: 1 });
@@ -279,7 +280,7 @@ describe("race:start", () => {
     const hostSees = next<RaceStartedMessage>(hostClient, "race:started");
     const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
 
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
 
     const message = await hostSees;
     expect(message.content).not.toBe("");
@@ -293,7 +294,7 @@ describe("race:start", () => {
       const { guestClient, hostClient } = await lobbyWithTwo({ errorMode });
       const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
 
-      await hostClient.emitWithAck("race:start");
+      await hostClient.emitWithAck("race:start", { watch: false });
 
       expect((await guestSees).errorMode).toBe(errorMode);
     },
@@ -303,7 +304,7 @@ describe("race:start", () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     const started = next<RaceStartedMessage>(hostClient, "race:started");
 
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
     const { content } = await started;
 
     const [race] = await db.select().from(races).where(eq(races.lobbyId, lobby.id));
@@ -314,7 +315,7 @@ describe("race:start", () => {
   test("Should_AckNotHost_When_PlayerIsNotHost", async () => {
     const { guestClient } = await lobbyWithTwo();
 
-    expect(await guestClient.emitWithAck("race:start")).toEqual({
+    expect(await guestClient.emitWithAck("race:start", { watch: false })).toEqual({
       ok: false,
       error: "notHost",
     });
@@ -326,7 +327,7 @@ describe("race:start", () => {
     const hostClient = await newClient(host);
     await join(hostClient, { code: lobby.code });
 
-    expect(await hostClient.emitWithAck("race:start")).toEqual({
+    expect(await hostClient.emitWithAck("race:start", { watch: false })).toEqual({
       ok: false,
       error: "notEnoughParticipants",
     });
@@ -335,7 +336,7 @@ describe("race:start", () => {
   test("Should_AckLobbyNotFound_When_SocketHasNotJoinedALobby", async () => {
     const client = await newClient();
 
-    expect(await client.emitWithAck("race:start")).toEqual({
+    expect(await client.emitWithAck("race:start", { watch: false })).toEqual({
       ok: false,
       error: "lobbyNotFound",
     });
@@ -344,9 +345,9 @@ describe("race:start", () => {
   test("Should_AckRaceInProgress_When_RaceAlreadyStarted", async () => {
     const { hostClient } = await lobbyWithTwo();
     const started = next(hostClient, "race:started");
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
 
-    expect(await hostClient.emitWithAck("race:start")).toEqual({
+    expect(await hostClient.emitWithAck("race:start", { watch: false })).toEqual({
       ok: false,
       error: "raceInProgress",
     });
@@ -358,8 +359,8 @@ describe("race:start", () => {
     const started = next(hostClient, "race:started");
 
     const acks = await Promise.all([
-      hostClient.emitWithAck("race:start"),
-      hostClient.emitWithAck("race:start"),
+      hostClient.emitWithAck("race:start", { watch: false }),
+      hostClient.emitWithAck("race:start", { watch: false }),
     ]);
     await started;
 
@@ -371,7 +372,7 @@ describe("race:start", () => {
   test("Should_SendCountdown_When_PlayerJoinsDuringCountdown", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     const started = next(hostClient, "race:started");
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
     const late = await newClient();
     const lateSees = next<CountdownMessage>(late, "race:countdown");
 
@@ -384,7 +385,7 @@ describe("race:start", () => {
   test("Should_SendTextWithoutRacingHim_When_PlayerJoinsDuringRace", async () => {
     const { host, guest, lobby, hostClient } = await lobbyWithTwo();
     const started = next<RaceStartedMessage>(hostClient, "race:started");
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
     const { content } = await started;
     const late = await newClient();
     const lateSees = next<RaceStartedMessage>(late, "race:started");
@@ -399,10 +400,80 @@ describe("race:start", () => {
   });
 });
 
+// L'hôte regarde la course sans courir (LOB-8).
+describe("race:start as spectator host", () => {
+  // Un hôte et deux invités : assez de coureurs sans l'hôte.
+  async function lobbyWithThree() {
+    const { host, guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const other = await newUser();
+    const otherClient = await newClient(other);
+    await join(otherClient, { code: lobby.code });
+    return { host, guest, other, lobby, hostClient, guestClient, otherClient };
+  }
+
+  test("Should_LeaveHostOutOfRacers_When_HostWatches", async () => {
+    const { guest, other, hostClient, guestClient } = await lobbyWithThree();
+    const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
+
+    expect(await hostClient.emitWithAck("race:start", { watch: true })).toEqual({ ok: true });
+
+    expect((await guestSees).racerIds).toEqual([guest.id, other.id]);
+  });
+
+  test("Should_AckNotEnoughParticipants_When_HostWatchesWithOnlyOneOther", async () => {
+    const { hostClient } = await lobbyWithTwo();
+
+    expect(await hostClient.emitWithAck("race:start", { watch: true })).toEqual({
+      ok: false,
+      error: "notEnoughParticipants",
+    });
+  });
+
+  test("Should_AckNotRacer_When_SpectatorHostSendsProgress", async () => {
+    const { hostClient } = await lobbyWithThree();
+    const started = next<RaceStartedMessage>(hostClient, "race:started");
+    await hostClient.emitWithAck("race:start", { watch: true });
+    const { content } = await started;
+
+    expect(await progress(hostClient, typing(content, 0))).toEqual({
+      ok: false,
+      error: "notRacer",
+    });
+  });
+
+  test("Should_EndRaceWithoutHostInResults_When_EveryRacerFinishes", async () => {
+    const { host, hostClient, guestClient, otherClient } = await lobbyWithThree();
+    const started = next<RaceStartedMessage>(hostClient, "race:started");
+    await hostClient.emitWithAck("race:start", { watch: true });
+    const { content } = await started;
+    const hostSees = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(guestClient, typing(content, 0));
+    await progress(otherClient, typing(content, 0));
+
+    const { reason, results } = await hostSees;
+    expect(reason).toBe("allFinished");
+    expect(results).toHaveLength(2);
+    expect(results.map((result) => result.id)).not.toContain(host.id);
+  });
+
+  test.each([undefined, {}, { watch: "yes" }])(
+    "Should_AckInvalidMessage_When_PayloadIs_%j",
+    async (payload) => {
+      const { hostClient } = await lobbyWithTwo();
+
+      expect(await hostClient.emitWithAck("race:start", payload)).toEqual({
+        ok: false,
+        error: "invalidMessage",
+      });
+    },
+  );
+});
+
 // Lance la course et attend le « Go ».
 async function startRace(hostClient: Socket): Promise<RaceStartedMessage> {
   const started = next<RaceStartedMessage>(hostClient, "race:started");
-  await hostClient.emitWithAck("race:start");
+  await hostClient.emitWithAck("race:start", { watch: false });
   return started;
 }
 
@@ -624,6 +695,22 @@ describe("race results", () => {
         { id: guest.id, rankLevel: 9 },
       ]),
     );
+  });
+
+  test("Should_SendXpGained_When_TwoRacersFinish", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await progress(guestClient, typing(content, 0));
+
+    const { results: ranked } = await ended;
+
+    expect(ranked.map((result) => [result.id, result.xp, result.xpGained])).toEqual([
+      [host.id, 100, 100],
+      [guest.id, 20, 20],
+    ]);
   });
 
   test("Should_SendResults_When_JoiningAfterEnd", async () => {
@@ -956,11 +1043,110 @@ describe("race:positions", () => {
   });
 });
 
+// Après une course, l'hôte relance le même lobby (LOB-9).
+describe("lobby:restart", () => {
+  async function finishedRace() {
+    const setup = await lobbyWithTwo();
+    const { content } = await startRace(setup.hostClient);
+    const ended = next(setup.hostClient, "race:ended");
+    await progress(setup.hostClient, typing(content, 0));
+    await progress(setup.guestClient, typing(content, 0));
+    await ended;
+    return setup;
+  }
+
+  test("Should_SendEveryoneBackToWaitingAndKeepLobby_When_HostRelaunches", async () => {
+    const { lobby, hostClient, guestClient } = await finishedRace();
+    const hostNotified = next(hostClient, "lobby:restarted");
+    const guestNotified = next(guestClient, "lobby:restarted");
+
+    expect(await hostClient.emitWithAck("lobby:restart")).toEqual({ ok: true });
+
+    await Promise.all([hostNotified, guestNotified]);
+    expect((await findOpenLobby(lobby.code))?.id).toBe(lobby.id);
+  });
+
+  test("Should_StartNewRaceInSameLobby_When_HostStartsAfterRelaunch", async () => {
+    const { lobby, hostClient } = await finishedRace();
+    await hostClient.emitWithAck("lobby:restart");
+
+    await startRace(hostClient);
+
+    expect(await db.select().from(races).where(eq(races.lobbyId, lobby.id))).toHaveLength(2);
+  });
+
+  test("Should_UseNewSettings_When_HostChangedThemBeforeRelaunching", async () => {
+    const { lobby, hostClient, guestClient } = await finishedRace();
+    await hostClient.emitWithAck("lobby:restart");
+    await updateLobbySettings(lobby.id, {
+      textLanguage: "en",
+      textLength: 50,
+      errorMode: "tolerant",
+      timeLimitSeconds: null,
+    });
+    const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
+
+    await hostClient.emitWithAck("race:start", { watch: false });
+
+    expect(await guestSees).toMatchObject({ errorMode: "tolerant", secondsLeft: null });
+  });
+
+  test("Should_SendNoOldResults_When_PlayerJoinsAfterRelaunch", async () => {
+    const { lobby, hostClient } = await finishedRace();
+    await hostClient.emitWithAck("lobby:restart");
+    const late = await newClient();
+    let sawResults = false;
+    late.on("race:ended", () => (sawResults = true));
+
+    await join(late, { code: lobby.code });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(sawResults).toBe(false);
+  });
+
+  test("Should_AckRaceNotFinished_When_NoRaceHasRun", async () => {
+    const { hostClient } = await lobbyWithTwo();
+
+    expect(await hostClient.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "raceNotFinished",
+    });
+  });
+
+  test("Should_AckRaceNotFinished_When_RaceIsRunning", async () => {
+    const { hostClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+
+    expect(await hostClient.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "raceNotFinished",
+    });
+  });
+
+  test("Should_AckNotHost_When_PlayerIsNotHost", async () => {
+    const { guestClient } = await finishedRace();
+
+    expect(await guestClient.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "notHost",
+    });
+  });
+
+  test("Should_AckLobbyNotFound_When_SocketHasNotJoinedALobby", async () => {
+    const client = await newClient();
+
+    expect(await client.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "lobbyNotFound",
+    });
+  });
+});
+
 describe("lobby:close", () => {
   test("Should_AckRaceInProgressAndKeepLobbyOpen_When_RaceHasStarted", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     const started = next(hostClient, "race:started");
-    await hostClient.emitWithAck("race:start");
+    await hostClient.emitWithAck("race:start", { watch: false });
 
     expect(await hostClient.emitWithAck("lobby:close")).toEqual({
       ok: false,
@@ -1058,7 +1244,6 @@ describe("disconnect", () => {
   });
 });
 
-
 describe("sentence shots", () => {
   test.each([0, .9])("Should_ResolveOneShotAndPersistOnlyScoredRewards_When_RollIs_%s", async roll => {
     await io.close();
@@ -1093,5 +1278,185 @@ describe("sentence shots", () => {
     const resumed = next<RaceStartedMessage>(hostClient, "race:started");
     await join(hostClient, { code: lobby.code });
     expect((await resumed).mine?.removed).toEqual(rewards[0]?.removed ?? []);
+  });
+});
+
+describe("bots", () => {
+  // L'hôte seul dans son lobby, sans autre joueur.
+  async function hostAlone() {
+    const host = await newUser();
+    const lobby = await createLobby(host.id, "unlisted");
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: lobby.code });
+    return { host, lobby, hostClient };
+  }
+
+  function addBot(client: Socket, level: string): Promise<Ack> {
+    return client.emitWithAck("lobby:addBot", { level });
+  }
+
+  test("Should_SendBotToEveryone_When_HostAddsBot", async () => {
+    const { host, guestClient, hostClient } = await lobbyWithTwo();
+    const guestSees = nextParticipants(guestClient);
+
+    expect(await addBot(hostClient, "expert")).toEqual({ ok: true });
+
+    const { participants } = await guestSees;
+    expect(participants).toHaveLength(3);
+    expect(participants[0].id).toBe(host.id);
+    expect(participants[2]).toMatchObject({ bot: { level: "expert", number: 1 } });
+  });
+
+  test("Should_NumberBotsPerLevel_When_HostAddsSeveral", async () => {
+    const { hostClient } = await hostAlone();
+    await addBot(hostClient, "expert");
+    await addBot(hostClient, "beginner");
+    const hostSees = nextParticipants(hostClient);
+
+    await addBot(hostClient, "expert");
+
+    expect((await hostSees).participants.map((participant) => participant.bot)).toEqual([
+      undefined,
+      { level: "expert", number: 1 },
+      { level: "beginner", number: 1 },
+      { level: "expert", number: 2 },
+    ]);
+  });
+
+  test("Should_SendBotsToPlayer_When_PlayerJoinsLater", async () => {
+    const { lobby, hostClient } = await hostAlone();
+    await addBot(hostClient, "advanced");
+    const late = await newClient();
+    const lateSees = nextParticipants(late);
+
+    await join(late, { code: lobby.code });
+
+    // Les joueurs d'abord, puis les bots.
+    expect((await lateSees).participants[2]).toMatchObject({ bot: { level: "advanced" } });
+  });
+
+  test("Should_RemoveBot_When_HostRemovesIt", async () => {
+    const { hostClient } = await hostAlone();
+    const added = nextParticipants(hostClient);
+    await addBot(hostClient, "beginner");
+    const bot = (await added).participants[1];
+    const hostSees = nextParticipants(hostClient);
+
+    expect(await hostClient.emitWithAck("lobby:removeBot", { id: bot.id })).toEqual({ ok: true });
+
+    expect((await hostSees).participants).toHaveLength(1);
+  });
+
+  test("Should_AckBotNotFound_When_HostRemovesUnknownBot", async () => {
+    const { hostClient } = await hostAlone();
+
+    expect(await hostClient.emitWithAck("lobby:removeBot", { id: "inconnu" })).toEqual({
+      ok: false,
+      error: "botNotFound",
+    });
+  });
+
+  test("Should_AckNotHost_When_PlayerAddsBot", async () => {
+    const { guestClient } = await lobbyWithTwo();
+
+    expect(await addBot(guestClient, "expert")).toEqual({ ok: false, error: "notHost" });
+  });
+
+  test.each([undefined, {}, { level: "legend" }])(
+    "Should_AckInvalidMessage_When_PayloadIs_%j",
+    async (payload) => {
+      const { hostClient } = await hostAlone();
+
+      expect(await hostClient.emitWithAck("lobby:addBot", payload)).toEqual({
+        ok: false,
+        error: "invalidMessage",
+      });
+    },
+  );
+
+  test("Should_AckRaceInProgress_When_HostAddsBotDuringRace", async () => {
+    const { hostClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+
+    expect(await addBot(hostClient, "expert")).toEqual({ ok: false, error: "raceInProgress" });
+  });
+
+  test("Should_AckLobbyFull_When_LobbyHasMaxParticipants", async () => {
+    const { lobby, hostClient } = await hostAlone();
+    await fillLobby(lobby.id, MAX_PARTICIPANTS - 2);
+
+    expect(await addBot(hostClient, "expert")).toEqual({ ok: true });
+    expect(await addBot(hostClient, "expert")).toEqual({ ok: false, error: "lobbyFull" });
+  });
+
+  test("Should_CountBotTowardMinimum_When_HostIsAloneWithABot", async () => {
+    const { hostClient } = await hostAlone();
+    await addBot(hostClient, "beginner");
+
+    expect((await startRace(hostClient)).racerIds).toHaveLength(2);
+  });
+
+  test("Should_RankBotWithoutSavingIt_When_RaceEnds", async () => {
+    const { host, lobby, hostClient } = await hostAlone();
+    await db.update(users).set({ rankLevel: 10 }).where(eq(users.id, host.id));
+    await addBot(hostClient, "beginner");
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(hostClient, typing(content, 0));
+
+    const { reason, results: ranked } = await ended;
+    expect(reason).toBe("allFinished");
+    expect(ranked.map((result) => [result.rank, result.bot, result.finished])).toEqual([
+      [1, undefined, true],
+      [2, { level: "beginner", number: 1 }, true],
+    ]);
+    expect(ranked[0]).toMatchObject({ id: host.id, rankLevel: 11, rankChange: 1 });
+    // Contre un bot débutant : 100 XP × (0,5 + 1) ÷ 2 ; le bot ne gagne rien.
+    expect(ranked.map((result) => result.xpGained)).toEqual([75, 0]);
+    const saved = await db
+      .select()
+      .from(results)
+      .where(eq(results.raceId, (await savedRace(lobby.id)).id));
+    expect(saved.map((row) => row.userId)).toEqual([host.id]);
+  });
+
+  test("Should_RaceOnlyBots_When_HostWatchesTwoBots", async () => {
+    const { hostClient } = await hostAlone();
+    await addBot(hostClient, "beginner");
+    await addBot(hostClient, "expert");
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    expect(await hostClient.emitWithAck("race:start", { watch: true })).toEqual({ ok: true });
+
+    const { results: ranked } = await ended;
+    expect(ranked.map((result) => result.bot?.level)).toEqual(["expert", "beginner"]);
+  });
+
+  test("Should_MoveBotsForward_When_RaceRuns", async () => {
+    const { hostClient } = await hostAlone();
+    await addBot(hostClient, "beginner");
+    await startRace(hostClient);
+    await next(hostClient, "race:positions");
+
+    // Après le départ à 0, le bot tape sans que l'hôte bouge.
+    const { positions } = await next<RacePositionsMessage>(hostClient, "race:positions");
+
+    expect(positions[0]).toMatchObject({ bot: { level: "beginner" } });
+    expect(positions[0].position).toBeGreaterThan(0);
+  });
+
+  test("Should_KeepBots_When_HostRelaunches", async () => {
+    const { hostClient } = await hostAlone();
+    await addBot(hostClient, "expert");
+    const ended = next(hostClient, "race:ended");
+    await hostClient.emitWithAck("race:start", { watch: false });
+    const started = await next<RaceStartedMessage>(hostClient, "race:started");
+    await progress(hostClient, typing(started.content, 0));
+    await ended;
+
+    await hostClient.emitWithAck("lobby:restart");
+
+    expect((await startRace(hostClient)).racerIds).toHaveLength(2);
   });
 });

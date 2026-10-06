@@ -13,6 +13,7 @@ import {
 } from "@/lib/auth";
 import {
   deleteSessionCookie,
+  getCurrentUser,
   SESSION_COOKIE,
   setSessionCookie,
 } from "@/lib/session-cookie";
@@ -47,11 +48,15 @@ export async function signUpAction(
     return { error: parsed.error.issues[0].message, username };
   }
 
-  const user = await signUp(parsed.data.username, parsed.data.password);
+  const current = await getCurrentUser();
+  const guestId = current?.isGuest ? current.id : undefined;
+  const user = await signUp(parsed.data.username, parsed.data.password, guestId);
   if (user === "taken") {
     return { error: "usernameTaken", username };
   }
 
+  // Nouveau jeton une fois inscrit : celui de l'invité ne sert plus.
+  if (guestId) await invalidateSession((await cookies()).get(SESSION_COOKIE)!.value);
   await startSession(user.id);
   redirect(nextPath(formData));
 }

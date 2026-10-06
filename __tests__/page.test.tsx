@@ -8,6 +8,8 @@ vi.mock("../app/actions/auth", () => ({
   guestAction: vi.fn(),
   logOutAction: vi.fn(),
 }));
+// jsdom n'a pas matchMedia : on réduit les animations pour garder l'aperçu de course immobile.
+vi.stubGlobal("matchMedia", () => ({ matches: true }));
 
 const aUser = {
   id: "1",
@@ -20,6 +22,7 @@ const aUser = {
   ball: "none",
   stadium: "diorama",
   rankLevel: 0,
+  xp: 0,
   createdAt: new Date(),
 };
 
@@ -50,7 +53,7 @@ test("Should_ShowUsernameAndLogOut_When_UserIsLoggedIn", async () => {
 
   render(await Page());
 
-  expect(screen.getByText("alex")).toBeDefined();
+  expect(screen.getByText("alex", { selector: "strong" })).toBeDefined();
   expect(screen.queryByText(/invité/)).toBeNull();
   expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeDefined();
 });
@@ -84,4 +87,13 @@ test("Should_ShowGuestLabel_When_GuestIsLoggedIn", async () => {
   render(await Page());
 
   expect(screen.getByText("(invité)", { exact: false })).toBeDefined();
+});
+
+test("Should_ShowBattleInARealStadium_When_HomePageIsRendered", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+  const { container } = render(await Page());
+
+  expect(container.querySelector(".hero-visual svg[data-stadium='diorama']")).not.toBeNull();
+  expect(screen.getByText("Toi")).toBeDefined();
 });

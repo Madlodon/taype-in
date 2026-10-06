@@ -320,6 +320,24 @@ a, button, input {
   font-size: 16px;
 }
 
+/* Appels à l'action de l'accueil : plus gros que les boutons standards. */
+.hero-cta {
+  min-height: 56px;
+  padding: 14px 30px;
+  font-size: 15px;
+}
+
+.hero-alt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 18px;
+}
+
+.hero-alt .text-link {
+  font-size: 14px;
+}
+
 .text-link {
   font-size: 12px;
   font-weight: 600;
@@ -563,7 +581,7 @@ a, button, input {
   font-weight: 600;
 }
 
-.field input, .field textarea, .typing-input {
+.field input, .field select, .field textarea, .typing-input {
   width: 100%;
   min-height: 48px;
   padding: 12px 14px;
@@ -574,7 +592,7 @@ a, button, input {
   font-size: 14px;
 }
 
-.field input:focus, .field textarea:focus, .typing-input:focus {
+.field input:focus, .field select:focus, .field textarea:focus, .typing-input:focus {
   outline-offset: 2px;
 }
 
@@ -685,6 +703,19 @@ a, button, input {
   flex-shrink: 0;
 }
 
+.radio-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.lock-level {
+  display: block;
+  color: var(--muted);
+  font: 10px var(--font-jetbrains-mono);
+  letter-spacing: .7px;
+  text-transform: uppercase;
+}
+
 .garage-options {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -775,6 +806,40 @@ a, button, input {
   background: var(--accent);
 }
 
+/* Ajout d'un bot par l'hôte (BOT-1) : le niveau et le bouton sur une ligne. */
+.bot-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-top: 20px;
+}
+
+.bot-form .field {
+  flex: 1 1 180px;
+}
+
+/* BOT-3 : à côté du nom, aussi dans le classement où les span flottent à droite. */
+.bot-badge,
+.ranking li .bot-badge {
+  float: none;
+  margin: 0 0 0 8px;
+  padding: 3px 6px;
+  color: var(--primary);
+}
+
+.participant-remove {
+  float: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+.participant-remove:hover {
+  color: var(--wrong);
+}
+
 .race-board {
   display: grid;
   grid-template-columns: 1fr 200px;
@@ -820,6 +885,87 @@ a, button, input {
 .ranking-gap {
   margin-top: 8px;
   border-top: 1px dashed var(--border);
+}
+
+/* Dépassement entre le texte et le champ (CRS-3) : la hauteur est réservée pour que rien ne bouge. */
+.overtake {
+  min-height: 38px;
+  margin: -10px 0 8px;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.overtake > span {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 5px;
+  animation: overtake-pop 2.5s ease-out forwards;
+}
+
+.overtake-up {
+  color: var(--correct);
+  background: color-mix(in srgb, var(--correct) 15%, var(--surface));
+}
+
+.overtake-down {
+  color: var(--wrong);
+  background: var(--wrong-surface);
+}
+
+@keyframes overtake-pop {
+  from { transform: scale(1.15); }
+  10% { transform: scale(1); }
+  80% { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Niveau du joueur sur son profil (#35). */
+.level-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.level-progress progress {
+  width: min(220px, 100%);
+  height: 8px;
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--border) 30%, transparent);
+  overflow: hidden;
+}
+
+.level-progress progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.level-progress progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.level-progress progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
+/* XP gagnée à la fin d'une course (#35). */
+.xp-reward {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: baseline;
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  font-size: 13px;
+}
+
+.xp-gained {
+  font: 22px var(--font-display);
+  color: var(--accent-strong);
 }
 
 /* Podium du top 3 : le premier au centre, sur la plus haute marche (FIN-1). */
@@ -884,8 +1030,10 @@ a, button, input {
 }
 
 /* Classement complet (FIN-2) ; défile de côté sur un petit écran.
-   width: 0 + min-width: 100% : le tableau n'élargit pas la colonne de la page. */
+   width: 0 + min-width: 100% : le tableau n'élargit pas la colonne de la page.
+   position: relative : les textes .sr-only (absolus) restent dans la zone qui défile. */
 .results-scroll {
+  position: relative;
   width: 0;
   min-width: 100%;
   overflow-x: auto;
@@ -923,6 +1071,117 @@ a, button, input {
   text-align: left;
   white-space: normal;
   overflow-wrap: break-word;
+}
+
+/* Heatmap du clavier en fin de course (FIN-3) : plus une touche a de fautes, plus elle est rouge.
+   Le clavier défile de côté sur un petit écran sans élargir la page. */
+.heatmap-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.heatmap-select select {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+/* Rangées centrées avec margin: auto, pas align-items: center, pour que le début du clavier reste
+   atteignable en défilant quand il déborde. */
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 0;
+  min-width: 100%;
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.heat-row {
+  display: flex;
+  gap: 6px;
+}
+
+.heatmap .heat-row {
+  margin-inline: auto;
+}
+
+.heat-extras {
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.heat-key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 46px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: var(--surface);
+  font: 11px var(--font-jetbrains-mono);
+  line-height: 1.2;
+}
+
+.heat-key kbd {
+  font: inherit;
+  font-size: 15px;
+}
+
+.heat-space {
+  min-width: 260px;
+}
+
+.heat-1 {
+  background: color-mix(in srgb, var(--wrong) 20%, var(--surface));
+}
+
+.heat-2 {
+  background: color-mix(in srgb, var(--wrong) 40%, var(--surface));
+}
+
+.heat-3 {
+  background: color-mix(in srgb, var(--wrong) 65%, var(--surface));
+}
+
+.heat-4 {
+  border-color: var(--wrong);
+  background: var(--wrong);
+  color: var(--surface);
+  font-weight: 700;
+}
+
+/* Graphiques de progression du profil (PROF-4). */
+.progression {
+  margin-bottom: 20px;
+}
+
+.progression-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.progression-chart figcaption {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font: 10px var(--font-jetbrains-mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* Touches les plus difficiles du profil (PROF-3). */
@@ -977,6 +1236,69 @@ a, button, input {
   max-width: 760px;
 }
 
+/* Photo de profil ou initiales (PROF-1) */
+.avatar {
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--border);
+}
+
+.profile-identity {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Un long nom d'utilisateur passe à la ligne au lieu d'élargir la page sur mobile. */
+.profile-identity > div {
+  min-width: 0;
+}
+
+.profile-identity .page-title {
+  overflow-wrap: anywhere;
+}
+
+.avatar-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+
+.avatar-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.avatar-form input[type="file"] {
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.avatar-form .form-error {
+  flex-basis: 100%;
+}
+
+.avatar-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.site-nav a .avatar {
+  margin-right: 8px;
+}
+
+.player-cell {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .race-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1024,6 +1346,7 @@ a, button, input {
 }
 
 .arena[data-stadium] .car-tag { font-size: 30px; }
+.hero-battle .car-tag { font-size: 44px; }
 
 .race-track {
   height: 5px;
@@ -1153,7 +1476,8 @@ a, button, input {
     padding-top: 32px;
   }
   .split-layout,
-  .race-board {
+  .race-board,
+  .progression-charts {
     grid-template-columns: 1fr;
   }
   /* Sur une colonne, l'aperçu du garage passe au-dessus des choix. */
