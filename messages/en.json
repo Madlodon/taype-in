@@ -32,6 +32,7 @@
   "Lobbies": {
     "title": "Races",
     "create": "Create a race",
+    "signUpToCreate": "Create an account to host a race",
     "joinByCode": "Join with a code",
     "publicRaces": "Public races",
     "noPublicRaces": "No public races right now.",

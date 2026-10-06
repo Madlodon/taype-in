@@ -32,6 +32,7 @@
   "Lobbies": {
     "title": "Courses",
     "create": "Créer une course",
+    "signUpToCreate": "Crée un compte pour créer une course",
     "joinByCode": "Rejoindre avec un code",
     "publicRaces": "Courses publiques",
     "noPublicRaces": "Aucune course publique pour le moment.",

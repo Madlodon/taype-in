@@ -7,7 +7,10 @@ import { Arena } from "@/components/arena";
 import { LobbySettingsFields } from "@/components/lobby-settings-fields";
 
 export default async function NewLobbyPage() {
-  if (!(await getCurrentUser())) redirect("/login?next=/lobbies/new");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?next=/lobbies/new");
+  // Les invités ne créent pas de course (AUTH-03).
+  if (user.isGuest) redirect("/signup?next=/lobbies/new");
   const locale = await getLocale();
   const t = await getTranslations("NewLobby");
   const d = await getTranslations("Design");
