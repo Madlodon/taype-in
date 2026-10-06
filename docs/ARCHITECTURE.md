@@ -174,3 +174,32 @@ Socket.IO auto-hébergé, sur le même serveur HTTP et le même port que Next.js
 - Chaque lobby est une *room* Socket.IO. Les arrivées et départs mettent à jour la liste des participants chez tous.
 - Pendant la course, chaque client envoie sa saisie ; le serveur la valide (Zod), calcule les positions et les diffuse à tous, au plus toutes les 250 ms et seulement si quelqu'un a bougé.
 - La base reçoit les résultats à la fin de la course seulement.
+
+## Bots
+
+### Aujourd'hui ([#76](https://github.com/Madlodon/taype-in/issues/76))
+
+Moteur dans [`lib/bots.ts`](../lib/bots.ts), lancé par le serveur de sockets.
+
+- L'hôte ajoute ou retire des bots dans la salle d'attente. Ils restent d'une course à l'autre.
+- Un bot est un participant sans compte : il prend une place au classement, mais n'a pas de ligne dans `results`.
+- Le serveur garde une minuterie par bot. À chaque touche, `botKey` donne le délai avant la prochaine touche et la saisie qui en résulte.
+- La saisie passe par `applyInput`, comme pour un joueur : le bot respecte le mode d'erreur (en mode bloquant, il doit retaper le bon caractère).
+- La fonction de hasard est passée en paramètre, ce qui permet des tests unitaires déterministes.
+
+### Prévu pour la remise finale ([#132](https://github.com/Madlodon/taype-in/issues/132))
+
+Cinq niveaux, avec les valeurs de l'énoncé (BOT-01) :
+
+| Niveau        | MPM visé | Taux d'erreur |
+| ------------- | -------- | ------------- |
+| Noob          | 10–20    | ~12 %         |
+| Débutant      | 20–35    | ~8 %          |
+| Intermédiaire | 35–60    | ~5 %          |
+| Expert        | 70–100   | ~2 %          |
+| Impossible    | 140+     | ~0,5 %        |
+
+- **Vitesse variable** (BOT-02) : chaque bot tire sa vitesse dans la plage de son niveau. Pendant la course, il alterne des séries plus rapides et des hésitations, et ralentit sur les mots difficiles (longs, avec accents, majuscules ou ponctuation).
+- **Erreurs** (BOT-03) : une faute coûte un temps de correction. En mode bloquant, le bot retape le bon caractère ; en mode tolérant, il continue avec la faute.
+- **Identifiés** (BOT-04) : badge « BOT » dans la salle, sur la piste et dans les résultats. Leur progression passe par le même chemin que celle des joueurs, donc les bonus et malus les touchent aussi.
+- **Déterministe** (BOT-05) : chaque bot reçoit une graine (seed) tirée de la course et de son numéro. Un générateur pseudo-aléatoire à graine remplace `Math.random`, donc la même graine donne toujours la même course dans les tests.
