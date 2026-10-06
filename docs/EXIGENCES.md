@@ -8,7 +8,7 @@ Statut :
 - **Partiel** : une partie est livrée ; la note dit ce qui manque.
 - **À faire** : rien n'est livré ; une issue est ouverte.
 
-Bilan : 90 exigences, 38 faites, 33 partielles, 19 à faire.
+Bilan : 90 exigences, 39 faites, 32 partielles, 19 à faire.
 
 Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et choix ».
 
@@ -68,7 +68,7 @@ Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et ch
 
 | ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
 | -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
-| JOIN-01 | Champ « rejoindre par code » dès la page d'accueil | Partiel | [`components/join-lobby-form.tsx`](../components/join-lobby-form.tsx), [`app/lobbies/page.tsx`](../app/lobbies/page.tsx) | [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#9][i9], [#159][i159] | Le champ est sur la page des salles, à un clic de l'accueil, pas sur l'accueil même. |
+| JOIN-01 | Champ « rejoindre par code » dès la page d'accueil | Fait | [`components/join-lobby-form.tsx`](../components/join-lobby-form.tsx), [`app/page.tsx`](../app/page.tsx), [`app/lobbies/page.tsx`](../app/lobbies/page.tsx) | [page.test.tsx](../__tests__/page.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#9][i9], [#159][i159] | Le champ est aussi sur l'accueil ; sans session, un code valide mène à la connexion (ou au mode invité) puis à la course. |
 | JOIN-02 | Explorateur : infos, filtres langue et complexité, mise à jour en direct | Partiel | [`app/lobbies/page.tsx`](../app/lobbies/page.tsx) | [lobbies.test.ts](../__tests__/lobbies.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#9][i9], [#119][i119] | La liste des salles publiques existe, sans filtres ni mise à jour en direct : #119. |
 | JOIN-03 | Bouton « Faire une course » | À faire | — | — | [#120][i120] |  |
 
