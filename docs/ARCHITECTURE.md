@@ -1,4 +1,8 @@
-# Modèle de données
+# Architecture
+
+Modèle de données, machines à états, temps réel et bots.
+
+## Modèle de données
 
 Schéma PostgreSQL défini avec Drizzle dans [`db/schema.ts`](../db/schema.ts).
 
@@ -93,7 +97,7 @@ erDiagram
     }
 ```
 
-## Choix
+### Choix
 
 - **Invités** : un invité est un `users` avec `is_guest = true`. Ses résultats sont liés à son compte, ce qui permet de les garder s'il s'inscrit (AUTH-7).
 - **Lobby et course** : un lobby persiste entre plusieurs courses (LOB-9). Les paramètres choisis par l'hôte sont copiés dans chaque `races`, car ils peuvent changer d'une course à l'autre.
@@ -105,3 +109,68 @@ erDiagram
 - **Bots** : ils ne sont pas enregistrés. Ils occupent une place dans le classement, donc `results.rank` reste exact, mais seuls les humains ont une ligne dans `results`.
 - **Temps réel** : l'état d'une course en cours (positions, frappes) vit en mémoire sur le serveur. La base reçoit les résultats à la fin de la course.
 - **Suppressions** : supprimer un lobby supprime ses participants, ses courses et leurs résultats. On ne peut pas supprimer un utilisateur qui est hôte d'un lobby.
+
+## Machines à états
+
+Définies en TypeScript dans [`lib/lobby-state.ts`](../lib/lobby-state.ts) et [`lib/player-state.ts`](../lib/player-state.ts). Un événement non permis dans l'état courant lance une erreur.
+
+Les règles « seul l'hôte » et « au moins 2 participants » (LOB-6) sont vérifiées par le serveur avant d'envoyer l'événement.
+
+### Course (lobby) — COURSE-01
+
+```mermaid
+stateDiagram-v2
+    [*] --> waiting
+    waiting --> countdown : start (hôte)
+    waiting --> closed : close (hôte)
+    countdown --> racing : countdownEnd
+    racing --> finished : end (tous ont fini, minuterie, inactivité)
+    racing --> finished : stop (hôte)
+    finished --> waiting : restart (hôte)
+    finished --> closed : close (hôte)
+    closed --> [*]
+```
+
+| État        | Sens                                                  |
+| ----------- | ----------------------------------------------------- |
+| `waiting`   | Salle d'attente ; l'hôte règle les paramètres (LOB-9) |
+| `countdown` | Compte à rebours avant le départ (CRS-1)              |
+| `racing`    | Course en cours                                       |
+| `finished`  | Résultats affichés                                    |
+| `closed`    | Lobby fermé par l'hôte (LOB-10)                       |
+
+- Le compte à rebours ne peut pas être annulé.
+- On ne ferme le lobby qu'en attente ou après une course. Pendant une course, l'hôte peut seulement l'arrêter (`stop`).
+- La course se termine (`end`) quand tous ont fini, quand la minuterie est écoulée ou après 2 min sans aucune frappe (CRS-5).
+
+### Joueur (pendant une course)
+
+```mermaid
+stateDiagram-v2
+    [*] --> connected
+    connected --> disconnected : disconnect
+    disconnected --> connected : reconnect
+    connected --> finished : finish
+    connected --> abandoned : abandon
+    finished --> [*]
+    abandoned --> [*]
+```
+
+| État           | Sens                                                     |
+| -------------- | -------------------------------------------------------- |
+| `connected`    | Tape le texte                                            |
+| `disconnected` | Connexion perdue ; la course continue sans lui (CRS-6)   |
+| `finished`     | A terminé le texte                                       |
+| `abandoned`    | A cliqué sur « Abandonner » ; devient spectateur (CRS-7) |
+
+- Pas de délai d'abandon : le joueur peut revenir tant que la course dure et reprend exactement où il était. S'il est encore absent à la fin, il est « non terminé ».
+- `finished` et `abandoned` sont finaux pour la course. Une déconnexion après coup ne change plus l'état du joueur.
+
+## Temps réel
+
+Socket.IO auto-hébergé, sur le même serveur HTTP et le même port que Next.js ([`server.ts`](../server.ts)). Le choix et les options écartées sont dans l'[ADR 0001](adr/0001-realtime.md).
+
+- Le serveur fait autorité : l'état d'une course en cours vit en mémoire dans [`lib/socket-server.ts`](../lib/socket-server.ts).
+- Chaque lobby est une *room* Socket.IO. Les arrivées et départs mettent à jour la liste des participants chez tous.
+- Pendant la course, chaque client envoie sa saisie ; le serveur la valide (Zod), calcule les positions et les diffuse à tous, au plus toutes les 250 ms et seulement si quelqu'un a bougé.
+- La base reçoit les résultats à la fin de la course seulement.

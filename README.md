@@ -75,8 +75,7 @@ flowchart LR
 
 - [Specification v1.1](docs/cahier-des-charges.pdf) ([docx](docs/cahier-des-charges.docx))
 - [Creative process](docs/DEMARCHE-CREATIVE.md)
-- [Data model](docs/modele-de-donnees.md)
-- [State machines](docs/machines-a-etats.md)
+- [Architecture: data model, state machines, real time](docs/ARCHITECTURE.md)
 - [ADR 0001: real time](docs/adr/0001-realtime.md)
 - [Requirements matrix](docs/requirements-matrix.md)
 
@@ -207,8 +206,7 @@ flowchart LR
 
 - [Cahier des charges v1.1](docs/cahier-des-charges.pdf) ([docx](docs/cahier-des-charges.docx))
 - [Démarche créative](docs/DEMARCHE-CREATIVE.md)
-- [Modèle de données](docs/modele-de-donnees.md)
-- [Machines à états](docs/machines-a-etats.md)
+- [Architecture : modèle de données, machines à états, temps réel](docs/ARCHITECTURE.md)
 - [ADR 0001 : temps réel](docs/adr/0001-realtime.md)
 - [Matrice des exigences](docs/requirements-matrix.md)
 
