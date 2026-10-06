@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("Should_ShowYouBadgeOnlyToOwner_When_VisitingAProfile", async ({ page }) => {
-  const username = `e2e_${Date.now().toString(36)}`;
+  const username = `e2e_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");

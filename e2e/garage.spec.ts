@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
   // Préfixe propre à ce fichier : auth.spec.ts crée aussi des comptes en parallèle.
-  const username = `garage_${Date.now().toString(36)}`;
+  const username = `garage_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
