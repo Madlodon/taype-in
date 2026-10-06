@@ -3,11 +3,13 @@ import { getTranslations } from "next-intl/server";
 import { guestAction, logOutAction } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/session-cookie";
 import { HeroBattle } from "@/components/hero-battle";
+import { JoinLobbyForm } from "@/components/join-lobby-form";
 
 export default async function Home() {
   const user = await getCurrentUser();
   const t = await getTranslations("Home");
   const d = await getTranslations("Design");
+  const lobbies = await getTranslations("Lobbies");
   return (
     <main id="main" className="page-shell">
       <section className="hero">
@@ -44,6 +46,11 @@ export default async function Home() {
               <Link className="text-link" href="/race">{d("tryPreview")}<span aria-hidden="true"> →</span></Link>
             </div>
           </>}
+          {/* Rejoindre une course sans passer par la page des salles (JOIN-01). */}
+          <section className="hero-join" aria-labelledby="hero-join-title">
+            <h2 id="hero-join-title" className="eyebrow">{lobbies("joinByCode")}</h2>
+            <JoinLobbyForm />
+          </section>
         </div>
         <div className="hero-visual">
           <span className="badge visual-topline">{d("stadiumLabel")}</span>

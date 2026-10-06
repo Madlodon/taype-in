@@ -247,14 +247,36 @@ test("Should_ReturnError_When_CodeIsForPrivateLobbyWithoutInvite", async () => {
   expect(redirect).not.toHaveBeenCalled();
 });
 
-test("Should_RedirectHome_When_JoiningByCodeWhileLoggedOut", async () => {
+test("Should_RedirectToLoginThenLobby_When_JoiningByCodeWhileLoggedOut", async () => {
   vi.mocked(getCurrentUser).mockResolvedValue(null);
+  vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
 
-  await expect(joinLobbyAction(undefined, form({ code: "K7P3XM" }))).rejects.toThrow(
+  await expect(joinLobbyAction(undefined, form({ code: "k7p3xm" }))).rejects.toThrow(
     "NEXT_REDIRECT",
   );
 
-  expect(redirect).toHaveBeenCalledWith("/");
+  expect(redirect).toHaveBeenCalledWith("/login?next=/lobbies/K7P3XM");
+});
+
+test("Should_ReturnError_When_LoggedOutCodeMatchesNoOpenLobby", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(null);
+  vi.mocked(lobbies.findOpenLobby).mockResolvedValue(null);
+
+  const state = await joinLobbyAction(undefined, form({ code: "ZZZZZZ" }));
+
+  expect(state).toEqual({ error: "noOpenLobby", code: "ZZZZZZ" });
+  expect(redirect).not.toHaveBeenCalled();
+});
+
+test("Should_ReturnError_When_LoggedOutCodeIsForPrivateLobby", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(null);
+  vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aPrivateLobby);
+
+  const state = await joinLobbyAction(undefined, form({ code: "K7P3XM" }));
+
+  expect(state).toEqual({ error: "noOpenLobby", code: "K7P3XM" });
+  expect(lobbies.canEnterLobby).not.toHaveBeenCalled();
+  expect(redirect).not.toHaveBeenCalled();
 });
 
 describe("createInvitesAction", () => {
