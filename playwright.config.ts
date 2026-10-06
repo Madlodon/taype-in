@@ -10,6 +10,8 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     // Le navigateur demande le français : les tests lisent les textes français.
     locale: "fr-CA",
+    // L'arène animée redessine le stade à chaque image : trop lent pour les machines de la CI.
+    reducedMotion: "reduce",
   },
   // Le site vise l'ordinateur, mais chaque page doit aussi marcher sur téléphone et tablette (UI-2).
   // La CI n'installe que Chromium : la tablette garde son format mais roule dans Chromium.
