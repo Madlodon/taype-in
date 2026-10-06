@@ -1477,16 +1477,26 @@ describe("bots", () => {
     expect(saved.map((row) => row.userId)).toEqual([host.id]);
   });
 
-  test("Should_RaceOnlyBots_When_HostWatchesTwoBots", async () => {
-    const { hostClient } = await hostAlone();
+  test("Should_AckNoHumanRacer_When_HostWatchesWithOnlyBots", async () => {
+    const { lobby, hostClient } = await hostAlone();
     await addBot(hostClient, "beginner");
     await addBot(hostClient, "expert");
-    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    expect(await hostClient.emitWithAck("race:start", { watch: true })).toEqual({
+      ok: false,
+      error: "noHumanRacer",
+    });
+    expect(await db.select().from(races).where(eq(races.lobbyId, lobby.id))).toHaveLength(0);
+  });
+
+  test("Should_StartWithHostWatching_When_OneHumanAndOneBotRace", async () => {
+    const { guest, hostClient } = await lobbyWithTwo();
+    await addBot(hostClient, "beginner");
+    const started = next<RaceStartedMessage>(hostClient, "race:started");
 
     expect(await hostClient.emitWithAck("race:start", { watch: true })).toEqual({ ok: true });
 
-    const { results: ranked } = await ended;
-    expect(ranked.map((result) => result.bot?.level)).toEqual(["expert", "beginner"]);
+    expect((await started).racerIds).toEqual([guest.id, expect.any(String)]);
   });
 
   test("Should_MoveBotsForward_When_RaceRuns", async () => {
