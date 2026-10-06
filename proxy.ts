@@ -15,8 +15,17 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-// Les photos de profil n'ont pas besoin de la session : une image encore en route
-// remettrait sinon le cookie après une déconnexion.
+// Les photos de profil et les préchargements de liens n'ont pas besoin de la
+// session : une réponse encore en route remettrait sinon le cookie après une
+// déconnexion.
 export const config = {
-  matcher: "/((?!_next/static|_next/image|favicon.ico|avatars/).*)",
+  matcher: [
+    {
+      source: "/((?!_next/static|_next/image|favicon.ico|avatars/).*)",
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
+  ],
 };
