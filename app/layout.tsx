@@ -52,12 +52,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <a href="#main" className="skip-link">{d("skip")}</a>
             <header className="site-header">
               <Link href="/" className="brand" aria-label="Taype-in">
-                <Image src="/octane-light.png" alt="Taype-in" width={88} height={50} className="dark:hidden" />
-                <Image src="/octane-dark.png" alt="Taype-in" width={88} height={50} className="hidden dark:block" />
-                <span aria-hidden="true">taype<span className="text-primary">-in</span><small>{d("brandTag")}</small></span>
+                <Image src="/taype-in-orange.png" alt="Taype-in" width={1613} height={975} sizes="160px" />
               </Link>
               <SiteNav username={user && !user.isGuest ? user.username : undefined} />
               <div className="header-settings"><ThemeSwitcher /><LocaleSwitcher /></div>
+              <Link href="/" className="brand brand-right" aria-label="Taype-in">
+                <Image src="/taype-in-blue.png" alt="Taype-in" width={1613} height={975} sizes="160px" />
+              </Link>
             </header>
             {children}
             <footer className="site-footer">{t("disclaimer")}</footer>
