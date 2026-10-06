@@ -64,14 +64,13 @@ export async function joinLobbyAction(
   formData: FormData,
 ): Promise<JoinFormState> {
   const user = await getCurrentUser();
-  if (!user) redirect("/");
-
   const code = String(formData.get("code") ?? "");
   const lobby = code.trim() ? await findOpenLobby(code) : null;
   // Le code seul ne suffit pas pour une course privée (LOB-3).
-  if (!lobby || !(await canEnterLobby(lobby, user.id))) {
-    return { error: "noOpenLobby", code };
-  }
+  const canEnter = lobby && (user ? await canEnterLobby(lobby, user.id) : lobby.visibility !== "private");
+  if (!canEnter) return { error: "noOpenLobby", code };
+  // Depuis l'accueil sans session : connexion ou invité, puis retour à la course (JOIN-01).
+  if (!user) redirect(`/login?next=/lobbies/${lobby.code}`);
   redirect(`/lobbies/${lobby.code}`);
 }
 
