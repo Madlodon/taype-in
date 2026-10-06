@@ -1,9 +1,10 @@
 name: CI
 
 on:
+  push:
   pull_request:
 
-# Une nouvelle poussée annule la CI encore en cours sur la même PR.
+# Une nouvelle poussée annule la CI encore en cours sur la même branche ou PR.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
