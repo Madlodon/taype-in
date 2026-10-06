@@ -17,25 +17,33 @@ export default async function Home() {
             <span>{d("heroAccent")}</span>
           </h1>
           <p className="hero-copy">{d("heroDescription")}</p>
-          <div className="hero-actions">
-            {user ? <Link href="/lobbies" className="btn btn-primary">{t("startRace")}<span aria-hidden="true">↗</span>
-            </Link> :
+          {user ? <>
+            <div className="hero-actions">
+              <Link href="/lobbies" className="btn btn-primary hero-cta">{t("startRace")}<span aria-hidden="true">↗</span>
+              </Link>
+              <Link href="/race" className="btn btn-secondary hero-cta">{d("tryPreview")}<span aria-hidden="true">→</span>
+              </Link>
+            </div>
+            <div className="account-line">
+              <p>{t.rich("loggedInAs", { username: user.username, strong: chunks => <strong>{chunks}</strong> })}{user.isGuest && ` ${t("guest")}`}</p>
+              <form action={logOutAction}>
+                <button className="text-link" type="submit">{t("logOut")}</button>
+              </form>
+            </div>
+          </> : <>
+            <div className="hero-actions">
+              <Link href="/signup" className="btn btn-primary hero-cta">{t("signUp")}<span aria-hidden="true">↗</span>
+              </Link>
+              <Link href="/login" className="btn btn-secondary hero-cta">{t("logIn")}<span aria-hidden="true">→</span>
+              </Link>
+            </div>
+            <div className="hero-alt">
               <form action={guestAction}>
-                <button className="btn btn-primary" type="submit">{t("playAsGuest")}<span aria-hidden="true">↗</span>
-                </button>
-              </form>}
-            <Link href="/race" className="btn btn-secondary">{d("tryPreview")}<span aria-hidden="true">→</span>
-            </Link>
-          </div>
-          {user ? <div className="account-line">
-            <p>{t.rich("loggedInAs", { username: user.username, strong: chunks => <strong>{chunks}</strong> })}{user.isGuest && ` ${t("guest")}`}</p>
-            <form action={logOutAction}>
-              <button className="text-link" type="submit">{t("logOut")}</button>
-            </form>
-          </div> : <div className="account-line flex flex-wrap gap-5">
-            <Link className="text-link" href="/signup">{t("signUp")}</Link>
-            <Link className="text-link" href="/login">{t("logIn")}</Link>
-          </div>}
+                <button className="text-link" type="submit">{t("playAsGuest")}<span aria-hidden="true"> ↗</span></button>
+              </form>
+              <Link className="text-link" href="/race">{d("tryPreview")}<span aria-hidden="true"> →</span></Link>
+            </div>
+          </>}
         </div>
         <div className="hero-visual">
           <span className="badge visual-topline">{d("stadiumLabel")}</span>
