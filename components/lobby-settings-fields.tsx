@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { DEFAULT_TIMER_MINUTES, MAX_TIMER_MINUTES, type LobbySettings } from "@/lib/lobbies";
+import { DEFAULT_TIMER_SECONDS, TIMER_OPTIONS, type LobbySettings } from "@/lib/lobbies";
 import { TEXT_LENGTHS } from "@/lib/texts";
 
 type Props = { settings?: LobbySettings; locale: string };
@@ -12,9 +12,9 @@ export function LobbySettingsFields({ settings, locale }: Props) {
   const textLength = settings?.textLength ?? 100;
   const errorMode = settings?.errorMode ?? "blocking";
   const noTimer = settings !== undefined && settings.timeLimitSeconds === null;
-  const timerMinutes = settings?.timeLimitSeconds
-    ? Math.round(settings.timeLimitSeconds / 60)
-    : DEFAULT_TIMER_MINUTES;
+  // Une ancienne durée hors des choix revient à la valeur par défaut.
+  const timerSeconds = TIMER_OPTIONS.find((seconds) => seconds === settings?.timeLimitSeconds)
+    ?? DEFAULT_TIMER_SECONDS;
   return (
     <>
       <fieldset>
@@ -42,8 +42,14 @@ export function LobbySettingsFields({ settings, locale }: Props) {
       <fieldset>
         <legend className="text-sm font-semibold">{t("timer")}</legend>
         <label className="field">
-          {t("timerMinutes", { max: MAX_TIMER_MINUTES })}
-          <input name="timerMinutes" type="number" min={1} max={MAX_TIMER_MINUTES} defaultValue={timerMinutes} required />
+          {t("timerDuration")}
+          <select name="timerSeconds" defaultValue={timerSeconds}>
+            {TIMER_OPTIONS.map((seconds) => (
+              <option key={seconds} value={seconds}>
+                {t("timerOption", { minutes: Math.floor(seconds / 60), seconds: seconds % 60 })}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="radio-option">
           <input type="checkbox" name="noTimer" defaultChecked={noTimer} />{t("noTimer")}</label>

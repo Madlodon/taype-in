@@ -60,7 +60,8 @@
     "blocking": "Bloquant : il faut taper le bon caractère pour continuer",
     "tolerant": "Tolérant : on continue et on peut corriger avec Retour arrière",
     "timer": "Minuterie",
-    "timerMinutes": "Durée en minutes (jusqu'à {max})",
+    "timerDuration": "Durée",
+    "timerOption": "{minutes, plural, =0 {{seconds} s} other {# min{seconds, plural, =0 {} other { {seconds}}}}}",
     "noTimer": "Pas de minuterie",
     "submit": "Créer la course"
   },

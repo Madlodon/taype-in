@@ -9,11 +9,11 @@ import {
   claimInvite,
   createInvites,
   createLobby,
-  DEFAULT_TIMER_MINUTES,
+  DEFAULT_TIMER_SECONDS,
   findOpenLobby,
   MAX_INVITES,
-  MAX_TIMER_MINUTES,
   updateLobbySettings,
+  TIMER_OPTIONS,
   type LobbySettings,
 } from "@/lib/lobbies";
 import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
@@ -33,15 +33,13 @@ function parseSettings(formData: FormData): LobbySettings {
     .parse(formData.get("textLength"));
   // Bloquant : la saisie s'arrête jusqu'au bon caractère ; tolérant : on continue (ERR-1).
   const errorMode = z.enum(["blocking", "tolerant"]).catch("blocking").parse(formData.get("errorMode"));
-  // Durée en minutes, ou aucune minuterie (CRS-4).
-  const timerMinutes = z.coerce
+  // Durée parmi les choix proposés, ou aucune minuterie (CONF-01).
+  const timerSeconds = z.coerce
     .number()
-    .int()
-    .min(1)
-    .max(MAX_TIMER_MINUTES)
-    .catch(DEFAULT_TIMER_MINUTES)
-    .parse(formData.get("timerMinutes"));
-  const timeLimitSeconds = formData.get("noTimer") ? null : timerMinutes * 60;
+    .pipe(z.union(TIMER_OPTIONS.map((seconds) => z.literal(seconds))))
+    .catch(DEFAULT_TIMER_SECONDS)
+    .parse(formData.get("timerSeconds"));
+  const timeLimitSeconds = formData.get("noTimer") ? null : timerSeconds;
   return { textLanguage, textLength, errorMode, timeLimitSeconds };
 }
 

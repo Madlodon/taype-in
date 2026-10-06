@@ -273,9 +273,9 @@ test("Should_ShowSameCountdownThenSameTextAndTimeLeft_When_HostStartsRace", asyn
   browser,
 }) => {
   const host = await newHost(browser);
-  const code = await createRace(host.page, /Non répertoriée/, (page) =>
-    page.getByLabel(/Durée en minutes/).fill("2"),
-  );
+  const code = await createRace(host.page, /Non répertoriée/, async (page) => {
+    await page.getByLabel("Durée").selectOption({ label: "2 min" });
+  });
   const start = host.page.getByRole("button", { name: "Lancer et courir" });
   await expect(start).toBeDisabled();
 
@@ -577,6 +577,8 @@ test("Should_RaceAgainstBotThatEveryoneSees_When_HostAddsBot", async ({ browser 
   const code = await createRace(host.page, /Non répertoriée/);
   const start = host.page.getByRole("button", { name: "Lancer et courir" });
   await expect(start).toBeDisabled();
+  // La liste se remplit une fois le socket dans le lobby : avant, l'ajout du bot serait perdu.
+  await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`]);
 
   await host.page.getByLabel("Niveau du bot").selectOption({ label: "Expert" });
   await host.page.getByRole("button", { name: "Ajouter un bot" }).click();

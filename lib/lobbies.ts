@@ -14,9 +14,9 @@ export const CODE_LENGTH = 6;
 export const MAX_PARTICIPANTS = 300;
 // Un lien par participant possible.
 export const MAX_INVITES = MAX_PARTICIPANTS;
-// CRS-4 : minuterie de 5 min par défaut, 24 h au maximum.
-export const DEFAULT_TIMER_MINUTES = 5;
-export const MAX_TIMER_MINUTES = 24 * 60;
+// CONF-01 : minuterie de 30 s à 10 min par pas de 30 s, 5 min par défaut.
+export const TIMER_OPTIONS = Array.from({ length: 20 }, (_, i) => (i + 1) * 30);
+export const DEFAULT_TIMER_SECONDS = 300;
 
 export function generateLobbyCode(): string {
   let code = "";
