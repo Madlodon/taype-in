@@ -74,10 +74,10 @@ flowchart LR
 #### Documentation (in French)
 
 - [Specification v1.1](docs/cahier-des-charges.pdf) ([docx](docs/cahier-des-charges.docx))
-- [Data model](docs/modele-de-donnees.md)
-- [State machines](docs/machines-a-etats.md)
+- [Creative process](docs/DEMARCHE-CREATIVE.md)
+- [Architecture: data model, state machines, real time, bots](docs/ARCHITECTURE.md)
 - [ADR 0001: real time](docs/adr/0001-realtime.md)
-- [Requirements matrix](docs/requirements-matrix.md)
+- [Requirements matrix](docs/EXIGENCES.md)
 
 #### Load test
 
@@ -205,10 +205,10 @@ flowchart LR
 #### Documentation
 
 - [Cahier des charges v1.1](docs/cahier-des-charges.pdf) ([docx](docs/cahier-des-charges.docx))
-- [Modèle de données](docs/modele-de-donnees.md)
-- [Machines à états](docs/machines-a-etats.md)
+- [Démarche créative](docs/DEMARCHE-CREATIVE.md)
+- [Architecture : modèle de données, machines à états, temps réel, bots](docs/ARCHITECTURE.md)
 - [ADR 0001 : temps réel](docs/adr/0001-realtime.md)
-- [Matrice des exigences](docs/requirements-matrix.md)
+- [Matrice des exigences](docs/EXIGENCES.md)
 
 #### Test de charge
 

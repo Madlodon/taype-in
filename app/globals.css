@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Stade de jour. Contrastes vérifiés dans docs/art-direction.md. */
+  /* Stade de jour. Contrastes vérifiés dans docs/DEMARCHE-CREATIVE.md. */
   --background: #f2f5fa;
   --foreground: #0b1426;
   --surface: #ffffff;
