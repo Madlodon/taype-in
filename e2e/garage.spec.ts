@@ -56,6 +56,8 @@ test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
   await expect(page.getByRole("radio", { name: "Boost Alpha", exact: true })).toBeChecked();
   await expect(page.getByRole("radio", { name: "Ballon doré", exact: true })).toBeChecked();
   await expect(page.getByRole("img", { name: "Fennec avec le boost Boost Alpha, chapeau : Chapeau de sorcier, ballon : Ballon doré" })).toBeVisible();
+  // La config demande moins d'animations : on les rallume pour voir le boost bouger.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   const plume = page.locator(".car-boost-alpha .boost-plume");
   await expect(plume).toHaveCSS("animation-name", "boost-flicker");
   await page.emulateMedia({ reducedMotion: "reduce" });

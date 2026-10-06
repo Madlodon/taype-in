@@ -789,6 +789,32 @@ test("Should_ShowRankingInEnglish_When_LocaleIsEnglish", () => {
   ).toBe("moi (you)0%");
 });
 
+test("Should_ApplyServerGoalWithoutLosingInput_When_RewardArrives", () => {
+  renderRoom("en");
+  const content = "Go. One two three four five.";
+  act(() => handlers["race:started"]({ content, errorMode: "blocking", racerIds: ["u2"], secondsLeft: null }));
+  const input = screen.getByRole("textbox") as HTMLTextAreaElement;
+  fireEvent.change(input, { target: { value: "Go. O" } });
+  act(() => handlers["race:shot"]({ id: "u2", sequence: 3, scored: true }));
+  act(() => handlers["race:goal"]({ removed: [{ start: 17, end: 22 }], word: "four" }));
+  expect(input.value).toBe("Go. O");
+  expect(screen.getByLabelText("Go. One two three five.")).toBeTruthy();
+  expect(screen.getByText('Goal! “four” was removed from your text.')).toBeTruthy();
+  fireEvent.change(input, { target: { value: "Go. One two three five." } });
+  expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: content, keys: content.length - 5 }));
+  expect(input.readOnly).toBe(true);
+});
+
+test("Should_RestoreRemovedWords_When_RejoiningRace", () => {
+  renderRoom("en");
+  act(() => handlers["race:started"]({
+    content: "Go. One two three four five.", errorMode: "blocking", racerIds: ["u2"], secondsLeft: null,
+    mine: { typed: "Go. O", errors: 0, keys: 5, keyErrors: {}, gaveUp: false, removed: [{ start: 17, end: 22 }] },
+  }));
+  expect(screen.getByLabelText("Go. One two three five.")).toBeTruthy();
+  expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Go. O");
+});
+
 // Classement dans l'ordre donné : u2 s'appelle « moi », les autres portent leur id comme nom.
 function sendOrder(...ids: string[]) {
   const positions = ids.map((id, index) => ({

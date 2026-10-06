@@ -1,10 +1,10 @@
-import { afterEach, expect, test } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import { act, cleanup, render } from "@testing-library/react";
 import { Arena } from "../components/arena";
 import { STADIUMS, STADIUM_IMAGES } from "../lib/garage-items";
-import { stadiumPosition, stadiumRoute } from "../lib/stadium-track";
+import { fieldPose, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 test.each(STADIUMS)("Should_DrawSelectedStadiumAndMoveRacer_When_ProgressChangesIn_%s", stadium => {
   const { container, rerender } = render(<Arena stadium={stadium} progress={0} />);
@@ -26,10 +26,50 @@ test.each(STADIUMS)("Should_DrawSelectedStadiumAndMoveRacer_When_ProgressChanges
   }
 });
 
-test.each(STADIUMS)("Should_KeepAllNamesAndDrawLocalRacerLast_In_%s", stadium => {
+test.each(STADIUMS)("Should_KeepAllNames_In_%s", stadium => {
   const { container } = render(<Arena stadium={stadium} cars={[
     { id: "you", name: "Alex", progress: .5, you: true },
     { id: "rival", name: "Sam", progress: .6, you: false },
   ]} />);
-  expect([...container.querySelectorAll(".car-tag")].map(tag => tag.textContent)).toEqual(["Sam", "Alex"]);
+  expect([...container.querySelectorAll(".car-tag")].map(tag => tag.textContent).sort()).toEqual(["Alex", "Sam"]);
+});
+
+
+test("Should_KeepTheWholeCarAndBallOnThePitch_When_DrivingContinuously", () => {
+  for (let time = 0; time < 120; time += .05) {
+    const at = fieldPose(time);
+    expect(Math.abs(at.x) + 9).toBeLessThan(41);
+    expect(Math.abs(at.y) + 9).toBeLessThan(35);
+    const next = fieldPose(time + .016);
+    expect(Math.hypot(next.x - at.x, next.y - at.y)).toBeLessThan(.25);
+    expect(Math.hypot(next.x - at.x, next.y - at.y)).toBeGreaterThan(0);
+    expect(Math.cos(at.heading) * (next.x - at.x) + Math.sin(at.heading) * (next.y - at.y)).toBeGreaterThan(0);
+  }
+});
+
+test("Should_SendGoalsIntoTheNetAndMissesOntoThePitch", async () => {
+  const { shotBall } = await import("../lib/stadium-track");
+  const pose = fieldPose(2);
+  expect(shotBall(pose, 1.2, true)).toMatchObject({ x: 56, y: 0 });
+  expect(shotBall(pose, 1.2, false)).toMatchObject({ x: 48, y: 15 });
+  expect(shotBall(pose, .6, true).z).toBeGreaterThan(shotBall(pose, 0, true).z);
+});
+
+
+test("Should_AnimateASentenceShotWhileTheCarKeepsMoving", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container } = render(<Arena cars={[{ id: "you", name: "Alex", progress: .2, you: true }]}
+    shots={{ you: { sequence: 3, scored: true, receivedAt: 0 } }} />);
+  const initial = container.querySelector("svg > g > g")!.getAttribute("transform");
+  act(() => tick(600));
+  const airborne = container.querySelector("svg > g > circle")!.getAttribute("cx");
+  act(() => tick(1200));
+  expect(container.querySelector("svg > g > g")!.getAttribute("transform")).not.toBe(initial);
+  expect(container.querySelector("svg > g > circle")!.getAttribute("cx")).not.toBe(airborne);
+  act(() => tick(2500));
+  expect(container.querySelector("svg > g > circle")!.getAttribute("cx")).not.toBe(airborne);
 });

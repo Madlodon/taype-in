@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState, type ReactNode } from "react";
+import { withoutRemoved, restoreRemoved, type RemovedWord } from "@/lib/race-goals";
 import { applyInput, EMPTY_TYPING, type ErrorMode, type Typing } from "@/lib/typing";
 
 // onProgress reçoit la saisie après chaque frappe ; initial = saisie reprise après une reconnexion (CRS-6).
@@ -10,6 +11,7 @@ type Props = {
   content: string;
   errorMode: ErrorMode;
   initial?: Typing;
+  removed?: RemovedWord[];
   onProgress?: (typing: Typing) => void;
   children?: ReactNode;
 };
@@ -20,6 +22,7 @@ export function RaceTyping({
   content,
   errorMode,
   initial = EMPTY_TYPING,
+  removed = [],
   onProgress,
   children,
 }: Props) {
@@ -27,11 +30,14 @@ export function RaceTyping({
   const [typing, setTyping] = useState(initial);
   // Pendant une composition (accent circonflexe, tréma…), le champ garde la saisie en cours.
   const [draft, setDraft] = useState<string>();
-  const finished = typing.typed.length === content.length;
+  const visibleContent = withoutRemoved(content, removed);
+  const visibleTyped = withoutRemoved(typing.typed, removed);
+  const finished = visibleTyped.length === visibleContent.length;
 
   function update(value: string) {
     setDraft(undefined);
-    const next = applyInput(typing, content, errorMode, value);
+    const edited = applyInput({ ...typing, typed: visibleTyped }, visibleContent, errorMode, value);
+    const next = { ...edited, typed: restoreRemoved(edited.typed, content, removed) };
     setTyping(next);
     onProgress?.(next);
   }
@@ -48,8 +54,8 @@ export function RaceTyping({
 
   return (
     <>
-      <p className="typing-text" aria-label={content}>
-        {[...content].map((character, index) => (
+      <p className="typing-text" aria-label={visibleContent}>
+        {content.split("").map((character, index) => removed.some(range => index >= range.start && index < range.end) ? null : (
           <span aria-hidden="true" key={index} className={letterClass(index)}>
             {character}
           </span>
@@ -62,7 +68,7 @@ export function RaceTyping({
       <textarea
         id="race-typing"
         className="typing-input"
-        value={draft ?? typing.typed}
+        value={draft ?? visibleTyped}
         onChange={(event) =>
           (event.nativeEvent as InputEvent).isComposing
             ? setDraft(event.target.value)

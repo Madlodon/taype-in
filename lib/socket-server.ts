@@ -1,3 +1,4 @@
+import { completedSentences, thirdWordAhead, GOAL_CHANCE, SHOT_MS, type RemovedWord } from "./race-goals.ts";
 // Serveur Socket.IO attaché au serveur HTTP de Next.js (ADR 0001).
 import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
@@ -33,13 +34,15 @@ import {
   type RacePositionsMessage,
   type RaceResult,
   type RaceStartedMessage,
+  type RaceShotMessage,
+  type RaceGoalMessage,
 } from "./socket-messages.ts";
 
 type SocketData = { user: User; lobby?: Lobby };
 
 // Un coureur et ce qu'il a tapé, gardé pour qu'il reprenne où il était (CRS-6).
 // doneAt : moment où il a fini ou abandonné, pour son temps (FIN-2).
-type Player = ProgressMessage & { state: PlayerState; doneAt?: number };
+type Player = ProgressMessage & { state: PlayerState; doneAt?: number; removed: RemovedWord[]; sentences: Set<number> };
 
 // Bot ajouté par l'hôte : un id au format d'un utilisateur, qui ne correspond à personne en base (BOT-1).
 type BotParticipant = { id: string; username: string; bot: Bot };
@@ -61,6 +64,7 @@ type LiveRace = {
   // Position de chaque coureur et moment où il l'a atteinte (départage les égalités).
   positions: Map<string, { username: string; position: number; at: number; bot?: Bot }>;
   positionsChanged: boolean;
+  shotTimers: Set<NodeJS.Timeout>;
   // Prochaine touche de chaque bot.
   botTimers: Map<string, NodeJS.Timeout>;
   endTimer?: NodeJS.Timeout;
@@ -83,7 +87,16 @@ export function createSocketServer(
   // CRS-5 : la course s'arrête après 2 min sans aucune frappe.
   // CRS-2 : les positions partent au plus toutes les 250 ms, seulement si quelqu'un a bougé.
   // botSpeedup accélère les bots, pour des tests rapides.
-  { countdownMs = 5000, idleMs = 2 * 60 * 1000, positionsMs = 250, botSpeedup = 1 } = {},
+  {
+    countdownMs = 5000,
+    idleMs = 2 * 60 * 1000,
+    positionsMs = 250,
+    botSpeedup = 1,
+    shotMs = SHOT_MS,
+    shotRandom = Math.random,
+    // goalChance = 0 : aucun but, pour les tests E2E qui tapent tout le texte.
+    goalChance = GOAL_CHANCE,
+  } = {},
 ): Server {
   const io = new Server<
     Record<string, never>,
@@ -94,6 +107,8 @@ export function createSocketServer(
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
       "race:positions": (message: RacePositionsMessage) => void;
+      "race:shot": (message: RaceShotMessage) => void;
+      "race:goal": (message: RaceGoalMessage) => void;
       "race:ended": (message: RaceEndedMessage) => void;
     },
     Record<string, never>,
@@ -150,6 +165,8 @@ export function createSocketServer(
     clearTimeout(live.idleTimer);
     clearInterval(live.positionsTimer);
     live.botTimers.forEach((timer) => clearTimeout(timer));
+    live.shotTimers.forEach((timer) => clearTimeout(timer));
+    live.shotTimers.clear();
   }
 
   async function endRace(lobby: Lobby, live: LiveRace, reason: RaceEndedMessage["reason"]) {
@@ -229,6 +246,24 @@ export function createSocketServer(
     player.errors = progress.errors;
     player.keys = progress.keys;
     player.keyErrors = progress.keyErrors;
+    for (const sentence of completedSentences(live.content, player.typed)) {
+      if (player.sentences.has(sentence)) continue;
+      player.sentences.add(sentence);
+      const scored = shotRandom() < goalChance;
+      io.to(lobby.code).emit("race:shot", { id, sequence: sentence, scored });
+      const timer = setTimeout(() => {
+        live.shotTimers.delete(timer);
+        if (!scored || live.state !== "racing" || player.state === "finished" || player.state === "abandoned") return;
+        const range = thirdWordAhead(live.content, player.typed.length, player.removed);
+        if (!range) return;
+        player.removed.push(range);
+        const message = { removed: player.removed, word: live.content.slice(range.start, range.end).trim() };
+        for (const client of io.sockets.sockets.values()) {
+          if (client.data.user.id === id && client.rooms.has(lobby.code)) client.emit("race:goal", message);
+        }
+      }, shotMs);
+      live.shotTimers.add(timer);
+    }
     const racer = live.positions.get(id)!;
     if (racer.position !== player.typed.length) {
       live.positions.set(id, {
@@ -325,6 +360,7 @@ export function createSocketServer(
             keys: player.keys,
             keyErrors: player.keyErrors,
             gaveUp: player.state === "abandoned",
+            removed: player.removed,
           },
         });
         socket.emit("race:positions", ranking(race));
@@ -388,11 +424,14 @@ export function createSocketServer(
               errors: 0,
               keys: 0,
               keyErrors: {},
+              removed: [],
+              sentences: new Set<number>(),
             },
           ]),
         ),
         positions: new Map(),
         positionsChanged: false,
+        shotTimers: new Set(),
         botTimers: new Map(),
       };
       liveRaces.set(lobby.id, live);

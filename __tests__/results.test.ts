@@ -273,6 +273,13 @@ describe("saveResults", () => {
   });
 });
 
+test("Should_ExcludeRemovedWordsFromSpeed_When_GoalSkipsLetters", () => {
+  const content = "one two three";
+  const [result] = rankRacers([racer({ typed: content, keys: 7, removed: [{ start: 7, end: 13 }] })], content, "blocking");
+  expect(result.wpm).toBe(7 / 5);
+  expect(result.accuracy).toBe(100);
+});
+
 describe("awardXp", () => {
   const createdIds: string[] = [];
 

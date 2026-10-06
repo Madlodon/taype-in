@@ -13,6 +13,8 @@ import {
   type RacePositionsMessage,
   type RaceResult,
   type RaceStartedMessage,
+  type RaceShotMessage,
+  type RaceGoalMessage,
 } from "@/lib/socket-messages";
 import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
 import { BOT_LEVELS, type Bot } from "@/lib/bots";
@@ -21,6 +23,7 @@ import { BotBadge } from "@/components/bot-badge";
 import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
 import { RaceResults } from "@/components/race-results";
 import { RaceTyping } from "@/components/race-typing";
+import type { RemovedWord } from "@/lib/race-goals";
 import { SessionStats } from "@/components/session-stats";
 import type { SessionStats as Stats } from "@/lib/session-stats";
 import type { Typing } from "@/lib/typing";
@@ -86,6 +89,9 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
   // Dernière saisie envoyée : renvoyée au retour de la connexion, au cas où des frappes se sont perdues (CRS-6).
   const typingRef = useRef<Typing>(null);
   const [resumed, setResumed] = useState<Typing>();
+  const [removed, setRemoved] = useState<RemovedWord[]>([]);
+  const [shots, setShots] = useState<Record<string, RaceShotMessage & { receivedAt: number }>>({});
+  const [goalWord, setGoalWord] = useState<string>();
   const [finished, setFinished] = useState(false);
   // Lu par les gestionnaires du socket, branchés une seule fois.
   const botNameRef = useRef<(bot: Bot) => string>(null);
@@ -125,6 +131,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
     socket.on("race:started", (message: RaceStartedMessage) => {
       setCountdown(undefined);
       setRace(message);
+      setRemoved(message.mine?.removed ?? []);
       setSecondsLeft(message.secondsLeft);
       if (message.mine?.gaveUp) setGaveUp(true);
       // Retour après un rechargement : on reprend la saisie gardée par le serveur.
@@ -135,6 +142,13 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
         setMyPosition(message.mine.typed.length);
         setFinished(message.mine.typed.length === message.content.length);
       }
+    });
+    socket.on("race:shot", (message: RaceShotMessage) => {
+      setShots(previous => ({ ...previous, [message.id]: { ...message, receivedAt: performance.now() } }));
+    });
+    socket.on("race:goal", (message: RaceGoalMessage) => {
+      setRemoved(message.removed);
+      setGoalWord(message.word);
     });
     socket.on("race:positions", (message: RacePositionsMessage) => {
       const positions = named(message.positions);
@@ -253,6 +267,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
       <div className="race-board">
         <Arena
           stadium={stadium}
+          shots={shots}
           cars={shown.map((entry) => ({
             id: entry.id,
             name: entry.username,
@@ -312,6 +327,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
             content={race.content}
             errorMode={race.errorMode}
             initial={resumed}
+            removed={removed}
             onProgress={progress}
           >
             {/* Toujours là, même vide : le champ ne bouge pas quand un dépassement s'affiche. */}
@@ -328,6 +344,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
               )}
             </p>
           </RaceTyping>
+          {goalWord && <p role="status" className="form-note">{t("goalRemoved", { word: goalWord })}</p>}
           {timeLeft}
           {!finished && (
             <button type="button" className="btn btn-secondary btn-lg mt-5" onClick={giveUp}>

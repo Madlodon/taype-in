@@ -1,3 +1,4 @@
+import type { RemovedWord } from "./race-goals.ts";
 // Messages Socket.IO envoyés par le client, validés avec Zod.
 import { z } from "zod";
 import { BOT_LEVELS, type Bot } from "./bots.ts";
@@ -50,7 +51,7 @@ export type RaceStartedMessage = {
   errorMode: "blocking" | "tolerant";
   racerIds: string[];
   secondsLeft: number | null;
-  mine?: ProgressMessage & { gaveUp: boolean };
+  mine?: ProgressMessage & { gaveUp: boolean; removed?: RemovedWord[] };
 };
 
 // Classement en direct, du premier au dernier ; position = caractères tapés (CRS-2).
@@ -84,3 +85,7 @@ export type RaceEndedMessage = {
   reason: "allFinished" | "timeUp" | "idle";
   results: RaceResult[];
 };
+
+// The server owns shot outcomes and the removed word offsets.
+export type RaceShotMessage = { id: string; sequence: number; scored: boolean };
+export type RaceGoalMessage = { removed: RemovedWord[]; word?: string };

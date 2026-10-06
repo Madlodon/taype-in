@@ -64,6 +64,7 @@
     "submit": "Create the race"
   },
   "LobbyRoom": {
+    "goalRemoved": "Goal! “{word}” was removed from your text.",
     "title": "Waiting room",
     "code": "Race code:",
     "participants": "Participants ({count})",

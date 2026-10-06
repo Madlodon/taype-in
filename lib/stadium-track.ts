@@ -1,13 +1,13 @@
 import type { Stadium } from "./garage-items";
 
-// Same normalized route in every stadium: grass, bank, back wall, aerial shot.
+// Ground-only route with enough clearance for the whole car and ball.
 const ROUTE = [
-  [0, -35, -14, 1], [.36, 42, -14, 1], [.49, 40, 35, 4],
-  [.59, 30, 39, 14], [.78, -8, 39, 14], [1, 58, 0, 1],
+  [0, -32, -12, 0], [.36, 32, -12, 0], [.49, 34, 16, 0],
+  [.59, 24, 20, 0], [.78, -8, 20, 0], [1, 40, 0, 0],
 ] as const;
 
 // Match the orthographic cameras in docs/mockups/assets/arena-model.py.
-function project(x: number, y: number, z: number, stadium: Stadium) {
+export function project(x: number, y: number, z: number, stadium: Stadium) {
   if (stadium === "top-down") return { x: 700 + x * 974 / 106, y: 450 - y * 492 / 70 };
   const [camera, target, scale] = stadium === "diorama"
     ? [[115, -140, 135], [0, 0, 7], 198] as const
@@ -38,4 +38,20 @@ export function stadiumPosition(progress: number, stadium: Stadium) {
     y: a.y + (b.y - a.y) * fraction,
     angle: Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI,
   };
+}
+
+// Smooth closed patrol. Heading follows the tangent instead of rotating a flat sprite.
+export function fieldPose(seconds: number, phase = 0) {
+  const t = seconds * .42 + phase * Math.PI * 2;
+  return { x: 30 * Math.cos(t), y: 17 * Math.sin(t),
+    heading: Math.atan2(17 * Math.cos(t), -30 * Math.sin(t)) };
+}
+
+// A shot leaves the dribble position, travels toward the goal, then returns to play.
+export function shotBall(pose: ReturnType<typeof fieldPose>, elapsed: number, scored: boolean) {
+  const start = { x: pose.x + 5.7 * Math.cos(pose.heading), y: pose.y + 5.7 * Math.sin(pose.heading) };
+  const fraction = Math.max(0, Math.min(1, elapsed / 1.2));
+  const end = scored ? { x: 56, y: 0 } : { x: 48, y: 15 };
+  return { x: start.x + (end.x - start.x) * fraction,
+    y: start.y + (end.y - start.y) * fraction, z: 1.2 + Math.sin(fraction * Math.PI) * 5 };
 }
