@@ -17,6 +17,21 @@ export const BOT_PROFILES: Record<BotLevel, { wpm: number; errorRate: number }> 
   expert: { wpm: 100, errorRate: 0.01 },
 };
 
+// XP d'une course contre des bots (#35) : multipliée selon leur difficulté.
+export const BOT_XP_MULTIPLIERS: Record<BotLevel, number> = {
+  beginner: 0.5,
+  intermediate: 1,
+  advanced: 1.5,
+  expert: 2,
+};
+
+// Moyenne sur tous les coureurs : chaque bot selon son niveau, chaque joueur compte pour ×1.
+export function xpMultiplier(bots: BotLevel[], humans: number): number {
+  if (bots.length + humans === 0) return 1;
+  const total = bots.reduce((sum, level) => sum + BOT_XP_MULTIPLIERS[level], humans);
+  return total / (bots.length + humans);
+}
+
 // Ralentissement au hasard : de temps en temps, le bot hésite le temps de quelques touches.
 const SLOWDOWN_RATE = 1 / 30;
 const SLOWDOWN_KEYS = 4;

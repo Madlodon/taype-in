@@ -1372,6 +1372,8 @@ describe("bots", () => {
       [2, { level: "beginner", number: 1 }, true],
     ]);
     expect(ranked[0]).toMatchObject({ id: host.id, rankLevel: 11, rankChange: 1 });
+    // Contre un bot débutant : 100 XP × (0,5 + 1) ÷ 2 ; le bot ne gagne rien.
+    expect(ranked.map((result) => result.xpGained)).toEqual([75, 0]);
     const saved = await db
       .select()
       .from(results)

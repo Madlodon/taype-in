@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
-import { botKey, type Bot } from "./bots.ts";
+import { botKey, xpMultiplier, type Bot } from "./bots.ts";
 import {
   addParticipant,
   canEnterLobby,
@@ -183,7 +183,9 @@ export function createSocketServer(
       placements.filter((placement) => !live.positions.get(placement.id)?.bot),
     );
     const ranks = await updateRanks(placements.map((placement) => placement.id));
-    const xp = await awardXp(placements);
+    // Les bots ne gagnent rien, mais leur niveau change l'XP des joueurs.
+    const bots = [...live.positions.values()].flatMap(({ bot }) => (bot ? [bot.level] : []));
+    const xp = await awardXp(placements, xpMultiplier(bots, placements.length - bots.length));
     live.results = placements.map((placement) => ({
       ...placement,
       ...(ranks.get(placement.id) ?? { rankLevel: 0, rankChange: 0 }),

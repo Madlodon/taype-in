@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { BOT_LEVELS, BOT_PROFILES, botKey, type BotLevel } from "../lib/bots";
+import { BOT_LEVELS, BOT_PROFILES, botKey, xpMultiplier, type BotLevel } from "../lib/bots";
 import { countCorrect, wordsPerMinute } from "../lib/results";
 import { EMPTY_TYPING, type ErrorMode } from "../lib/typing";
 
@@ -71,5 +71,25 @@ describe("botKey", () => {
     );
 
     expect(delays.some((delay) => delay > perChar * 2)).toBe(true);
+  });
+});
+
+describe("xpMultiplier", () => {
+  test.each([
+    ["beginner", 0.5],
+    ["intermediate", 1],
+    ["advanced", 1.5],
+    ["expert", 2],
+  ] as const)("Should_UseLevelMultiplier_When_OnlyBotIs_%s", (level, expected) => {
+    expect(xpMultiplier([level], 0)).toBe(expected);
+  });
+
+  test("Should_AverageBotsAndCountHumansAsOne_When_RaceIsMixed", () => {
+    // (2 + 0.5 + 1) ÷ 3
+    expect(xpMultiplier(["expert", "beginner"], 1)).toBeCloseTo(3.5 / 3);
+  });
+
+  test("Should_BeOne_When_ThereIsNoBot", () => {
+    expect(xpMultiplier([], 4)).toBe(1);
   });
 });

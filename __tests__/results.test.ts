@@ -345,6 +345,19 @@ describe("awardXp", () => {
     expect(await savedXp([guest.id])).toEqual([0]);
   });
 
+  test("Should_MultiplyXp_When_RaceHasBots", async () => {
+    const user = await newUser();
+    const ranked = rankRacers(
+      [racer({ id: user.id, durationMs: 10_000 }), racer({ id: crypto.randomUUID(), durationMs: 20_000 })],
+      TEXT,
+      "blocking",
+    );
+
+    const updates = await awardXp(ranked, 1.5);
+
+    expect(updates.get(user.id)).toEqual({ xp: 150, xpGained: 150 });
+  });
+
   test("Should_GiveNothing_When_AloneInRace", async () => {
     const user = await newUser();
 
