@@ -74,6 +74,7 @@ flowchart LR
 #### Documentation (in French)
 
 - [Specification v1.1](docs/cahier-des-charges.pdf) ([docx](docs/cahier-des-charges.docx))
+- [Creative process](docs/DEMARCHE-CREATIVE.md)
 - [Data model](docs/modele-de-donnees.md)
 - [State machines](docs/machines-a-etats.md)
 - [ADR 0001: real time](docs/adr/0001-realtime.md)
@@ -205,6 +206,7 @@ flowchart LR
 #### Documentation
 
 - [Cahier des charges v1.1](docs/cahier-des-charges.pdf) ([docx](docs/cahier-des-charges.docx))
+- [Démarche créative](docs/DEMARCHE-CREATIVE.md)
 - [Modèle de données](docs/modele-de-donnees.md)
 - [Machines à états](docs/machines-a-etats.md)
 - [ADR 0001 : temps réel](docs/adr/0001-realtime.md)

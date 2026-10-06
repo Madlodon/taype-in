@@ -1,6 +1,14 @@
-# Direction artistique
+# Démarche créative
 
-Exigence UI-4 : direction artistique marquée et originale, avec des mécaniques qui jouent avec le visuel.
+Nom, logo et direction artistique du site (DES-01 à DES-03).
+
+## Nom
+
+**Taype-in** est un mélange de *type* (taper au clavier) et de *tap-in*. Au soccer comme dans Rocket League, un *tap-in* est un but facile : une simple touche au ballon, tout près du filet. Le site s'inspire de Rocket League, donc le nom réunit les deux idées : taper au clavier et marquer un but.
+
+## Direction artistique
+
+Direction marquée et originale, avec des mécaniques qui jouent avec le visuel.
 
 ## Thème
 
@@ -159,14 +167,23 @@ Le [modèle Blender](mockups/assets/arena.blend) et les deux rendus se régénè
 
 ## Logo
 
-**Logo final : une Octane illustrée avec une traînée de boost.** La couleur suit le thème du site : voiture orange et boost blanc en sombre, voiture bleue et boost noir en clair.
-Les deux images sont générées par IA (fond transparent), à partir d'une image de référence de l'Octane.
+**Logo final : une Octane en plein saut, avec le nom « TAYPE-IN » en lettres usées.** Il existe en deux couleurs, une par équipe, avec « IN » dans la couleur de l'autre équipe. Le nom est noir en thème clair et blanc en thème sombre.
+
+| Équipe | Thème clair | Thème sombre |
+| ------ | ----------- | ------------ |
+| Orange | ![Logo orange, clair](../public/taype-in-orange.png) | ![Logo orange, sombre](../public/taype-in-orange-dark.png) |
+| Bleue  | ![Logo bleu, clair](../public/taype-in-blue.png)     | ![Logo bleu, sombre](../public/taype-in-blue-dark.png)     |
+
+Dans la barre de navigation, le logo orange est à gauche et le bleu à droite, comme deux équipes face à face.
+Le favicon ([`app/icon.svg`](../app/icon.svg)) reprend le logo bleu en thème clair et l'orange en sombre. Il suit le thème du navigateur, car le thème choisi sur le site ne lui est pas accessible.
+
+### Versions précédentes
+
+Première version, une Octane avec une traînée de boost, sans le nom. Ces images avaient été générées par IA ; elles sont écartées, car le logo doit être fait sans IA (DES-02).
 
 | Thème sombre                                | Thème clair                                   |
 | ------------------------------------------- | --------------------------------------------- |
-| ![Logo sombre](../public/octane-dark.png)   | ![Logo clair](../public/octane-light.png)     |
-
-Le favicon ([`app/icon.svg`](../app/icon.svg)) reprend la même Octane, recadrée sur la voiture. Il suit le thème du navigateur, car le thème choisi sur le site ne lui est pas accessible.
+| ![Octane sombre](logo/octane-dark.png)      | ![Octane claire](logo/octane-light.png)       |
 
 Les deux pistes de départ, écartées :
 
