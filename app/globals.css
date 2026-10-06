@@ -1233,6 +1233,15 @@ a, button, input {
   min-width: 0;
 }
 
+/* Un long nom d'utilisateur passe à la ligne au lieu d'élargir la page sur mobile. */
+.profile-identity > div {
+  min-width: 0;
+}
+
+.profile-identity .page-title {
+  overflow-wrap: anywhere;
+}
+
 .avatar-form {
   display: flex;
   flex-wrap: wrap;
