@@ -1,9 +1,10 @@
 // @vitest-environment node
+import { completedSentences, thirdWordAhead } from "../lib/race-goals";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Server } from "socket.io";
 import { io as connect, type Socket } from "socket.io-client";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
@@ -25,6 +26,8 @@ import type {
   RaceEndedMessage,
   RacePositionsMessage,
   RaceStartedMessage,
+  RaceShotMessage,
+  RaceGoalMessage,
 } from "../lib/socket-messages";
 
 let io: Server;
@@ -38,7 +41,7 @@ beforeAll(async () => {
 });
 
 // Compte à rebours raccourci pour garder les tests rapides.
-async function startServer(options: { idleMs?: number } = {}) {
+async function startServer(options: { idleMs?: number; shotMs?: number; shotRandom?: () => number } = {}) {
   const httpServer = createServer();
   io = createSocketServer(httpServer, { countdownMs: 100, ...options });
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
@@ -721,7 +724,7 @@ describe("reconnect", () => {
 
     const { started } = await guestComesBack(lobby, guest);
 
-    expect(started.mine).toEqual({ ...typing(content.slice(0, 5), 2), gaveUp: false });
+    expect(started.mine).toEqual({ ...typing(content.slice(0, 5), 2), gaveUp: false, removed: [] });
   });
 
   test("Should_KeepTolerantMistakes_When_RacerComesBack", async () => {
@@ -1052,5 +1055,43 @@ describe("disconnect", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(await listParticipants(lobby.id)).toEqual([{ id: guest.id, username: guest.username }]);
+  });
+});
+
+
+describe("sentence shots", () => {
+  test.each([0, .9])("Should_ResolveOneShotAndPersistOnlyScoredRewards_When_RollIs_%s", async roll => {
+    await io.close();
+    const random = vi.fn(() => roll);
+    await startServer({ shotMs: 30, shotRandom: random });
+    const { host, hostClient, guestClient, lobby } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const boundary = completedSentences(content, content)[0];
+    expect(boundary).toBeDefined();
+    expect(thirdWordAhead(content, boundary, [])).toBeDefined();
+    const shot = next<RaceShotMessage>(guestClient, "race:shot");
+    const rewards: RaceGoalMessage[] = [];
+    const opponentRewards: RaceGoalMessage[] = [];
+    hostClient.on("race:goal", message => rewards.push(message));
+    guestClient.on("race:goal", message => opponentRewards.push(message));
+    await progress(hostClient, typing(content.slice(0, boundary), 0));
+    expect(await shot).toEqual({ id: host.id, sequence: boundary, scored: roll < .5 });
+    // Continue during the shot: reward selection must use the latest cursor.
+    const cursor = content.indexOf(" ", boundary + 2) + 2;
+    await progress(hostClient, typing(content.slice(0, cursor), 0));
+    await new Promise(resolve => setTimeout(resolve, 60));
+    expect(random).toHaveBeenCalledTimes(1);
+    expect(opponentRewards).toEqual([]);
+    if (roll < .5) {
+      expect(rewards).toHaveLength(1);
+      expect(rewards[0].removed).toEqual([thirdWordAhead(content, cursor, [])]);
+    } else expect(rewards).toEqual([]);
+    // Backspacing and retyping the sentence must not reroll the shot.
+    await progress(hostClient, typing(content.slice(0, boundary - 1), 0));
+    await progress(hostClient, typing(content.slice(0, boundary), 0));
+    expect(random).toHaveBeenCalledTimes(1);
+    const resumed = next<RaceStartedMessage>(hostClient, "race:started");
+    await join(hostClient, { code: lobby.code });
+    expect((await resumed).mine?.removed).toEqual(rewards[0]?.removed ?? []);
   });
 });

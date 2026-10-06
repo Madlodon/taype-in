@@ -1,3 +1,4 @@
+import { completedSentences, thirdWordAhead, GOAL_CHANCE, SHOT_MS, type RemovedWord } from "./race-goals.ts";
 // Serveur Socket.IO attaché au serveur HTTP de Next.js (ADR 0001).
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
@@ -28,13 +29,15 @@ import {
   type RacePositionsMessage,
   type RaceResult,
   type RaceStartedMessage,
+  type RaceShotMessage,
+  type RaceGoalMessage,
 } from "./socket-messages.ts";
 
 type SocketData = { user: User; lobby?: Lobby };
 
 // Un coureur et ce qu'il a tapé, gardé pour qu'il reprenne où il était (CRS-6).
 // doneAt : moment où il a fini ou abandonné, pour son temps (FIN-2).
-type Player = ProgressMessage & { state: PlayerState; doneAt?: number };
+type Player = ProgressMessage & { state: PlayerState; doneAt?: number; removed: RemovedWord[]; sentences: Set<number> };
 
 // Course en cours d'un lobby ; un lobby absent de la liste est en attente.
 type LiveRace = {
@@ -53,6 +56,7 @@ type LiveRace = {
   // Position de chaque coureur et moment où il l'a atteinte (départage les égalités).
   positions: Map<string, { username: string; position: number; at: number }>;
   positionsChanged: boolean;
+  shotTimers: Set<NodeJS.Timeout>;
   endTimer?: NodeJS.Timeout;
   idleTimer?: NodeJS.Timeout;
   positionsTimer?: NodeJS.Timeout;
@@ -72,7 +76,7 @@ export function createSocketServer(
   httpServer: HttpServer,
   // CRS-5 : la course s'arrête après 2 min sans aucune frappe.
   // CRS-2 : les positions partent au plus toutes les 250 ms, seulement si quelqu'un a bougé.
-  { countdownMs = 5000, idleMs = 2 * 60 * 1000, positionsMs = 250 } = {},
+  { countdownMs = 5000, idleMs = 2 * 60 * 1000, positionsMs = 250, shotMs = SHOT_MS, shotRandom = Math.random } = {},
 ): Server {
   const io = new Server<
     Record<string, never>,
@@ -82,6 +86,8 @@ export function createSocketServer(
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
       "race:positions": (message: RacePositionsMessage) => void;
+      "race:shot": (message: RaceShotMessage) => void;
+      "race:goal": (message: RaceGoalMessage) => void;
       "race:ended": (message: RaceEndedMessage) => void;
     },
     Record<string, never>,
@@ -126,6 +132,8 @@ export function createSocketServer(
     if (live.state !== "racing") return;
     live.state = nextLobbyState(live.state, "end");
     live.endReason = reason;
+    for (const timer of live.shotTimers) clearTimeout(timer);
+    live.shotTimers.clear();
     clearTimeout(live.endTimer);
     clearTimeout(live.idleTimer);
     clearInterval(live.positionsTimer);
@@ -166,6 +174,8 @@ export function createSocketServer(
   // Serveur arrêté : les minuteries des courses en cours ne doivent plus se déclencher.
   httpServer.on("close", () => {
     for (const live of liveRaces.values()) {
+      for (const timer of live.shotTimers) clearTimeout(timer);
+      live.shotTimers.clear();
       clearTimeout(live.endTimer);
       clearTimeout(live.idleTimer);
       clearInterval(live.positionsTimer);
@@ -248,6 +258,7 @@ export function createSocketServer(
             keys: player.keys,
             keyErrors: player.keyErrors,
             gaveUp: player.state === "abandoned",
+            removed: player.removed,
           },
         });
         socket.emit("race:positions", ranking(race));
@@ -292,11 +303,12 @@ export function createSocketServer(
         players: new Map(
           participants.map((participant) => [
             participant.id,
-            { state: "connected", typed: "", errors: 0, keys: 0, keyErrors: {} },
+            { state: "connected", typed: "", errors: 0, keys: 0, keyErrors: {}, removed: [], sentences: new Set<number>() },
           ]),
         ),
         positions: new Map(),
         positionsChanged: false,
+        shotTimers: new Set(),
       };
       liveRaces.set(lobby.id, live);
 
@@ -371,6 +383,24 @@ export function createSocketServer(
         player.errors = result.data.errors;
         player.keys = result.data.keys;
         player.keyErrors = result.data.keyErrors;
+        for (const sentence of completedSentences(live.content, player.typed)) {
+          if (player.sentences.has(sentence)) continue;
+          player.sentences.add(sentence);
+          const scored = shotRandom() < GOAL_CHANCE;
+          io.to(lobby.code).emit("race:shot", { id: user.id, sequence: sentence, scored });
+          const timer = setTimeout(() => {
+            live.shotTimers.delete(timer);
+            if (!scored || live.state !== "racing" || player.state === "finished" || player.state === "abandoned") return;
+            const range = thirdWordAhead(live.content, player.typed.length, player.removed);
+            if (!range) return;
+            player.removed.push(range);
+            const message = { removed: player.removed, word: live.content.slice(range.start, range.end).trim() };
+            for (const client of io.sockets.sockets.values()) {
+              if (client.data.user.id === user.id && client.rooms.has(lobby.code)) client.emit("race:goal", message);
+            }
+          }, shotMs);
+          live.shotTimers.add(timer);
+        }
         const racer = live.positions.get(user.id)!;
         if (racer.position !== player.typed.length) {
           live.positions.set(user.id, { ...racer, position: player.typed.length, at: Date.now() });

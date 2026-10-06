@@ -274,3 +274,10 @@ describe("saveResults", () => {
     expect(await db.select().from(results).where(eq(results.raceId, race.id))).toEqual([]);
   });
 });
+
+test("Should_ExcludeRemovedWordsFromSpeed_When_GoalSkipsLetters", () => {
+  const content = "one two three";
+  const [result] = rankRacers([racer({ typed: content, keys: 7, removed: [{ start: 7, end: 13 }] })], content, "blocking");
+  expect(result.wpm).toBe(7 / 5);
+  expect(result.accuracy).toBe(100);
+});

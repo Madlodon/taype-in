@@ -1,3 +1,4 @@
+import { withoutRemoved, type RemovedWord } from "./race-goals.ts";
 // Résultats d'une course : vitesse, précision, temps et classement (FIN-1, FIN-2, ERR-3),
 // enregistrés dans l'historique des utilisateurs inscrits (FIN-4).
 import { and, eq, inArray } from "drizzle-orm";
@@ -14,6 +15,7 @@ export type Racer = ProgressMessage & {
   finished: boolean;
   durationMs: number;
   reachedAt: number;
+  removed?: RemovedWord[];
 };
 
 // Place d'un coureur avant la mise à jour des rangs (#99).
@@ -61,7 +63,7 @@ export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMod
     id: racer.id,
     username: racer.username,
     rank: index + 1,
-    wpm: wordsPerMinute(countCorrect(racer.typed, content), racer.durationMs),
+    wpm: wordsPerMinute(countCorrect(withoutRemoved(racer.typed, racer.removed ?? []), withoutRemoved(content, racer.removed ?? [])), racer.durationMs),
     accuracy: accuracy(racer.keys, racer.errors),
     durationMs: racer.durationMs,
     penaltyMs,
