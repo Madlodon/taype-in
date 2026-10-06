@@ -253,6 +253,8 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
 
   // Un hôte qui regarde ne compte pas parmi les participants (LOB-8).
   const hostWatching = race !== undefined && !race.racerIds.includes(hostId);
+  // Pour regarder, l'hôte doit laisser au moins un humain dans la course (COURSE-02).
+  const otherHuman = participants.some((participant) => !participant.bot && participant.id !== hostId);
   const participantCount = participants.filter(
     (participant) => !(hostWatching && participant.id === hostId),
   ).length;
@@ -438,7 +440,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => start(true)}
-                disabled={participants.length - 1 < MIN_RACERS}
+                disabled={participants.length - 1 < MIN_RACERS || !otherHuman}
               >
                 {t("startWatching")}
               </button>
@@ -449,8 +451,10 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
             {participants.length < MIN_RACERS ? (
               <p className="form-note">{t("needMore", { count: MIN_RACERS })}</p>
             ) : (
-              participants.length - 1 < MIN_RACERS && (
+              participants.length - 1 < MIN_RACERS ? (
                 <p className="form-note">{t("needMoreWatching", { count: MIN_RACERS })}</p>
+              ) : (
+                !otherHuman && <p className="form-note">{t("needHumanWatching")}</p>
               )
             )}
           </>

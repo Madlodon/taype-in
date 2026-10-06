@@ -226,6 +226,44 @@ test("Should_DisableWatchOnlyAndExplain_When_HostHasOneOtherParticipant", () => 
   ).toBeTruthy();
 });
 
+test("Should_DisableWatchOnlyAndExplain_When_OtherParticipantsAreBots", () => {
+  renderRoom("fr", true);
+
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "b1", username: "Bot beginner 1", bot: { level: "beginner", number: 1 } },
+        { id: "b2", username: "Bot expert 1", bot: { level: "expert", number: 1 } },
+      ],
+    }),
+  );
+
+  expect(startButton()!.hasAttribute("disabled")).toBe(false);
+  expect(watchButton()!.hasAttribute("disabled")).toBe(true);
+  expect(
+    screen.getByText(
+      "Pour regarder sans courir, il faut au moins un autre joueur humain : les bots ne courent pas seuls.",
+    ),
+  ).toBeTruthy();
+});
+
+test("Should_EnableWatch_When_AnotherHumanRacesWithABot", () => {
+  renderRoom("fr", true);
+
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "u2", username: "sam" },
+        { id: "b1", username: "Bot beginner 1", bot: { level: "beginner", number: 1 } },
+      ],
+    }),
+  );
+
+  expect(watchButton()!.hasAttribute("disabled")).toBe(false);
+});
+
 test("Should_SayWaitingForHost_When_UserIsNotHostAndNoRaceIsOn", () => {
   renderRoom();
   sendParticipants();
