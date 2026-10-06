@@ -49,6 +49,8 @@ test("Should_SeeEachOtherInRealTime_When_GuestJoinsUnlistedRaceByCode", async ({
 
   const player = await newGuest(browser);
   await player.page.getByRole("link", { name: "Démarrer une course" }).click();
+  // L'accueil a aussi un champ de code : on attend d'être sur la page des salles.
+  await expect(player.page).toHaveURL("/lobbies");
   await expect(player.page.getByText(`Course de ${host.name}`)).toHaveCount(0);
   await player.page.getByLabel("Code de la course").fill(code.toLowerCase());
   await player.page.getByRole("button", { name: "Rejoindre" }).click();
@@ -82,7 +84,9 @@ test("Should_ShowError_When_HomePageCodeMatchesNoRace", async ({ page }) => {
   await page.getByLabel("Code de la course").fill("ZZZZZZ");
   await page.getByRole("button", { name: "Rejoindre", exact: true }).click();
 
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "code" })).toHaveText(
+    "Aucune course ouverte avec ce code.",
+  );
   await expect(page).toHaveURL("/");
 });
 
