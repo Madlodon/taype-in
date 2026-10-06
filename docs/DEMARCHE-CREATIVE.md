@@ -6,6 +6,17 @@ Nom, logo et direction artistique du site (DES-01 à DES-03).
 
 **Taype-in** est un mélange de *type* (taper au clavier) et de *tap-in*. Au soccer comme dans Rocket League, un *tap-in* est un but facile : une simple touche au ballon, tout près du filet. Le site s'inspire de Rocket League, donc le nom réunit les deux idées : taper au clavier et marquer un but.
 
+Noms envisagés avant le choix final :
+
+| Nom              | Pourquoi écarté                                                     |
+| ---------------- | ------------------------------------------------------------------- |
+| Rocket Typing    | Trop proche de « Rocket League », ressemble à un produit officiel   |
+| CompeTypeLeague  | Long et difficile à prononcer                                       |
+| Boost Typing     | Descriptif, sans jeu de mots                                        |
+| Type boosting    | Descriptif, sans jeu de mots                                        |
+
+Taype-in l'emporte : court, il joue sur deux mots et fait penser au sport sans reprendre le nom du jeu.
+
 ## Direction artistique
 
 Direction marquée et originale, avec des mécaniques qui jouent avec le visuel.
