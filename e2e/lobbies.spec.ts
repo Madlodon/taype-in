@@ -86,6 +86,9 @@ test("Should_ReturnToLobbies_When_LoggingInFromRedirect", async ({ page }) => {
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
   await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  // En production, les liens sont préchargés et chaque réponse remet le cookie de session :
+  // on attend la fin des préchargements avant d'effacer les cookies.
+  await page.waitForLoadState("networkidle");
   await page.context().clearCookies();
 
   await page.goto("/lobbies");

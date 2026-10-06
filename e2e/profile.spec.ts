@@ -27,7 +27,10 @@ test("Should_ShowYouBadgeOnlyToOwner_When_VisitingAProfile", async ({ page }) =>
   await expect(page.getByText("Aucune course pour l’instant.")).toBeVisible();
 
   await page.goto("/");
+  // Un préchargement encore en cours remettrait le cookie de session après la déconnexion.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Se déconnecter" }).click();
+  await expect(page.getByRole("button", { name: "Jouer en invité" })).toBeVisible();
   await page.goto(`/profile/${username}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(username);
   await expect(page.getByText("Toi", { exact: true })).toHaveCount(0);
