@@ -326,11 +326,22 @@ export function createSocketServer(
 
       // Une place se libère quand quelqu'un part ; déjà présent (autre onglet), on entre (LOB-6).
       const participants = await roomParticipants(lobby);
-      if (
-        participants.length >= MAX_PARTICIPANTS &&
-        !participants.some((participant) => participant.id === socket.data.user.id)
-      ) {
+      const present = participants.some((participant) => participant.id === socket.data.user.id);
+      if (participants.length >= MAX_PARTICIPANTS && !present) {
         ack?.({ ok: false, error: "lobbyFull" });
+        return;
+      }
+
+      // Pendant le compte à rebours ou la course, on n'entre plus (SALLE-09), sauf un coureur
+      // qui revient (CRS-6), l'hôte qui regarde (LOB-8) ou quelqu'un déjà présent (autre onglet).
+      const race = liveRaces.get(lobby.id);
+      if (
+        (race?.state === "countdown" || race?.state === "racing") &&
+        !race.players.has(socket.data.user.id) &&
+        lobby.hostId !== socket.data.user.id &&
+        !present
+      ) {
+        ack?.({ ok: false, error: "raceInProgress" });
         return;
       }
 
@@ -339,8 +350,7 @@ export function createSocketServer(
       await socket.join(lobby.code);
       await sendParticipants(lobby);
 
-      // Un coureur qui revient reprend la course (CRS-6) ; un autre la regarde sans courir.
-      const race = liveRaces.get(lobby.id);
+      // Un coureur qui revient reprend la course (CRS-6) ; l'hôte qui regarde la suit sans courir.
       const player = race?.players.get(socket.data.user.id);
       if (player?.state === "disconnected" && race?.state !== "finished") {
         player.state = nextPlayerState(player.state, "reconnect");

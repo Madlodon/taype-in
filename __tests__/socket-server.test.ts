@@ -392,47 +392,76 @@ describe("race:start", () => {
     expect(await db.select().from(races).where(eq(races.lobbyId, lobby.id))).toHaveLength(1);
   });
 
-  test("Should_SendCountdown_When_PlayerJoinsDuringCountdown", async () => {
+  // SALLE-09 : on n'entre que dans une salle en attente ou sur l'écran des résultats.
+  test("Should_RefuseJoin_When_RaceIsCountingDown", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     const started = next(hostClient, "race:started");
     await hostClient.emitWithAck("race:start", { watch: false });
-    const late = await newClient();
-    const lateSees = next<CountdownMessage>(late, "race:countdown");
 
-    await join(late, { code: lobby.code });
-
-    expect(await lateSees).toEqual({ seconds: 1 });
+    expect(await join(await newClient(), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "raceInProgress",
+    });
     await started;
   });
 
-  test("Should_SendTextWithoutRacingHim_When_PlayerJoinsDuringRace", async () => {
-    const { host, guest, lobby, hostClient } = await lobbyWithTwo();
-    const started = next<RaceStartedMessage>(hostClient, "race:started");
+  test("Should_RefuseJoin_When_RaceIsRunning", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo();
+    const started = next(hostClient, "race:started");
     await hostClient.emitWithAck("race:start", { watch: false });
-    const { content } = await started;
-    const late = await newClient();
-    const lateSees = next<RaceStartedMessage>(late, "race:started");
+    await started;
 
-    await join(late, { code: lobby.code });
-
-    expect(await lateSees).toMatchObject({
-      content,
-      errorMode: "blocking",
-      racerIds: [host.id, guest.id],
+    expect(await join(await newClient(), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "raceInProgress",
     });
+  });
+
+  test("Should_NotListRefusedPlayer_When_RaceIsRunning", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo();
+    const started = next(hostClient, "race:started");
+    await hostClient.emitWithAck("race:start", { watch: false });
+    await started;
+
+    await join(await newClient(), { code: lobby.code });
+
+    expect(await listParticipants(lobby.id)).toHaveLength(2);
+  });
+
+  test("Should_SendCountdown_When_RacerComesBackDuringCountdown", async () => {
+    const { guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const started = next(hostClient, "race:started");
+    await hostClient.emitWithAck("race:start", { watch: false });
+    const left = nextParticipants(hostClient);
+    guestClient.disconnect();
+    await left;
+    const back = await newClient(guest);
+    const backSees = next<CountdownMessage>(back, "race:countdown");
+
+    expect(await join(back, { code: lobby.code })).toEqual({ ok: true });
+    expect((await backSees).seconds).toBeGreaterThan(0);
+    await started;
   });
 });
 
+// Un hôte et deux invités : assez de coureurs sans l'hôte.
+async function lobbyWithThree() {
+  const { host, guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
+  const other = await newUser();
+  const otherClient = await newClient(other);
+  await join(otherClient, { code: lobby.code });
+  return { host, guest, other, lobby, hostClient, guestClient, otherClient };
+}
+
+// Lance la course sans que l'hôte coure et attend le « Go ».
+async function startWatching(hostClient: Socket): Promise<RaceStartedMessage> {
+  const started = next<RaceStartedMessage>(hostClient, "race:started");
+  await hostClient.emitWithAck("race:start", { watch: true });
+  return started;
+}
+
 // L'hôte regarde la course sans courir (LOB-8).
 describe("race:start as spectator host", () => {
-  // Un hôte et deux invités : assez de coureurs sans l'hôte.
-  async function lobbyWithThree() {
-    const { host, guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
-    const other = await newUser();
-    const otherClient = await newClient(other);
-    await join(otherClient, { code: lobby.code });
-    return { host, guest, other, lobby, hostClient, guestClient, otherClient };
-  }
 
   test("Should_LeaveHostOutOfRacers_When_HostWatches", async () => {
     const { guest, other, hostClient, guestClient } = await lobbyWithThree();
@@ -601,7 +630,7 @@ describe("race end", () => {
     const late = await newClient();
     const lateSees = next<RaceEndedMessage>(late, "race:ended");
 
-    await join(late, { code: lobby.code });
+    expect(await join(late, { code: lobby.code })).toEqual({ ok: true });
 
     expect(await lateSees).toMatchObject({ reason: "allFinished" });
   });
@@ -769,15 +798,6 @@ describe("race:progress", () => {
     });
   });
 
-  test("Should_AckNotRacer_When_PlayerJoinedDuringRace", async () => {
-    const { lobby, hostClient } = await lobbyWithTwo();
-    await startRace(hostClient);
-    const late = await newClient();
-    await join(late, { code: lobby.code });
-
-    expect(await progress(late, typing("U", 0))).toEqual({ ok: false, error: "notRacer" });
-  });
-
   test("Should_AckInvalidMessage_When_TypedIsLongerThanTheText", async () => {
     const { hostClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
@@ -850,15 +870,17 @@ describe("reconnect", () => {
     expect(started.mine?.typed).toBe("Xx");
   });
 
-  test("Should_NotSendOwnProgress_When_PlayerWasNotRacing", async () => {
-    const { lobby, hostClient } = await lobbyWithTwo();
-    await startRace(hostClient);
-    const late = await newClient();
-    const lateSees = next<RaceStartedMessage>(late, "race:started");
+  test("Should_SendTextWithoutOwnProgress_When_SpectatorHostComesBack", async () => {
+    const { host, guest, other, lobby, hostClient } = await lobbyWithThree();
+    const { content } = await startWatching(hostClient);
+    hostClient.disconnect();
+    const back = await newClient(host);
+    const backSees = next<RaceStartedMessage>(back, "race:started");
 
-    await join(late, { code: lobby.code });
+    expect(await join(back, { code: lobby.code })).toEqual({ ok: true });
 
-    expect((await lateSees).mine).toBeUndefined();
+    expect(await backSees).toMatchObject({ content, racerIds: [guest.id, other.id] });
+    expect((await backSees).mine).toBeUndefined();
   });
 
   test("Should_KeepRacing_When_OnlyADisconnectedRacerHasNotFinished", async () => {
@@ -949,13 +971,11 @@ describe("race:giveUp", () => {
     expect(await giveUp(guestClient)).toEqual({ ok: false, error: "raceNotRunning" });
   });
 
-  test("Should_AckNotRacer_When_PlayerJoinedDuringRace", async () => {
-    const { lobby, hostClient } = await lobbyWithTwo();
-    await startRace(hostClient);
-    const late = await newClient();
-    await join(late, { code: lobby.code });
+  test("Should_AckNotRacer_When_SpectatorHostGivesUp", async () => {
+    const { hostClient } = await lobbyWithThree();
+    await startWatching(hostClient);
 
-    expect(await giveUp(late)).toEqual({ ok: false, error: "notRacer" });
+    expect(await giveUp(hostClient)).toEqual({ ok: false, error: "notRacer" });
   });
 });
 
@@ -1035,16 +1055,17 @@ describe("race:positions", () => {
     expect(sent).toBe(0);
   });
 
-  test("Should_SendCurrentPositions_When_PlayerJoinsDuringRace", async () => {
-    const { host, lobby, hostClient } = await lobbyWithTwo();
+  test("Should_SendCurrentPositions_When_RacerComesBackDuringRace", async () => {
+    const { host, guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
     await startRace(hostClient);
     await progress(hostClient, typing("abcd", 0));
-    const late = await newClient();
-    const lateSees = next<RacePositionsMessage>(late, "race:positions");
+    await dropGuest(hostClient, guestClient);
+    const back = await newClient(guest);
+    const backSees = next<RacePositionsMessage>(back, "race:positions");
 
-    await join(late, { code: lobby.code });
+    await join(back, { code: lobby.code });
 
-    expect(summary(await lateSees)[0]).toEqual([host.id, 4]);
+    expect(summary(await backSees)[0]).toEqual([host.id, 4]);
   });
 
   test("Should_SendFinalPositionsBeforeEnd_When_LastRacerFinishes", async () => {
