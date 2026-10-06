@@ -18,7 +18,7 @@ export function FieldCar({ pose, stadium, orange, scale = 1 }: {
       [x,y,z+height],[x+length,y,z+height],[x+length,y+width,z+height],[x,y+width,z+height]];
     return [[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7],[4,5,6,7]].map((face, i) => ({
       key: `${key}-${i}`, vertices: face.map(index => v[index]), color,
-      depth: face.reduce((sum, index) => sum + point(...v[index] as [number,number,number]).y, 0) / 4,
+      depth: face.reduce((sum, index) => sum + point(...v[index] as [number,number,number]).depth, 0) / 4,
     }));
   }
   const faces = [

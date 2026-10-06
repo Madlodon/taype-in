@@ -8,7 +8,7 @@ const ROUTE = [
 
 // Match the orthographic cameras in docs/mockups/assets/arena-model.py.
 export function project(x: number, y: number, z: number, stadium: Stadium) {
-  if (stadium === "top-down") return { x: 700 + x * 974 / 106, y: 450 - y * 492 / 70 };
+  if (stadium === "top-down") return { x: 700 + x * 974 / 106, y: 450 - y * 492 / 70, depth: z };
   const [camera, target, scale] = stadium === "diorama"
     ? [[115, -140, 135], [0, 0, 7], 198] as const
     : [[5, -170, 85], [0, 3, 7], 177] as const;
@@ -20,7 +20,7 @@ export function project(x: number, y: number, z: number, stadium: Stadium) {
   const up = [-nz * right[1], nz * right[0], nx * right[1] - ny * right[0]];
   const point = [x - target[0], y - target[1], z - target[2]];
   const dot = (vector: number[]) => point.reduce((sum, value, axis) => sum + value * vector[axis], 0);
-  return { x: 700 + dot(right) * 1400 / scale, y: 450 - dot(up) * 1400 / scale };
+  return { x: 700 + dot(right) * 1400 / scale, y: 450 - dot(up) * 1400 / scale, depth: dot([nx, ny, nz]) };
 }
 
 export function stadiumRoute(stadium: Stadium) {
