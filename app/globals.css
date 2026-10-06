@@ -1319,6 +1319,7 @@ a, button, input {
 }
 
 .arena[data-stadium] .car-tag { font-size: 30px; }
+.hero-battle .car-tag { font-size: 44px; }
 
 .race-track {
   height: 5px;

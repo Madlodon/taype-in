@@ -57,9 +57,9 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
 // Une voiture par joueur affiché sur la piste (CRS-2) : la tienne en bleu, les autres en orange.
 export type TrackCar = { id: string; name: string; progress: number; you: boolean };
 
-type ArenaProps = { progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium };
+type ArenaProps = { progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
 
-export function Arena({ progress, cars, className = "", stadium }: ArenaProps) {
+export function Arena({ progress, cars, className = "", stadium, carScale = .65 }: ArenaProps) {
   const id = useId().replaceAll(":", "");
   const position = arenaPosition(progress ?? 0.16);
   if (stadium) {
@@ -71,10 +71,10 @@ export function Arena({ progress, cars, className = "", stadium }: ArenaProps) {
       {[...racers].sort((a, b) => Number(a.you) - Number(b.you)).map(car => {
         const at = stadiumPosition(car.progress, stadium);
         return <g key={car.id}>
-          <g transform={`translate(${at.x} ${at.y}) scale(.65)`}>
+          <g transform={`translate(${at.x} ${at.y}) scale(${carScale})`}>
             <Car x={0} y={0} angle={at.angle} orange={!car.you} />
           </g>
-          {car.name && <text x={at.x} y={at.y - 22} textAnchor="middle" className="car-tag">{car.name}</text>}
+          {car.name && <text x={at.x} y={at.y - 34 * carScale} textAnchor="middle" className="car-tag">{car.name}</text>}
         </g>;
       })}
     </svg>;
