@@ -13,11 +13,14 @@ import {
   type RacePositionsMessage,
   type RaceResult,
   type RaceStartedMessage,
+  type RaceShotMessage,
+  type RaceGoalMessage,
 } from "@/lib/socket-messages";
 import { selectShown } from "@/lib/track";
 import { Arena } from "@/components/arena";
 import { RaceResults } from "@/components/race-results";
 import { RaceTyping } from "@/components/race-typing";
+import type { RemovedWord } from "@/lib/race-goals";
 import type { Typing } from "@/lib/typing";
 import type { Stadium } from "@/lib/garage-items";
 
@@ -58,6 +61,9 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
   // Dernière saisie envoyée : renvoyée au retour de la connexion, au cas où des frappes se sont perdues (CRS-6).
   const typingRef = useRef<Typing>(null);
   const [resumed, setResumed] = useState<Typing>();
+  const [removed, setRemoved] = useState<RemovedWord[]>([]);
+  const [shots, setShots] = useState<Record<string, RaceShotMessage & { receivedAt: number }>>({});
+  const [goalWord, setGoalWord] = useState<string>();
   const [finished, setFinished] = useState(false);
 
   useEffect(() => {
@@ -72,6 +78,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
     socket.on("race:started", (message: RaceStartedMessage) => {
       setCountdown(undefined);
       setRace(message);
+      setRemoved(message.mine?.removed ?? []);
       setSecondsLeft(message.secondsLeft);
       if (message.mine?.gaveUp) setGaveUp(true);
       // Retour après un rechargement : on reprend la saisie gardée par le serveur.
@@ -82,6 +89,13 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
         setMyPosition(message.mine.typed.length);
         setFinished(message.mine.typed.length === message.content.length);
       }
+    });
+    socket.on("race:shot", (message: RaceShotMessage) => {
+      setShots(previous => ({ ...previous, [message.id]: { ...message, receivedAt: performance.now() } }));
+    });
+    socket.on("race:goal", (message: RaceGoalMessage) => {
+      setRemoved(message.removed);
+      setGoalWord(message.word);
     });
     socket.on("race:positions", (message: RacePositionsMessage) => setPositions(message.positions));
     socket.on("race:ended", (message: RaceEndedMessage) => {
@@ -158,6 +172,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
       <div className="race-board">
         <Arena
           stadium={stadium}
+          shots={shots}
           cars={shown.map((entry) => ({
             id: entry.id,
             name: entry.username,
@@ -216,8 +231,10 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
             content={race.content}
             errorMode={race.errorMode}
             initial={resumed}
+            removed={removed}
             onProgress={progress}
           />
+          {goalWord && <p role="status" className="form-note">{t("goalRemoved", { word: goalWord })}</p>}
           {timeLeft}
           {!finished && (
             <button type="button" className="btn btn-secondary btn-lg mt-5" onClick={giveUp}>

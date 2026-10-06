@@ -8,7 +8,7 @@ import { CarBoost } from "@/components/car-boost";
 import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
 import { STADIUM_IMAGES, type Stadium } from "@/lib/garage-items";
-import { fieldPose, project } from "@/lib/stadium-track";
+import { fieldPose, project, shotBall } from "@/lib/stadium-track";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
 export function arenaPosition(progress: number) {
@@ -60,15 +60,19 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
 // Une voiture par joueur affiché sur la piste (CRS-2) : la tienne en bleu, les autres en orange.
 export type TrackCar = { id: string; name: string; progress: number; you: boolean };
 
-type ArenaProps = { progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
+type Shot = { sequence: number; scored: boolean; receivedAt: number };
 
-export function Arena({ progress, cars, className = "", stadium = "diorama", carScale = .65 }: ArenaProps) {
+type ArenaProps = { shots?: Record<string, Shot>; progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
+
+export function Arena({ progress, cars, shots = {}, className = "", stadium = "diorama", carScale = .65 }: ArenaProps) {
   const [seconds, setSeconds] = useState(0);
+  const [now, setNow] = useState(0);
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const start = performance.now();
     let frame = requestAnimationFrame(function tick(now) {
       setSeconds((now - start) / 1000);
+      setNow(now);
       frame = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(frame);
@@ -82,8 +86,21 @@ export function Arena({ progress, cars, className = "", stadium = "diorama", car
       {racers.map((car, index) => {
         const pose = fieldPose(seconds, index / Math.max(1, racers.length) + car.progress * .15);
         const at = project(pose.x, pose.y, 0, stadium);
-        const ball = project(pose.x + 5.7 * Math.cos(pose.heading), pose.y + 5.7 * Math.sin(pose.heading), 1.2, stadium);
-        const shadow = project(pose.x + 5.7 * Math.cos(pose.heading), pose.y + 5.7 * Math.sin(pose.heading), 0, stadium);
+        const shot = shots[car.id];
+        const elapsed = shot ? Math.max(0, (now - shot.receivedAt) / 1000) : Infinity;
+        const dribble = { x: pose.x + 5.7 * Math.cos(pose.heading), y: pose.y + 5.7 * Math.sin(pose.heading), z: 1.2 };
+        let flight = dribble;
+        if (shot && now > 0 && elapsed <= 2) {
+          const launch = fieldPose(seconds - elapsed, index / Math.max(1, racers.length) + car.progress * .15);
+          flight = shotBall(launch, elapsed, shot.scored);
+          if (elapsed > 1.2) {
+            const recovery = (elapsed - 1.2) / .8;
+            flight = { x: flight.x + (dribble.x - flight.x) * recovery,
+              y: flight.y + (dribble.y - flight.y) * recovery, z: 1.2 };
+          }
+        }
+        const ball = project(flight.x, flight.y, flight.z, stadium);
+        const shadow = project(flight.x, flight.y, 0, stadium);
         return { car, pose, at, ball, shadow };
       }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow }) => <g key={car.id}>
         <g transform={`translate(${at.x} ${at.y})`}>

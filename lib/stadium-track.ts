@@ -46,3 +46,12 @@ export function fieldPose(seconds: number, phase = 0) {
   return { x: 30 * Math.cos(t), y: 17 * Math.sin(t),
     heading: Math.atan2(17 * Math.cos(t), -30 * Math.sin(t)) };
 }
+
+// A shot leaves the dribble position, travels toward the goal, then returns to play.
+export function shotBall(pose: ReturnType<typeof fieldPose>, elapsed: number, scored: boolean) {
+  const start = { x: pose.x + 5.7 * Math.cos(pose.heading), y: pose.y + 5.7 * Math.sin(pose.heading) };
+  const fraction = Math.max(0, Math.min(1, elapsed / 1.2));
+  const end = scored ? { x: 56, y: 0 } : { x: 48, y: 15 };
+  return { x: start.x + (end.x - start.x) * fraction,
+    y: start.y + (end.y - start.y) * fraction, z: 1.2 + Math.sin(fraction * Math.PI) * 5 };
+}

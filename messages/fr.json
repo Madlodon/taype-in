@@ -64,6 +64,7 @@
     "submit": "Créer la course"
   },
   "LobbyRoom": {
+    "goalRemoved": "But ! « {word} » a été retiré de ton texte.",
     "title": "Salle d'attente",
     "code": "Code de la course :",
     "participants": "Participants ({count})",

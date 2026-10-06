@@ -141,3 +141,24 @@ test("Should_PutCursorAtEnd_When_ResumedFieldGetsFocus", () => {
 
   expect(input.selectionStart).toBe(2);
 });
+
+test("Should_RemoveRewardWordFromInputAndPrompt_WithoutCountingItAsTyped", () => {
+  const content = "Go. One two three four five.";
+  let latest: Typing | undefined;
+  const { rerender } = render(<NextIntlClientProvider locale="en" messages={en}>
+    <RaceTyping content={content} errorMode="blocking" onProgress={value => { latest = value; }} />
+  </NextIntlClientProvider>);
+  const input = screen.getByRole("textbox") as HTMLTextAreaElement;
+  type(input, "Go. O");
+  rerender(<NextIntlClientProvider locale="en" messages={en}>
+    <RaceTyping content={content} errorMode="blocking" removed={[{ start: 18, end: 23 }]}
+      onProgress={value => { latest = value; }} />
+  </NextIntlClientProvider>);
+  expect(input.value).toBe("Go. O");
+  expect(screen.getByLabelText("Go. One two three five.")).toBeTruthy();
+  type(input, "Go. One two three five.");
+  expect(input.readOnly).toBe(true);
+  expect(latest?.typed).toBe(content);
+  expect(latest?.keys).toBe(content.length - 5);
+  expect(latest?.errors).toBe(0);
+});

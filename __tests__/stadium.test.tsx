@@ -1,10 +1,10 @@
-import { afterEach, expect, test } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import { act, cleanup, render } from "@testing-library/react";
 import { Arena } from "../components/arena";
 import { STADIUMS, STADIUM_IMAGES } from "../lib/garage-items";
 import { fieldPose, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 test.each(STADIUMS)("Should_DrawSelectedStadiumAndMoveRacer_When_ProgressChangesIn_%s", stadium => {
   const { container, rerender } = render(<Arena stadium={stadium} progress={0} />);
@@ -45,4 +45,31 @@ test("Should_KeepTheWholeCarAndBallOnThePitch_When_DrivingContinuously", () => {
     expect(Math.hypot(next.x - at.x, next.y - at.y)).toBeGreaterThan(0);
     expect(Math.cos(at.heading) * (next.x - at.x) + Math.sin(at.heading) * (next.y - at.y)).toBeGreaterThan(0);
   }
+});
+
+test("Should_SendGoalsIntoTheNetAndMissesOntoThePitch", async () => {
+  const { shotBall } = await import("../lib/stadium-track");
+  const pose = fieldPose(2);
+  expect(shotBall(pose, 1.2, true)).toMatchObject({ x: 56, y: 0 });
+  expect(shotBall(pose, 1.2, false)).toMatchObject({ x: 48, y: 15 });
+  expect(shotBall(pose, .6, true).z).toBeGreaterThan(shotBall(pose, 0, true).z);
+});
+
+
+test("Should_AnimateASentenceShotWhileTheCarKeepsMoving", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container } = render(<Arena cars={[{ id: "you", name: "Alex", progress: .2, you: true }]}
+    shots={{ you: { sequence: 3, scored: true, receivedAt: 0 } }} />);
+  const initial = container.querySelector("svg > g > g")!.getAttribute("transform");
+  act(() => tick(600));
+  const airborne = container.querySelector("svg > g > circle")!.getAttribute("cx");
+  act(() => tick(1200));
+  expect(container.querySelector("svg > g > g")!.getAttribute("transform")).not.toBe(initial);
+  expect(container.querySelector("svg > g > circle")!.getAttribute("cx")).not.toBe(airborne);
+  act(() => tick(2500));
+  expect(container.querySelector("svg > g > circle")!.getAttribute("cx")).not.toBe(airborne);
 });
