@@ -9,6 +9,18 @@ async function newGuest(browser: Browser): Promise<{ page: Page; name: string }>
   return { page, name };
 }
 
+// Seuls les inscrits créent une course (AUTH-03) : l'hôte a un compte.
+async function newHost(browser: Browser): Promise<{ page: Page; name: string }> {
+  const page = await (await browser.newContext()).newPage();
+  const name = `host_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(name);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(page.getByText(`Connecté en tant que ${name}`)).toBeVisible();
+  return { page, name };
+}
+
 // settings remplit les autres réglages du formulaire avant l'envoi.
 async function createRace(
   page: Page,
@@ -31,7 +43,7 @@ function participants(page: Page) {
 test("Should_SeeEachOtherInRealTime_When_GuestJoinsUnlistedRaceByCode", async ({
   browser,
 }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`]);
 
@@ -50,7 +62,7 @@ test("Should_SeeEachOtherInRealTime_When_GuestJoinsUnlistedRaceByCode", async ({
 });
 
 test("Should_JoinFromList_When_RaceIsPublic", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   await createRace(host.page, /Publique/);
   await expect(participants(host.page)).toHaveCount(1);
 
@@ -59,6 +71,18 @@ test("Should_JoinFromList_When_RaceIsPublic", async ({ browser }) => {
   await player.page.getByRole("link", { name: `Course de ${host.name}` }).click();
 
   await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, player.name]);
+});
+
+test("Should_OfferSignUpInsteadOfCreate_When_PlayingAsGuest", async ({ browser }) => {
+  const { page } = await newGuest(browser);
+  await page.goto("/lobbies");
+
+  await expect(page.getByRole("link", { name: "Créer une course", exact: true })).toHaveCount(0);
+  await page.getByRole("link", { name: "Crée un compte pour créer une course" }).click();
+  await expect(page).toHaveURL("/signup?next=/lobbies/new");
+
+  await page.goto("/lobbies/new");
+  await expect(page).toHaveURL("/signup?next=/lobbies/new");
 });
 
 test("Should_ShowError_When_CodeDoesNotExist", async ({ browser }) => {
@@ -100,7 +124,7 @@ test("Should_ReturnToLobbies_When_LoggingInFromRedirect", async ({ page }) => {
 });
 
 test("Should_ShowCodeOnlyToHost_When_RaceIsUnlisted", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   await expect(host.page.getByText("Code de la course :")).toBeVisible();
 
@@ -122,7 +146,7 @@ async function generateInvites(page: Page, count: number): Promise<string[]> {
 test("Should_JoinPrivateRaceOnlyByInviteLink_When_HostGeneratesLinks", async ({
   browser,
 }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Privée/);
   await expect(host.page.getByText("Code de la course :")).toHaveCount(0);
 
@@ -162,7 +186,7 @@ test("Should_JoinPrivateRaceOnlyByInviteLink_When_HostGeneratesLinks", async ({
 });
 
 test("Should_JoinAsGuest_When_OpeningInviteLinkWhileLoggedOut", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Privée/);
   const [link] = await generateInvites(host.page, 1);
 
@@ -175,7 +199,7 @@ test("Should_JoinAsGuest_When_OpeningInviteLinkWhileLoggedOut", async ({ browser
 });
 
 test("Should_ReturnToInvite_When_SigningUpFromInviteLink", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Privée/);
   const [link] = await generateInvites(host.page, 1);
 
@@ -194,7 +218,7 @@ test("Should_ReturnToInvite_When_SigningUpFromInviteLink", async ({ browser }) =
 });
 
 test("Should_SendEveryoneBackToListAndForgetCode_When_HostClosesRace", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Publique/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -219,7 +243,7 @@ test("Should_SendEveryoneBackToListAndForgetCode_When_HostClosesRace", async ({ 
 test("Should_ShowSameCountdownThenSameTextAndTimeLeft_When_HostStartsRace", async ({
   browser,
 }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/, (page) =>
     page.getByLabel(/Durée en minutes/).fill("2"),
   );
@@ -244,7 +268,7 @@ test("Should_ShowSameCountdownThenSameTextAndTimeLeft_When_HostStartsRace", asyn
 });
 
 test("Should_ShowNoTimeLeft_When_HostChoosesNoTimer", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/, (page) =>
     page.getByLabel("Pas de minuterie").check(),
   );
@@ -259,7 +283,7 @@ test("Should_ShowNoTimeLeft_When_HostChoosesNoTimer", async ({ browser }) => {
 });
 
 test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -278,7 +302,7 @@ test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser
 });
 
 test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -298,7 +322,7 @@ test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser
 });
 
 test("Should_ShowOvertakeAboveText_When_RacerPassesAnother", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -315,7 +339,7 @@ test("Should_ShowOvertakeAboveText_When_RacerPassesAnother", async ({ browser })
 });
 
 test("Should_ResumeAtExactPositionWithErrors_When_RacerReloadsMidRace", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -336,7 +360,7 @@ test("Should_ResumeAtExactPositionWithErrors_When_RacerReloadsMidRace", async ({
 });
 
 test("Should_BecomeSpectator_When_RacerGivesUp", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -356,7 +380,7 @@ test("Should_BecomeSpectator_When_RacerGivesUp", async ({ browser }) => {
 test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) => {
   // Taper tout le texte touche par touche dépasse 30 s sur les machines lentes de la CI.
   test.slow();
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -378,7 +402,7 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
     await expect(rows.nth(1)).toContainText("100 %");
     await expect(rows.nth(2)).toContainText(player.name);
     await expect(rows.nth(2)).toContainText("Non terminé");
-    // Deux nouveaux invités : le gagnant monte, le perdant reste au plancher (#99).
+    // Deux nouveaux joueurs : le gagnant monte, le perdant reste au plancher (#99).
     await expect(rows.nth(1)).toContainText("Bronze I · Div. II");
     await expect(rows.nth(2)).toContainText("Bronze I · Div. I");
   }
@@ -416,7 +440,7 @@ test("Should_ShowXpLevelUpAndUnlocks_When_RegisteredRacerWins", async ({ browser
 
 test("Should_ColourMissedKeyForEveryone_When_RaceEndsWithErrors", async ({ browser }) => {
   test.slow();
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -443,7 +467,7 @@ test("Should_ColourMissedKeyForEveryone_When_RaceEndsWithErrors", async ({ brows
 });
 
 test("Should_ShowSessionStatsAndKeepThemOnSignUp_When_GuestRaced", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -469,7 +493,7 @@ test("Should_ShowSessionStatsAndKeepThemOnSignUp_When_GuestRaced", async ({ brow
 });
 
 test("Should_RaceWithoutHost_When_HostStartsAndWatches", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const players = [await newGuest(browser), await newGuest(browser)];
   for (const { page } of players) await page.goto(`/lobbies/${code}`);
@@ -491,7 +515,7 @@ test("Should_RaceWithoutHost_When_HostStartsAndWatches", async ({ browser }) => 
 test("Should_SendEveryoneToWaitingRoomAndKeepCode_When_HostRelaunchesWithNewSettings", async ({
   browser,
 }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
@@ -520,7 +544,7 @@ test("Should_SendEveryoneToWaitingRoomAndKeepCode_When_HostRelaunchesWithNewSett
 });
 
 test("Should_RaceAgainstBotThatEveryoneSees_When_HostAddsBot", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   const start = host.page.getByRole("button", { name: "Lancer et courir" });
   await expect(start).toBeDisabled();
