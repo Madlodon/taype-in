@@ -384,7 +384,7 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
 test("Should_ShowXpLevelUpAndUnlocks_When_RegisteredRacerWins", async ({ browser }) => {
   test.slow();
   const page = await (await browser.newContext()).newPage();
-  const username = `xp_${Date.now().toString(36)}`;
+  const username = `xp_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
