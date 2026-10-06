@@ -53,10 +53,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <NextIntlClientProvider>
             <a href="#main" className="skip-link">{d("skip")}</a>
             <header className="site-header">
+              {/* « TAYPE- » noir en clair, blanc en sombre. */}
               <Link href="/" className="brand" aria-label="Taype-in">
-                <Image src="/octane-light.png" alt="Taype-in" width={88} height={50} className="dark:hidden" />
-                <Image src="/octane-dark.png" alt="Taype-in" width={88} height={50} className="hidden dark:block" />
-                <span aria-hidden="true">taype<span className="text-primary">-in</span><small>{d("brandTag")}</small></span>
+                <Image src="/taype-in-orange.png" alt="Taype-in" width={1257} height={609} sizes="160px" className="dark:hidden" />
+                <Image src="/taype-in-orange-dark.png" alt="Taype-in" width={1257} height={609} sizes="160px" className="hidden dark:block" />
               </Link>
               <SiteNav
                 username={registered?.username}
@@ -64,6 +64,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 avatarVersion={registered && await getAvatarVersion(registered.id)}
               />
               <div className="header-settings"><ThemeSwitcher /><LocaleSwitcher /></div>
+              <Link href="/" className="brand brand-right" aria-label="Taype-in">
+                <Image src="/taype-in-blue.png" alt="Taype-in" width={1372} height={666} sizes="160px" className="dark:hidden" />
+                <Image src="/taype-in-blue-dark.png" alt="Taype-in" width={1372} height={666} sizes="160px" className="hidden dark:block" />
+              </Link>
             </header>
             {children}
             <footer className="site-footer">{t("disclaimer")}</footer>
