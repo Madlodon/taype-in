@@ -147,6 +147,18 @@ test("Should_ShowEachPlayerPhoto_When_RaceIsOver", () => {
   expect(podiumImages).toHaveLength(3);
 });
 
+test("Should_MarkBotWithoutAvatarOrRank_When_BotRaced", () => {
+  renderResults([
+    result(1),
+    result(2, { id: "b1", username: "Bot Expert 1", bot: { level: "expert", number: 1 } }),
+  ]);
+
+  expect(rows()[1][1]).toBe("Bot Expert 1Bot");
+  expect(rows()[1][6]).toBe("—");
+  expect(podium()[1]).toBe("Bot Expert 1Bot58 MPM2");
+  expect(document.querySelectorAll("img.avatar")).toHaveLength(2);
+});
+
 test("Should_ShowXpGainedAndLevel_When_PlayerDidNotLevelUp", () => {
   renderResults([result(1), result(2, { xp: 160, xpGained: 20 })]);
 

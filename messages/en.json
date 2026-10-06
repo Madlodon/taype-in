@@ -71,7 +71,7 @@
     "host": "(host)",
     "close": "Close the race",
     "confirmClose": "Close the race? Every participant will be sent back to the race list.",
-    "needMore": "At least {count} participants are needed to start the race.",
+    "needMore": "At least {count} participants are needed to start the race: invite a player or add a bot.",
     "countdown": "Starting in {seconds}",
     "raceText": "Race text",
     "timeLeft": "Time left: {time}",
@@ -103,7 +103,8 @@
       "raceNotRunning": "No race is running",
       "notRacer": "You are not racing in this race",
       "cannotGiveUp": "You can't give up anymore",
-      "raceNotFinished": "The race isn't over"
+      "raceNotFinished": "The race isn't over",
+      "botNotFound": "Bot not found"
     },
     "startRacing": "Start and race",
     "startWatching": "Start and watch",
@@ -111,7 +112,18 @@
     "watching": "(watching)",
     "hostWatching": "You're watching this race without racing.",
     "relaunch": "Relaunch the race",
-    "waitingForHost": "Waiting for the host to choose the settings and start the next race."
+    "waitingForHost": "Waiting for the host to choose the settings and start the next race.",
+    "bot": "Bot",
+    "botName": "Bot {level} {number}",
+    "botLevel": "Bot level",
+    "addBot": "Add a bot",
+    "removeBot": "Remove",
+    "botLevels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced",
+      "expert": "Expert"
+    }
   },
   "LobbySettings": {
     "title": "Next race settings",

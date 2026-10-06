@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { Avatar } from "@/components/avatar";
+import { BotBadge } from "@/components/bot-badge";
 import { unlockedBetween } from "@/lib/garage-items";
 import { rankFromLevel } from "@/lib/ranks";
 import type { RaceResult } from "@/lib/socket-messages";
@@ -40,8 +41,11 @@ export function RaceResults({ results, userId }: Props) {
       <ol aria-label={t("podium")} className="podium">
         {results.slice(0, 3).map((result) => (
           <li key={result.id}>
-            <Avatar userId={result.id} size={40} />
-            <span className="podium-name">{name(result)}</span>
+            {!result.bot && <Avatar userId={result.id} size={40} />}
+            <span className="podium-name">
+              {name(result)}
+              {result.bot && <BotBadge />}
+            </span>
             <span>{t("wpmValue", { value: Math.round(result.wpm) })}</span>
             <span className="podium-step">{result.rank}</span>
           </li>
@@ -67,8 +71,9 @@ export function RaceResults({ results, userId }: Props) {
                 <td>{result.rank}</td>
                 <th scope="row">
                   <span className="player-cell">
-                    <Avatar userId={result.id} size={24} />
+                    {!result.bot && <Avatar userId={result.id} size={24} />}
                     {name(result)}
+                    {result.bot && <BotBadge />}
                   </span>
                 </th>
                 <td>{Math.round(result.wpm)}</td>
@@ -83,8 +88,15 @@ export function RaceResults({ results, userId }: Props) {
                     ` ${t("penalty", { value: decimal(result.penaltyMs / 1000) })}`}
                 </td>
                 <td>{result.errors}</td>
+                {/* Un bot n'a pas de rang (BOT-3). */}
                 <td>
-                  {rankName(result.rankLevel)} <RankChange change={result.rankChange} />
+                  {result.bot ? (
+                    "—"
+                  ) : (
+                    <>
+                      {rankName(result.rankLevel)} <RankChange change={result.rankChange} />
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

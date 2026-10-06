@@ -116,7 +116,8 @@ export async function updateRanks(orderedIds: string[]): Promise<Map<string, Ran
 export type XpUpdate = { xp: number | null; xpGained: number };
 
 // XP aux inscrits selon leur place (#35) ; un invité n'en gagne pas (xp = null).
-export async function awardXp(ranked: Placement[]): Promise<Map<string, XpUpdate>> {
+// multiplier : difficulté des bots de la course (lib/bots.ts), 1 sans bot.
+export async function awardXp(ranked: Placement[], multiplier = 1): Promise<Map<string, XpUpdate>> {
   const updates = new Map<string, XpUpdate>();
   if (ranked.length === 0) return updates;
   await db.transaction(async (tx) => {
@@ -130,7 +131,9 @@ export async function awardXp(ranked: Placement[]): Promise<Map<string, XpUpdate
         continue;
       }
       const placement = ranked.find((candidate) => candidate.id === row.id)!;
-      const xpGained = raceXp(placement.rank, ranked.length, placement.finished);
+      const xpGained = Math.round(
+        raceXp(placement.rank, ranked.length, placement.finished) * multiplier,
+      );
       if (xpGained === 0) {
         updates.set(row.id, { xp: row.xp, xpGained });
         continue;
