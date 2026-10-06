@@ -6,7 +6,8 @@ import { listPublicLobbies } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 
 export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string }> }) {
-  if (!(await getCurrentUser())) redirect("/login?next=/lobbies");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?next=/lobbies");
   // Renvoyé ici quand l'hôte ferme sa course (LOB-10).
   const { closed } = await searchParams;
   const publicLobbies = await listPublicLobbies();
@@ -20,8 +21,10 @@ export default async function LobbiesPage({ searchParams }: { searchParams: Prom
           <h1 className="page-title">{t("title")}</h1>
           <p className="description">{d("lobbiesDescription")}</p>
         </div>
-        <Link href="/lobbies/new" className="btn btn-primary">
-          <span aria-hidden="true">＋</span>{t("create")}</Link>
+        {/* Les invités ne créent pas de course (AUTH-03). */}
+        {user.isGuest ? <Link href="/signup?next=/lobbies/new" className="text-link">{t("signUpToCreate")} →</Link> :
+          <Link href="/lobbies/new" className="btn btn-primary">
+            <span aria-hidden="true">＋</span>{t("create")}</Link>}
       </div>
       {closed && <p role="status" className="panel panel-accent mb-6">{t("closed")}</p>}
       <div className="split-layout">
@@ -33,7 +36,7 @@ export default async function LobbiesPage({ searchParams }: { searchParams: Prom
           {publicLobbies.length === 0 ? <div className="empty-state">
             <span className="empty-ball" aria-hidden="true">⬡</span>
             <p>{t("noPublicRaces")}</p>
-            <Link href="/lobbies/new" className="text-link">{d("firstRace")} →</Link>
+            {!user.isGuest && <Link href="/lobbies/new" className="text-link">{d("firstRace")} →</Link>}
           </div> :
             <ul className="lobby-list">{publicLobbies.map(lobby => <li key={lobby.code}>
               <Link href={`/lobbies/${lobby.code}`}>{t("raceOf", { host: lobby.hostName })}</Link>

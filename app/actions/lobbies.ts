@@ -45,10 +45,11 @@ function parseSettings(formData: FormData): LobbySettings {
   return { textLanguage, textLength, errorMode, timeLimitSeconds };
 }
 
-// Tout utilisateur connecté, invité compris, peut créer une course (LOB-5).
+// Seuls les inscrits créent une course ; l'invité est envoyé à l'inscription (AUTH-03).
 export async function createLobbyAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect("/");
+  if (user.isGuest) redirect("/signup?next=/lobbies/new");
 
   const visibility = z
     .enum(["public", "unlisted", "private"])

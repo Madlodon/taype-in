@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 // Roule sur ordinateur, téléphone et tablette (projets de playwright.config.ts).
 
 // browser.newContext() ne reprend pas l'appareil du projet : on le lui passe.
-async function newGuest(browser: Browser): Promise<{ page: Page; name: string }> {
+async function newDevicePage(browser: Browser): Promise<Page> {
   const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch, baseURL, locale } =
     test.info().project.use;
   const context = await browser.newContext({
@@ -15,10 +15,26 @@ async function newGuest(browser: Browser): Promise<{ page: Page; name: string }>
     baseURL,
     locale,
   });
-  const page = await context.newPage();
+  return context.newPage();
+}
+
+async function newGuest(browser: Browser): Promise<{ page: Page; name: string }> {
+  const page = await newDevicePage(browser);
   await page.goto("/");
   await page.getByRole("button", { name: "Jouer en invité" }).click();
   const name = (await page.locator("strong", { hasText: /^Invité-\d{6}$/ }).textContent())!;
+  return { page, name };
+}
+
+// Seuls les inscrits créent une course (AUTH-03) : l'hôte a un compte.
+async function newHost(browser: Browser): Promise<{ page: Page; name: string }> {
+  const page = await newDevicePage(browser);
+  const name = `host_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(name);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(page.getByText(`Connecté en tant que ${name}`)).toBeVisible();
   return { page, name };
 }
 
@@ -37,8 +53,11 @@ test("Should_FitEveryPage_When_Visiting", async ({ page }) => {
     await expectNoHorizontalScroll(page);
     await page.getByRole("button", { name: "Clair" }).click();
   }
-  await page.goto("/");
-  await page.getByRole("button", { name: "Jouer en invité" }).click();
+  // Créer une course demande un compte (AUTH-03).
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(`e2e_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
   await page.getByRole("link", { name: "Démarrer une course" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expectNoHorizontalScroll(page);
@@ -80,7 +99,7 @@ test("Should_ReachEveryPage_When_UsingTheNavigation", async ({ page }) => {
 });
 
 test("Should_TypeAndSeeRanking_When_RacingOnThisScreen", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   await host.page.getByRole("link", { name: "Démarrer une course" }).click();
   await host.page.getByRole("link", { name: "Créer une course" }).click();
   await host.page.getByLabel(/Non répertoriée/).check();
@@ -105,7 +124,7 @@ test("Should_TypeAndSeeRanking_When_RacingOnThisScreen", async ({ browser }) => 
 });
 
 test("Should_FitResults_When_RaceEnds", async ({ browser }) => {
-  const host = await newGuest(browser);
+  const host = await newHost(browser);
   await host.page.getByRole("link", { name: "Démarrer une course" }).click();
   await host.page.getByRole("link", { name: "Créer une course" }).click();
   await host.page.getByLabel(/Non répertoriée/).check();
