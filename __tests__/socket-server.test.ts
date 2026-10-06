@@ -42,7 +42,9 @@ beforeAll(async () => {
 });
 
 // Compte à rebours raccourci et bots accélérés pour garder les tests rapides.
-async function startServer(options: { idleMs?: number; shotMs?: number; shotRandom?: () => number } = {}) {
+async function startServer(
+  options: { idleMs?: number; shotMs?: number; shotRandom?: () => number; goalChance?: number } = {},
+) {
   const httpServer = createServer();
   io = createSocketServer(httpServer, { countdownMs: 100, botSpeedup: 1000, ...options });
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
@@ -1278,6 +1280,18 @@ describe("sentence shots", () => {
     const resumed = next<RaceStartedMessage>(hostClient, "race:started");
     await join(hostClient, { code: lobby.code });
     expect((await resumed).mine?.removed).toEqual(rewards[0]?.removed ?? []);
+  });
+
+  test("Should_NeverScore_When_GoalChanceIsZero", async () => {
+    await io.close();
+    await startServer({ shotRandom: () => 0, goalChance: 0 });
+    const { hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const shot = next<RaceShotMessage>(guestClient, "race:shot");
+
+    await progress(hostClient, typing(content.slice(0, completedSentences(content, content)[0]), 0));
+
+    expect((await shot).scored).toBe(false);
   });
 });
 

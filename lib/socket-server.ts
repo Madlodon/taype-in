@@ -94,6 +94,8 @@ export function createSocketServer(
     botSpeedup = 1,
     shotMs = SHOT_MS,
     shotRandom = Math.random,
+    // goalChance = 0 : aucun but, pour les tests E2E qui tapent tout le texte.
+    goalChance = GOAL_CHANCE,
   } = {},
 ): Server {
   const io = new Server<
@@ -247,7 +249,7 @@ export function createSocketServer(
     for (const sentence of completedSentences(live.content, player.typed)) {
       if (player.sentences.has(sentence)) continue;
       player.sentences.add(sentence);
-      const scored = shotRandom() < GOAL_CHANCE;
+      const scored = shotRandom() < goalChance;
       io.to(lobby.code).emit("race:shot", { id, sequence: sentence, scored });
       const timer = setTimeout(() => {
         live.shotTimers.delete(timer);

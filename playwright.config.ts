@@ -27,5 +27,7 @@ export default defineConfig({
     command: process.env.CI ? "bun run start" : "bun run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    // Un but retire un mot au hasard : les tests tapent tout le texte lu au départ.
+    env: { GOAL_CHANCE: "0" },
   },
 });
