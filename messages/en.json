@@ -60,7 +60,8 @@
     "blocking": "Blocking: you must type the right character to keep going",
     "tolerant": "Tolerant: you keep going and can fix with Backspace",
     "timer": "Timer",
-    "timerMinutes": "Duration in minutes (up to {max})",
+    "timerDuration": "Duration",
+    "timerOption": "{minutes, plural, =0 {{seconds} s} other {# min{seconds, plural, =0 {} other { {seconds}}}}}",
     "noTimer": "No timer",
     "submit": "Create the race"
   },

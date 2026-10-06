@@ -23,8 +23,8 @@ vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn(), setSessionCoo
 vi.mock("../lib/auth", () => ({ createGuest: vi.fn(), createSession: vi.fn() }));
 vi.mock("../lib/lobbies", () => ({
   MAX_INVITES: 300,
-  DEFAULT_TIMER_MINUTES: 5,
-  MAX_TIMER_MINUTES: 1440,
+  DEFAULT_TIMER_SECONDS: 300,
+  TIMER_OPTIONS: Array.from({ length: 20 }, (_, i) => (i + 1) * 30),
   canEnterLobby: vi.fn(),
   claimInvite: vi.fn(),
   createInvites: vi.fn(),
@@ -171,11 +171,11 @@ test("Should_UseBlockingMode_When_ErrorModeIsUnknown", async () => {
 });
 
 test.each([
-  ["1", 60],
-  ["90", 5400],
-  ["1440", 86400],
-])("Should_SaveTimerInSeconds_When_HostPicks_%s_Minutes", async (timerMinutes, seconds) => {
-  await expect(createLobbyAction(form({ timerMinutes }))).rejects.toThrow("NEXT_REDIRECT");
+  ["30", 30],
+  ["90", 90],
+  ["600", 600],
+])("Should_SaveTimer_When_HostPicks_%s_Seconds", async (timerSeconds, seconds) => {
+  await expect(createLobbyAction(form({ timerSeconds }))).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith(
     "user-1",
@@ -184,10 +184,10 @@ test.each([
   );
 });
 
-test.each([["0"], ["1441"], ["-5"], ["2.5"], ["abc"]])(
+test.each([["0"], ["29"], ["601"], ["630"], ["45"], ["-30"], ["abc"]])(
   "Should_UseFiveMinutes_When_TimerIs_%s",
-  async (timerMinutes) => {
-    await expect(createLobbyAction(form({ timerMinutes }))).rejects.toThrow("NEXT_REDIRECT");
+  async (timerSeconds) => {
+    await expect(createLobbyAction(form({ timerSeconds }))).rejects.toThrow("NEXT_REDIRECT");
 
     expect(lobbies.createLobby).toHaveBeenCalledWith(
       "user-1",
@@ -199,7 +199,7 @@ test.each([["0"], ["1441"], ["-5"], ["2.5"], ["abc"]])(
 
 test("Should_SaveNoTimer_When_HostChecksNoTimer", async () => {
   await expect(
-    createLobbyAction(form({ timerMinutes: "10", noTimer: "on" })),
+    createLobbyAction(form({ timerSeconds: "600", noTimer: "on" })),
   ).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith(

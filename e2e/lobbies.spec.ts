@@ -273,9 +273,9 @@ test("Should_ShowSameCountdownThenSameTextAndTimeLeft_When_HostStartsRace", asyn
   browser,
 }) => {
   const host = await newHost(browser);
-  const code = await createRace(host.page, /Non répertoriée/, (page) =>
-    page.getByLabel(/Durée en minutes/).fill("2"),
-  );
+  const code = await createRace(host.page, /Non répertoriée/, async (page) => {
+    await page.getByLabel("Durée").selectOption({ label: "2 min" });
+  });
   const start = host.page.getByRole("button", { name: "Lancer et courir" });
   await expect(start).toBeDisabled();
 
