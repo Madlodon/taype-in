@@ -77,7 +77,7 @@ flowchart LR
 - [Creative process](docs/DEMARCHE-CREATIVE.md)
 - [Architecture: data model, state machines, real time, bots](docs/ARCHITECTURE.md)
 - [ADR 0001: real time](docs/adr/0001-realtime.md)
-- [Requirements matrix](docs/requirements-matrix.md)
+- [Requirements matrix](docs/EXIGENCES.md)
 
 #### Load test
 
@@ -208,7 +208,7 @@ flowchart LR
 - [Démarche créative](docs/DEMARCHE-CREATIVE.md)
 - [Architecture : modèle de données, machines à états, temps réel, bots](docs/ARCHITECTURE.md)
 - [ADR 0001 : temps réel](docs/adr/0001-realtime.md)
-- [Matrice des exigences](docs/requirements-matrix.md)
+- [Matrice des exigences](docs/EXIGENCES.md)
 
 #### Test de charge
 
