@@ -1,15 +1,186 @@
-# Matrice des exigences
+# Exigences
 
-Chaque exigence du [cahier des charges (v1.1)](cahier-des-charges.pdf) → issue → PR → tests → statut.
-
-Priorité : **E** essentiel, **S** souhaitable, **M** moins prioritaire.
+Matrice de traçabilité des exigences de l'énoncé (*Web V — Travail de session*). Chaque exigence → statut → fichiers → tests → issues.
 
 Statut :
 
-- **Fait** : l'exigence est livrée et testée.
-- **Partiel** : une partie est livrée (ex. la machine à états), le reste viendra avec la course.
-- **En cours** : une issue est ouverte.
-- **À faire** : aucune issue pour l'instant.
+- **Fait** : livré et testé.
+- **Partiel** : une partie est livrée ; la note dit ce qui manque.
+- **À faire** : rien n'est livré ; une issue est ouverte.
+
+Bilan : 90 exigences, 38 faites, 33 partielles, 19 à faire.
+
+Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et choix ».
+
+## 3. Contraintes techniques (TECH)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| TECH-01 | Next.js (App Router) avec React | Fait | [`app/layout.tsx`](../app/layout.tsx), [`server.ts`](../server.ts) | Toute la suite ; build dans la CI | [#7][i7] | Next.js 16, serveur personnalisé pour Socket.IO sur le même port. |
+| TECH-02 | TypeScript à 100 % | Fait | [`tsconfig.json`](../tsconfig.json), [`eslint.config.mjs`](../eslint.config.mjs) | [typescript-only.test.ts](../__tests__/typescript-only.test.ts) | [#137][i137] | `strict`, `allowJs` désactivé, `no-explicit-any` en erreur, `@ts-expect-error` seulement avec une description. |
+| TECH-03 | Tailwind CSS | Fait | [`app/globals.css`](../app/globals.css) | — | [#7][i7] | Tailwind v4 ; jetons de couleur dans `globals.css`. |
+| TECH-04 | PostgreSQL, migrations versionnées, script de seed | Partiel | [`db/schema.ts`](../db/schema.ts), [`db/migrations`](../db/migrations) | [db/schema.test.ts](../__tests__/db/schema.test.ts), [db/migrate.test.ts](../__tests__/db/migrate.test.ts) | [#5][i5], [#2][i2], [#135][i135] | Drizzle. Il manque le script de seed (corpus, utilisateurs, historique) : #135. |
+| TECH-05 | Déployé sur un VPS, public en HTTPS | Fait | [`compose.prod.yml`](../compose.prod.yml), [`Caddyfile`](../Caddyfile) | Vérifié à la main sur https://laniproject.dev | [#13][i13], [#38][i38] | AWS EC2 + Docker Compose ; Caddy obtient le certificat Let's Encrypt. |
+| TECH-06 | Progression en temps réel | Fait | [`lib/socket-server.ts`](../lib/socket-server.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#4][i4], [#7][i7], [#57][i57] | Socket.IO auto-hébergé ; voir l'[ADR 0001](adr/0001-realtime.md). |
+| TECH-07 | Entrées serveur validées par un schéma | Fait | [`lib/socket-messages.ts`](../lib/socket-messages.ts), [`app/actions/lobbies.ts`](../app/actions/lobbies.ts), [`app/actions/auth.ts`](../app/actions/auth.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [avatar-actions.test.ts](../__tests__/avatar-actions.test.ts) | [#7][i7], [#8][i8], [#9][i9] | Zod pour les actions serveur, les routes et chaque message Socket.IO avec des données. La photo est vérifiée par son contenu réel (octets) et sa taille. |
+| TECH-08 | Aucun coût pour l'enseignant | Fait | — | — | [#13][i13] | Seul le serveur EC2 est payant, à mes frais. Les photos sont dans PostgreSQL : aucun service de stockage externe. |
+| TECH-09 | CI GitHub Actions à chaque push : lint, `tsc --noEmit`, tests unitaires | Fait | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | La CI elle-même | [#12][i12], [#40][i40], [#136][i136] | Roule aussi les tests de bout en bout. |
+| TECH-10 | `.env.example` documente toutes les variables, aucun secret commité | Partiel | [`.env.example`](../.env.example) | — | — | `PORT` et `GOAL_CHANCE` sont lues par le code mais absentes du fichier. |
+
+## 4. Identité visuelle et design (DES)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| DES-01 | Nom trouvé sans IA, démarche documentée | Fait | [`docs/DEMARCHE-CREATIVE.md`](../docs/DEMARCHE-CREATIVE.md) | — | [#1][i1] | Noms envisagés et raison du choix dans la démarche créative. |
+| DES-02 | Logo conçu sans IA, croquis, utilisé dans l'app et en favicon | Partiel | [`app/layout.tsx`](../app/layout.tsx), [`app/icon.svg`](../app/icon.svg) | [site-header.test.tsx](../__tests__/site-header.test.tsx), [e2e/logo.spec.ts](../e2e/logo.spec.ts) | [#39][i39] | Logo et favicon en place. Il manque la photo des croquis dans la démarche créative. |
+| DES-03 | Direction artistique : moodboard, palette, typographies | Fait | [`docs/DEMARCHE-CREATIVE.md`](../docs/DEMARCHE-CREATIVE.md), [`docs/moodboard`](../docs/moodboard) | [palette.test.ts](../__tests__/palette.test.ts) | [#1][i1], [#41][i41] |  |
+| DES-04 | Design unique, piste comme élément signature | Fait | [`components/arena.tsx`](../components/arena.tsx), [`components/race-typing.tsx`](../components/race-typing.tsx) | [track.test.ts](../__tests__/track.test.ts), [e2e/design.spec.ts](../e2e/design.spec.ts) | [#1][i1], [#57][i57] | Course dans une arène inspirée de Rocket League, vue en coupe. |
+| DES-05 | Thèmes clair et sombre, préférence système, aucun flash | Fait | [`components/theme-switcher.tsx`](../components/theme-switcher.tsx) | [theme-switcher.test.tsx](../__tests__/theme-switcher.test.tsx), [e2e/theme.spec.ts](../e2e/theme.spec.ts) | [#11][i11] | next-themes avec la stratégie `class` : le thème est appliqué avant l'affichage. |
+| DES-06 | Responsive dès 360 px ; sur mobile, message pour un clavier physique | Partiel | — | [e2e/responsive.spec.ts](../e2e/responsive.spec.ts) | [#62][i62], [#134][i134] | Toutes les pages sont utilisables sur téléphone. Le message à la place de la course : #134. |
+
+## 5.2 Comptes et profil (AUTH)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| AUTH-01 | OAuth Discord et GitHub ; nom d'utilisateur et mot de passe permis | Partiel | [`lib/auth.ts`](../lib/auth.ts), [`app/actions/auth.ts`](../app/actions/auth.ts) | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [e2e/auth.spec.ts](../e2e/auth.spec.ts) | [#8][i8], [#71][i71] | La connexion par mot de passe fonctionne. OAuth Discord et GitHub : #71. |
+| AUTH-02 | Pseudonyme d'invité (3 à 20 caractères), session par cookie | Fait | [`lib/auth.ts`](../lib/auth.ts), [`lib/session-cookie.ts`](../lib/session-cookie.ts) | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [e2e/auth.spec.ts](../e2e/auth.spec.ts) | [#8][i8] | Choix : le cookie porte un jeton de session aléatoire (httpOnly), vérifié en base, plutôt qu'un cookie signé. Il ne peut pas être forgé non plus. |
+| AUTH-03 | Un invité ne crée pas de salle ; pas d'historique ni de photo, avatar généré | Fait | [`app/actions/lobbies.ts`](../app/actions/lobbies.ts), [`app/actions/avatar.ts`](../app/actions/avatar.ts), [`app/avatars/[userId]/route.ts`](../app/avatars/%5BuserId%5D/route.ts) | [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [avatar-actions.test.ts](../__tests__/avatar-actions.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#111][i111], [#65][i65] | L'invité voit des initiales. Ses résultats sont gardés en base seulement pour les transférer s'il s'inscrit ; il n'a pas de page d'historique. |
+| AUTH-04 | Photo de profil JPEG, PNG ou WebP, 2 Mo max, redimensionnée | Partiel | [`lib/avatars.ts`](../lib/avatars.ts), [`app/actions/avatar.ts`](../app/actions/avatar.ts) | [avatars.test.ts](../__tests__/avatars.test.ts), [avatar-actions.test.ts](../__tests__/avatar-actions.test.ts), [avatar-route.test.ts](../__tests__/avatar-route.test.ts), [avatar-form.test.tsx](../__tests__/avatar-form.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | [#65][i65] | Type et taille validés côté serveur. L'image n'est pas encore redimensionnée avant l'affichage. |
+| AUTH-05 | Modifier son pseudonyme | À faire | — | — | [#67][i67] |  |
+| AUTH-06 | Profil : meilleur MPM, moyennes, courses, victoires, graphique | Partiel | [`lib/profile.ts`](../lib/profile.ts), [`app/profile/[username]/page.tsx`](../app/profile/%5Busername%5D/page.tsx), [`components/progression-chart.tsx`](../components/progression-chart.tsx) | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | [#64][i64], [#69][i69], [#131][i131] | Il manque le nombre de victoires : #131. |
+
+## 5.3 Salles et visibilité (SALLE)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| SALLE-01 | Un connecté crée une salle et en est l'hôte ; participant ou spectateur | Fait | [`app/actions/lobbies.ts`](../app/actions/lobbies.ts), [`lib/lobbies.ts`](../lib/lobbies.ts) | [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#9][i9], [#73][i73], [#111][i111] | L'hôte choisit au départ de chaque course : « Lancer » ou « Lancer et regarder ». |
+| SALLE-02 | Code unique de 6 caractères, sans caractères ambigus | Fait | [`lib/lobbies.ts`](../lib/lobbies.ts) | [lobbies.test.ts](../__tests__/lobbies.test.ts) | [#9][i9] | Alphabet sans 0, O, 1, I ni L. |
+| SALLE-03 | Visibilités publique, sur code, privée | Partiel | [`lib/lobbies.ts`](../lib/lobbies.ts), [`db/schema.ts`](../db/schema.ts) | [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#9][i9], [#26][i26], [#118][i118] | Les trois existent. Une salle « sur code » n'accepte pas encore les liens d'invitation : #118. |
+| SALLE-04 | Liens d'invitation uniques, liés à une IP, révocables | Partiel | [`lib/lobbies.ts`](../lib/lobbies.ts), [`components/invite-links.tsx`](../components/invite-links.tsx), [`app/invite`](../app/invite) | [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#26][i26], [#118][i118] | Faits : un lien par invité, statut affiché, jeton de 128 bits, invalide à la fermeture, code seul refusé. Le lien est lié au compte et non à l'IP ; révocation à l'expulsion : #118. |
+| SALLE-05 | Capacité choisie par l'hôte (2 à 30), spectateurs exclus | À faire | — | — | [#112][i112] | Aujourd'hui, un plafond global de 300 participants. |
+| SALLE-06 | Une seule salle à la fois, garanti en base | À faire | — | — | [#113][i113] |  |
+| SALLE-07 | L'hôte expulse un participant ou un spectateur | À faire | — | — | [#114][i114] |  |
+| SALLE-08 | Transfert d'hôte au plus ancien humain, sinon fermeture | À faire | — | — | [#115][i115] | `joined_at` est déjà en base pour trouver le plus ancien. |
+| SALLE-09 | Rejoindre seulement en attente ou aux résultats | Fait | [`lib/socket-server.ts`](../lib/socket-server.ts), [`lib/lobby-state.ts`](../lib/lobby-state.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | [#116][i116] |  |
+| SALLE-10 | Limite d'essais de code par IP | À faire | — | — | [#117][i117] |  |
+
+## 5.4 Rejoindre une course (JOIN)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| JOIN-01 | Champ « rejoindre par code » dès la page d'accueil | Partiel | [`components/join-lobby-form.tsx`](../components/join-lobby-form.tsx), [`app/lobbies/page.tsx`](../app/lobbies/page.tsx) | [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#9][i9] | Le champ est sur la page des salles, à un clic de l'accueil, pas sur l'accueil même. |
+| JOIN-02 | Explorateur : infos, filtres langue et complexité, mise à jour en direct | Partiel | [`app/lobbies/page.tsx`](../app/lobbies/page.tsx) | [lobbies.test.ts](../__tests__/lobbies.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#9][i9], [#119][i119] | La liste des salles publiques existe, sans filtres ni mise à jour en direct : #119. |
+| JOIN-03 | Bouton « Faire une course » | À faire | — | — | [#120][i120] |  |
+
+## 5.5 Configuration de la course (CONF)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| CONF-01 | Temps maximal : aucun, ou 30 s à 10 min | Partiel | [`components/lobby-settings-fields.tsx`](../components/lobby-settings-fields.tsx), [`lib/lobbies.ts`](../lib/lobbies.ts) | [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [races.test.ts](../__tests__/races.test.ts) | [#58][i58] | Aujourd'hui en minutes, de 1 min à 24 h. Les bornes de l'énoncé restent à appliquer. |
+| CONF-02 | Langue du texte, indépendante de l'interface | Fait | [`lib/texts.ts`](../lib/texts.ts), [`components/lobby-settings-fields.tsx`](../components/lobby-settings-fields.tsx) | [texts.test.ts](../__tests__/texts.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | [#54][i54] |  |
+| CONF-03 | Texte cohérent (corpus en base) ou aléatoire (dictionnaire) | Partiel | [`lib/texts.ts`](../lib/texts.ts), [`db/migrations`](../db/migrations) | [texts.test.ts](../__tests__/texts.test.ts) | [#54][i54], [#75][i75] | Textes cohérents faits (textes originaux pour 12-16 ans). Mode aléatoire : #75. |
+| CONF-04 | Longueur en nombre de mots | Fait | [`lib/texts.ts`](../lib/texts.ts) | [texts.test.ts](../__tests__/texts.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | [#54][i54] | Choix parmi 50, 100 et 200 mots ; le texte est coupé à la fin de la phrase. |
+| CONF-05 | Complexité facile, moyen, difficile, critères documentés | À faire | — | — | [#121][i121] |  |
+| CONF-06 | Ponctuation, nombres, majuscules, accents | À faire | — | — | [#121][i121] |  |
+| CONF-07 | Caractères à inclure ou exclure | À faire | — | — | [#75][i75] |  |
+| CONF-08 | Mode d'erreur : correction obligatoire ou libre | Fait | [`lib/typing.ts`](../lib/typing.ts) | [typing.test.ts](../__tests__/typing.test.ts), [races.test.ts](../__tests__/races.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#56][i56] | Choix : en mode libre, chaque faute ajoute une pénalité de temps au classement. |
+| CONF-09 | Bonus activés ou non | À faire | — | — | [#79][i79] | La colonne `races.bonuses_enabled` existe déjà. |
+| CONF-10 | Ajout et retrait de bots, avec leur niveau | Fait | [`lib/bots.ts`](../lib/bots.ts), [`lib/socket-server.ts`](../lib/socket-server.ts) | [bots.test.ts](../__tests__/bots.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#76][i76] | Quatre niveaux pour l'instant ; cinq avec #132. |
+| CONF-11 | Visibilité et capacité | Partiel | [`app/actions/lobbies.ts`](../app/actions/lobbies.ts) | [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | [#9][i9], [#112][i112] | Visibilité faite ; capacité : #112. |
+| CONF-12 | Tous voient la configuration en temps réel | À faire | — | — | [#122][i122] |  |
+
+## 5.6 Déroulement d'une course (COURSE)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| COURSE-01 | États explicites, machine à états documentée | Fait | [`lib/lobby-state.ts`](../lib/lobby-state.ts), [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [player-state.test.ts](../__tests__/player-state.test.ts) | [#3][i3] | `waiting` → `countdown` → `racing` → `finished` → (`waiting` \| `closed`) ; voir [ARCHITECTURE.md](ARCHITECTURE.md). |
+| COURSE-02 | Lancer avec 2 participants minimum, dont 1 humain | Partiel | [`lib/socket-server.ts`](../lib/socket-server.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx) | [#55][i55] | Minimum de 2 vérifié par le serveur, bots compris. La règle « au moins 1 humain » n'est pas vérifiée quand l'hôte regarde avec seulement des bots. |
+| COURSE-03 | Décompte synchronisé 3, 2, 1 | Fait | [`lib/socket-server.ts`](../lib/socket-server.ts), [`components/lobby-room.tsx`](../components/lobby-room.tsx) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx) | [#55][i55], [#123][i123] | Choix : le texte apparaît au « Go », pas au début du décompte, pour que personne ne lise d'avance. |
+| COURSE-04 | Zone de frappe : retour immédiat, MPM et précision en direct, coller désactivé | Partiel | [`components/race-typing.tsx`](../components/race-typing.tsx) | [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [typing.test.ts](../__tests__/typing.test.ts) | [#56][i56], [#124][i124] | Retour visuel et coller bloqué faits. MPM et précision en direct : #124. |
+| COURSE-05 | Piste : avatar, nom, position, MPM ; fluide ; joueur local en évidence ; spectateurs | Partiel | [`components/arena.tsx`](../components/arena.tsx), [`lib/track.ts`](../lib/track.ts) | [track.test.ts](../__tests__/track.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#57][i57], [#125][i125] | Positions en direct, joueur local en évidence, piste visible des spectateurs. Avatar et MPM sur la piste : #125. |
+| COURSE-06 | Serveur autoritaire, progressions impossibles rejetées | Partiel | [`lib/socket-server.ts`](../lib/socket-server.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts) | [#78][i78] | Le serveur décide du départ, de la fin et du classement. Le rejet des sauts et vitesses irréalistes : #78. |
+| COURSE-07 | Abandon avec confirmation | Fait | [`components/lobby-room.tsx`](../components/lobby-room.tsx), [`lib/player-state.ts`](../lib/player-state.ts) | [player-state.test.ts](../__tests__/player-state.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#59][i59] | Le joueur qui abandonne devient spectateur. |
+| COURSE-08 | Reprise si retour dans les 30 s, sinon abandon | Partiel | [`lib/socket-server.ts`](../lib/socket-server.ts), [`lib/player-state.ts`](../lib/player-state.ts) | [player-state.test.ts](../__tests__/player-state.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#59][i59], [#126][i126] | La reprise fonctionne, mais sans limite de 30 s : #126. |
+| COURSE-09 | Fin quand tous ont fini ou abandonné, ou au temps maximal | Fait | [`lib/socket-server.ts`](../lib/socket-server.ts), [`lib/lobby-state.ts`](../lib/lobby-state.ts) | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx) | [#58][i58] | Choix : la course finit aussi après 2 min sans aucune frappe. |
+| COURSE-10 | Classement final : terminés, puis temps écoulé, puis abandons | Partiel | [`lib/results.ts`](../lib/results.ts) | [results.test.ts](../__tests__/results.test.ts) | [#60][i60], [#128][i128] | Terminés par temps, puis les autres par progression. Les abandons ne sont pas encore classés à part : #128. |
+| COURSE-11 | Aux résultats, l'hôte relance (avec nouvelle configuration) ou ferme | Fait | [`lib/socket-server.ts`](../lib/socket-server.ts), [`components/lobby-room.tsx`](../components/lobby-room.tsx) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#61][i61], [#73][i73] |  |
+
+## 5.7 Bots (BOT)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| BOT-01 | Cinq niveaux, valeurs documentées | Partiel | [`lib/bots.ts`](../lib/bots.ts) | [bots.test.ts](../__tests__/bots.test.ts) | [#76][i76], [#132][i132] | Quatre niveaux (25, 45, 70, 100 MPM). Les cinq niveaux de l'énoncé : #132, plan dans [ARCHITECTURE.md](ARCHITECTURE.md#bots). |
+| BOT-02 | Vitesse variable : accélérations, hésitations, mots difficiles | Partiel | [`lib/bots.ts`](../lib/bots.ts) | [bots.test.ts](../__tests__/bots.test.ts) | [#132][i132] | Délai aléatoire à chaque touche et hésitations. Ralentir sur les mots difficiles : #132. |
+| BOT-03 | Erreurs avec temps de correction, selon le mode d'erreur | Fait | [`lib/bots.ts`](../lib/bots.ts) | [bots.test.ts](../__tests__/bots.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | [#76][i76] | La saisie passe par la même fonction que les joueurs ; en mode bloquant, le bot retape le bon caractère. |
+| BOT-04 | Bots identifiés ; soumis aux bonus | Partiel | [`components/bot-badge.tsx`](../components/bot-badge.tsx) | [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [race-results.test.tsx](../__tests__/race-results.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#76][i76], [#133][i133] | Badge « BOT » fait. Les bonus n'existent pas encore : #133. |
+| BOT-05 | Moteur déterministe à partir d'une graine | Partiel | [`lib/bots.ts`](../lib/bots.ts) | [bots.test.ts](../__tests__/bots.test.ts) | [#132][i132] | La fonction de hasard est injectée pour les tests, mais pas encore de graine : #132. |
+
+## 5.8 Bonus de remontée (BONUS)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| BONUS-01 | Bonus aux points de contrôle 25, 50, 75 % pour le joueur en retard | À faire | — | — | [#79][i79], [#133][i133] |  |
+| BONUS-02 | Au moins 3 types, dont un qui aide et un qui ralentit le meneur | À faire | — | — | [#79][i79], [#133][i133] |  |
+| BONUS-03 | Activation annoncée sur la piste et chez la cible | À faire | — | — | [#79][i79], [#133][i133] |  |
+| BONUS-04 | Progression et MPM cohérents si le texte change | À faire | — | — | [#79][i79], [#133][i133] |  |
+
+## 5.9 Résultats et statistiques (RES)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| RES-01 | Podium des 3 premiers | Fait | [`components/race-results.tsx`](../components/race-results.tsx) | [race-results.test.tsx](../__tests__/race-results.test.tsx), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#60][i60] |  |
+| RES-02 | Tableau complet : MPM brut, statut, bonus reçus… | Partiel | [`components/race-results.tsx`](../components/race-results.tsx), [`lib/results.ts`](../lib/results.ts) | [results.test.ts](../__tests__/results.test.ts), [race-results.test.tsx](../__tests__/race-results.test.tsx) | [#60][i60], [#128][i128] | Rang, joueur, MPM, précision, erreurs et temps faits. MPM brut, statut et bonus : #128. |
+| RES-03 | Au moins 2 graphiques : MPM dans le temps, touches manquées | Partiel | [`components/keyboard-heatmap.tsx`](../components/keyboard-heatmap.tsx), [`lib/heatmap.ts`](../lib/heatmap.ts) | [heatmap.test.ts](../__tests__/heatmap.test.ts), [keyboard-heatmap.test.tsx](../__tests__/keyboard-heatmap.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#77][i77], [#129][i129] | Carte de chaleur du clavier faite. MPM dans le temps : #129. |
+| RES-04 | Indicateur de record personnel | À faire | — | — | [#130][i130] |  |
+| RES-05 | Résultats des humains connectés persistés, avec la série de MPM | Partiel | [`lib/results.ts`](../lib/results.ts), [`db/schema.ts`](../db/schema.ts) | [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | [#60][i60], [#129][i129] | Résultats enregistrés. La série de MPM dans le temps : #129. |
+
+## 5.10 Historique (HIST)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| HIST-01 | Historique des courses avec pagination | Partiel | [`lib/profile.ts`](../lib/profile.ts), [`app/profile/[username]/page.tsx`](../app/profile/%5Busername%5D/page.tsx) | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | [#64][i64], [#131][i131] | Historique complet sur le profil, sans pagination : #131. |
+| HIST-02 | Cliquer une course réaffiche ses résultats | À faire | — | — | [#131][i131] |  |
+
+## 5.11 Internationalisation (I18N)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| I18N-01 | Toute l'interface en français et en anglais | Fait | [`messages/fr.json`](../messages/fr.json), [`messages/en.json`](../messages/en.json) | [messages.test.ts](../__tests__/messages.test.ts), [locale.test.ts](../__tests__/locale.test.ts) | [#10][i10] | Le test vérifie que les deux fichiers ont les mêmes clés. |
+| I18N-02 | Sélecteur de langue partout, choix conservé, langue du navigateur par défaut | Fait | [`components/locale-switcher.tsx`](../components/locale-switcher.tsx), [`app/actions/locale.ts`](../app/actions/locale.ts) | [locale-switcher.test.tsx](../__tests__/locale-switcher.test.tsx), [locale-actions.test.ts](../__tests__/locale-actions.test.ts), [e2e/locale.spec.ts](../e2e/locale.spec.ts) | [#10][i10] | Cookie, sinon `Accept-Language`. |
+| I18N-03 | Dates et nombres formatés selon la langue | Fait | [`components/race-results.tsx`](../components/race-results.tsx), [`app/profile/[username]/page.tsx`](../app/profile/%5Busername%5D/page.tsx) | [race-results.test.tsx](../__tests__/race-results.test.tsx), [profile-page.test.tsx](../__tests__/profile-page.test.tsx) | [#10][i10], [#60][i60], [#64][i64] | `useFormatter` de next-intl. |
+
+## 6.1 Tests (TEST)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| TEST-01 | Tests unitaires sur la logique | Fait | [`__tests__`](../__tests__) | Vitest, avec PostgreSQL | [#6][i6], [#12][i12] |  |
+| TEST-02 | Tests de bout en bout avec Playwright | Fait | [`e2e`](../e2e) | Playwright (Chromium, téléphone, tablette) | [#6][i6], [#40][i40] |  |
+| TEST-03 | Bout en bout avec nom d'utilisateur et mot de passe | Fait | [`e2e/auth.spec.ts`](../e2e/auth.spec.ts) | [e2e/auth.spec.ts](../e2e/auth.spec.ts) | [#40][i40] |  |
+
+## 6.2 Performance (PERF)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| PERF-01 | Lighthouse 90+ dans chaque catégorie (accueil) | À faire | — | — | [#138][i138] | Pas encore mesuré. |
+| PERF-02 | Progression limitée (≈ 10 messages/s), aucune écriture en base par frappe | Partiel | [`components/race-typing.tsx`](../components/race-typing.tsx), [`lib/socket-server.ts`](../lib/socket-server.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts) | [#127][i127] | Aucune écriture en base pendant la course. Le client envoie encore un message par frappe : #127. |
+| PERF-03 | Piste fluide à la capacité maximale | Partiel | [`scripts/load-test.ts`](../scripts/load-test.ts) | [load-test.test.ts](../__tests__/load-test.test.ts) | [#63][i63], [#125][i125] | Test de charge du serveur avec 300 joueurs (p95 < 500 ms). Fluidité côté client : #125. |
+
+## 6.3 Accessibilité (A11Y)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| A11Y-01 | Contraste WCAG AA dans les deux thèmes | Fait | [`app/globals.css`](../app/globals.css) | [palette.test.ts](../__tests__/palette.test.ts) | [#1][i1], [#138][i138] | Contrastes calculés par le test ; tableau dans la [démarche créative](DEMARCHE-CREATIVE.md#contrastes-wcag-22-aa). |
+| A11Y-02 | Balises sémantiques | Partiel | [`app/layout.tsx`](../app/layout.tsx) | — | [#138][i138] | `header`, `nav`, `main`, `footer`, `table` des résultats en place ; audit complet : #138. |
+| A11Y-03 | Texte alternatif et libellés | Partiel | — | — | [#138][i138] | Audit complet : #138. |
+| A11Y-04 | Navigation au clavier, focus visible | Partiel | [`app/globals.css`](../app/globals.css) | — | [#138][i138] | Lien d'évitement et focus visible en place ; audit complet : #138. |
+
+## 6.4 Sécurité (SEC)
+
+| ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
+| -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
+| SEC-01 | Actions de l'hôte autorisées côté serveur | Fait | [`lib/socket-server.ts`](../lib/socket-server.ts), [`app/actions/lobbies.ts`](../app/actions/lobbies.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | [#55][i55], [#26][i26], [#61][i61] | Lancer, configurer, générer des liens et fermer sont vérifiés par le serveur. Expulser viendra avec #114. |
+| SEC-02 | Téléversements validés : type réel et taille | Fait | [`lib/avatars.ts`](../lib/avatars.ts) | [avatars.test.ts](../__tests__/avatars.test.ts), [avatar-actions.test.ts](../__tests__/avatar-actions.test.ts) | [#65][i65] | Le type est lu dans les premiers octets du fichier, pas dans son nom. |
+| SEC-03 | Mots de passe hachés (Argon2…), jamais en clair | Fait | [`lib/auth.ts`](../lib/auth.ts) | [auth.test.ts](../__tests__/auth.test.ts) | [#8][i8] | Argon2id avec un poivre (`PASSWORD_PEPPER`). |
 
 [i1]: https://github.com/Madlodon/taype-in/issues/1
 [i2]: https://github.com/Madlodon/taype-in/issues/2
@@ -24,13 +195,11 @@ Statut :
 [i11]: https://github.com/Madlodon/taype-in/issues/11
 [i12]: https://github.com/Madlodon/taype-in/issues/12
 [i13]: https://github.com/Madlodon/taype-in/issues/13
-[i14]: https://github.com/Madlodon/taype-in/issues/14
-[i15]: https://github.com/Madlodon/taype-in/issues/15
 [i26]: https://github.com/Madlodon/taype-in/issues/26
+[i38]: https://github.com/Madlodon/taype-in/issues/38
 [i39]: https://github.com/Madlodon/taype-in/issues/39
 [i40]: https://github.com/Madlodon/taype-in/issues/40
 [i41]: https://github.com/Madlodon/taype-in/issues/41
-[i42]: https://github.com/Madlodon/taype-in/issues/42
 [i54]: https://github.com/Madlodon/taype-in/issues/54
 [i55]: https://github.com/Madlodon/taype-in/issues/55
 [i56]: https://github.com/Madlodon/taype-in/issues/56
@@ -43,161 +212,40 @@ Statut :
 [i63]: https://github.com/Madlodon/taype-in/issues/63
 [i64]: https://github.com/Madlodon/taype-in/issues/64
 [i65]: https://github.com/Madlodon/taype-in/issues/65
-[i66]: https://github.com/Madlodon/taype-in/issues/66
 [i67]: https://github.com/Madlodon/taype-in/issues/67
-[i68]: https://github.com/Madlodon/taype-in/issues/68
 [i69]: https://github.com/Madlodon/taype-in/issues/69
-[i70]: https://github.com/Madlodon/taype-in/issues/70
 [i71]: https://github.com/Madlodon/taype-in/issues/71
-[i72]: https://github.com/Madlodon/taype-in/issues/72
 [i73]: https://github.com/Madlodon/taype-in/issues/73
-[i74]: https://github.com/Madlodon/taype-in/issues/74
 [i75]: https://github.com/Madlodon/taype-in/issues/75
 [i76]: https://github.com/Madlodon/taype-in/issues/76
 [i77]: https://github.com/Madlodon/taype-in/issues/77
 [i78]: https://github.com/Madlodon/taype-in/issues/78
 [i79]: https://github.com/Madlodon/taype-in/issues/79
-[p16]: https://github.com/Madlodon/taype-in/pull/16
-[p17]: https://github.com/Madlodon/taype-in/pull/17
-[p18]: https://github.com/Madlodon/taype-in/pull/18
-[p19]: https://github.com/Madlodon/taype-in/pull/19
-[p20]: https://github.com/Madlodon/taype-in/pull/20
-[p21]: https://github.com/Madlodon/taype-in/pull/21
-[p23]: https://github.com/Madlodon/taype-in/pull/23
-[p25]: https://github.com/Madlodon/taype-in/pull/25
-[p27]: https://github.com/Madlodon/taype-in/pull/27
-[p28]: https://github.com/Madlodon/taype-in/pull/28
-[p29]: https://github.com/Madlodon/taype-in/pull/29
-[p30]: https://github.com/Madlodon/taype-in/pull/30
-[p31]: https://github.com/Madlodon/taype-in/pull/31
-[p32]: https://github.com/Madlodon/taype-in/pull/32
-[p37]: https://github.com/Madlodon/taype-in/pull/37
-[p44]: https://github.com/Madlodon/taype-in/pull/44
-[p46]: https://github.com/Madlodon/taype-in/pull/46
-[p47]: https://github.com/Madlodon/taype-in/pull/47
-[p48]: https://github.com/Madlodon/taype-in/pull/48
-[p49]: https://github.com/Madlodon/taype-in/pull/49
-[p50]: https://github.com/Madlodon/taype-in/pull/50
-[p52]: https://github.com/Madlodon/taype-in/pull/52
-[p81]: https://github.com/Madlodon/taype-in/pull/81
-[p82]: https://github.com/Madlodon/taype-in/pull/82
-
-## Authentification (AUTH)
-
-| ID     | Exigence                                     | Prio. | Issue      | PR         | Tests                                                                                                                                         | Statut   |
-| ------ | -------------------------------------------- | ----- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| AUTH-1 | Compte avec nom d'utilisateur + mot de passe | E     | [#8][i8]   | [#25][p25] | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [e2e/auth.spec.ts](../e2e/auth.spec.ts) | Fait     |
-| AUTH-2 | OAuth Discord et GitHub                      | S     | [#71][i71] | —          | —                                                                                                                                             | En cours |
-| AUTH-3 | Utiliser la plateforme en invité             | E     | [#8][i8]   | [#25][p25] | [auth.test.ts](../__tests__/auth.test.ts), [e2e/auth.spec.ts](../e2e/auth.spec.ts)                                                            | Fait     |
-| AUTH-4 | « Se souvenir de moi »                       | S     | [#72][i72] | —          | —                                                                                                                                             | En cours |
-| AUTH-5 | Aucune récupération de mot de passe          | E     | [#8][i8]   | [#25][p25] | Aucun (absence de fonction)                                                                                                                   | Fait     |
-| AUTH-6 | Mots de passe hachés, cookies httpOnly       | E     | [#8][i8]   | [#25][p25] | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [e2e/auth.spec.ts](../e2e/auth.spec.ts) | Fait     |
-| AUTH-7 | L'invité qui s'inscrit garde ses stats       | S     | [#70][i70] | —          | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [results.test.ts](../__tests__/results.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait     |
-
-## Profil et statistiques (PROF)
-
-| ID     | Exigence                                    | Prio. | Issue                  | PR  | Tests | Statut   |
-| ------ | ------------------------------------------- | ----- | ---------------------- | --- | ----- | -------- |
-| PROF-1 | Photo de profil                             | S     | [#65][i65], [#71][i71] | —   | [avatars.test.ts](../__tests__/avatars.test.ts), [avatar-actions.test.ts](../__tests__/avatar-actions.test.ts), [avatar-route.test.ts](../__tests__/avatar-route.test.ts), [avatar-form.test.tsx](../__tests__/avatar-form.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | Partiel |
-| PROF-2 | Historique des courses                      | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | Fait |
-| PROF-3 | Statistiques globales                       | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx) | Fait |
-| PROF-4 | Graphique de progression                    | S     | [#69][i69]             | —   | —     | En cours |
-| PROF-5 | Statistiques de session de courses          | S     | [#70][i70]             | —   | [session-stats.test.ts](../__tests__/session-stats.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| PROF-6 | Signaler une photo de profil                | —     | [#66][i66]             | —   | —     | En cours |
-| PROF-7 | Changer son nom d'utilisateur               | —     | [#67][i67]             | —   | —     | En cours |
-| PROF-8 | Bloquer les noms d'utilisateur inappropriés | —     | [#68][i68]             | —   | —     | En cours |
-
-## Lobbys et accès (LOB)
-
-| ID     | Exigence                                   | Prio. | Issue                  | PR                     | Tests                                                                                                                                                                                                                                                                               | Statut   |
-| ------ | ------------------------------------------ | ----- | ---------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| LOB-1  | Course publique dans la liste              | E     | [#9][i9]               | [#27][p27]             | [lobbies.test.ts](../__tests__/lobbies.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts)                                                                                                                                                                                      | Fait     |
-| LOB-2  | Course non répertoriée rejointe par code   | E     | [#9][i9]               | [#27][p27]             | [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts)                                                                                                                         | Fait     |
-| LOB-3  | Course privée, liens à usage unique        | S     | [#26][i26]             | [#52][p52]             | [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait     |
-| LOB-4  | Accueil → page des lobbys                  | E     | [#9][i9]               | [#27][p27]             | [page.test.tsx](../__tests__/page.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts)                                                                                                                                                                                          | Fait     |
-| LOB-5  | Tout utilisateur peut créer et être hôte   | E     | [#9][i9]               | [#27][p27]             | [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts)                                                                                                                                                                        | Fait     |
-| LOB-6  | Seul l'hôte démarre ; 2 à 300 participants | E     | [#55][i55], [#63][i63] | —                      | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts), [load-test.test.ts](../__tests__/load-test.test.ts) | Fait |
-| LOB-7  | Seul l'hôte invite                         | E     | [#26][i26]             | [#52][p52]             | [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts)                                                                                                                                                                          | Fait     |
-| LOB-8  | L'hôte participe ou regarde                | S     | [#73][i73]             | —                      | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| LOB-9  | Relancer le même lobby                     | S     | [#3][i3], [#73][i73]   | [#20][p20]             | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| LOB-10 | L'hôte ferme le lobby                      | E     | [#3][i3], [#61][i61]   | [#20][p20], [#82][p82] | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [lobbies.test.ts](../__tests__/lobbies.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts)       | Fait     |
-
-## Déroulement de la course (CRS)
-
-| ID    | Exigence                                          | Prio. | Issue                | PR         | Tests                                                                                                              | Statut   |
-| ----- | ------------------------------------------------- | ----- | -------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------ | -------- |
-| CRS-1 | Même texte, compte à rebours                      | E     | [#3][i3], [#55][i55] | [#20][p20] | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [races.test.ts](../__tests__/races.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| CRS-2 | Positions en temps réel (piste)                   | E     | [#57][i57]           | —          | [track.test.ts](../__tests__/track.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| CRS-3 | Indicateur de dépassement                         | S     | [#74][i74]           | —          | —                                                                                                                  | En cours |
-| CRS-4 | Minuterie optionnelle                             | E     | [#58][i58]           | —          | [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [races.test.ts](../__tests__/races.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| CRS-5 | Fin de course (tous finis, minuterie, inactivité) | E     | [#3][i3], [#58][i58] | [#20][p20] | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [player-state.test.ts](../__tests__/player-state.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx) | Fait |
-| CRS-6 | Reprise après perte de connexion                  | E     | [#3][i3], [#59][i59] | [#20][p20] | [player-state.test.ts](../__tests__/player-state.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| CRS-7 | Bouton « Abandonner » → spectateur                | E     | [#3][i3], [#59][i59] | [#20][p20] | [player-state.test.ts](../__tests__/player-state.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| CRS-8 | Interface centrée sur le texte                    | E     | [#56][i56]           | —          | [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx) | Fait |
-
-## Textes (TXT)
-
-| ID    | Exigence                            | Prio. | Issue      | PR         | Tests                                                                                                    | Statut   |
-| ----- | ----------------------------------- | ----- | ---------- | ---------- | -------------------------------------------------------------------------------------------------------- | -------- |
-| TXT-1 | Langue du texte (FR ou EN)          | E     | [#54][i54] | [#81][p81] | [texts.test.ts](../__tests__/texts.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | Fait     |
-| TXT-2 | Longueur du texte                   | E     | [#54][i54] | [#81][p81] | [texts.test.ts](../__tests__/texts.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | Fait     |
-| TXT-3 | Banque de textes pour 12-16 ans     | E     | [#54][i54] | [#81][p81] | [texts.test.ts](../__tests__/texts.test.ts)                                                              | Fait     |
-| TXT-4 | Phrases suivies ou mots en désordre | S     | [#75][i75] | —          | —                                                                                                        | En cours |
-| TXT-5 | Caractères à inclure ou à cibler    | S     | [#75][i75] | —          | —                                                                                                        | En cours |
-| TXT-6 | L'hôte écrit ou modifie le texte    | S     | [#75][i75] | —          | —                                                                                                        | En cours |
-| TXT-7 | Génération de textes par IA         | M     | —          | —          | —                                                                                                        | À faire  |
-| TXT-8 | Extraits de films                   | M     | —          | —          | —                                                                                                        | À faire  |
-
-## Erreurs de frappe (ERR)
-
-| ID    | Exigence                               | Prio. | Issue      | PR  | Tests | Statut   |
-| ----- | -------------------------------------- | ----- | ---------- | --- | ----- | -------- |
-| ERR-1 | Mode bloquant ou tolérant              | E     | [#56][i56] | —   | [typing.test.ts](../__tests__/typing.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [races.test.ts](../__tests__/races.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| ERR-2 | Caractère erroné mis en évidence       | E     | [#56][i56] | —   | [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| ERR-3 | Fautes dans la précision et la heatmap | E     | [#60][i60], [#77][i77] | —   | [typing.test.ts](../__tests__/typing.test.ts), [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [heatmap.test.ts](../__tests__/heatmap.test.ts) | Fait |
-
-## Bots (BOT)
-
-| ID    | Exigence                     | Prio. | Issue      | PR  | Tests | Statut   |
-| ----- | ---------------------------- | ----- | ---------- | --- | ----- | -------- |
-| BOT-1 | L'hôte ajoute des bots       | S     | [#76][i76] | —   | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| BOT-2 | Niveaux de bots              | S     | [#76][i76] | —   | [bots.test.ts](../__tests__/bots.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | Fait |
-| BOT-3 | Bots identifiés visuellement | S     | [#76][i76] | —   | [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [race-results.test.tsx](../__tests__/race-results.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-
-## Bonus (BON)
-
-| ID    | Exigence                          | Prio. | Issue      | PR  | Tests | Statut   |
-| ----- | --------------------------------- | ----- | ---------- | --- | ----- | -------- |
-| BON-1 | Activer ou désactiver les bonus   | M     | [#79][i79] | —   | —     | En cours |
-| BON-2 | Bonus pour les 50 % moins avancés | M     | [#79][i79] | —   | —     | En cours |
-| BON-3 | Effets des bonus                  | M     | [#79][i79] | —   | —     | En cours |
-
-## Fin de course et résultats (FIN)
-
-| ID    | Exigence                              | Prio. | Issue      | PR  | Tests | Statut   |
-| ----- | ------------------------------------- | ----- | ---------- | --- | ----- | -------- |
-| FIN-1 | Podium du top 3                       | E     | [#60][i60] | —   | [race-results.test.tsx](../__tests__/race-results.test.tsx), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| FIN-2 | Classement et statistiques par joueur | E     | [#60][i60] | —   | [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [race-results.test.tsx](../__tests__/race-results.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| FIN-3 | Heatmap du clavier                    | S     | [#77][i77] | —   | [heatmap.test.ts](../__tests__/heatmap.test.ts), [keyboard-heatmap.test.tsx](../__tests__/keyboard-heatmap.test.tsx), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| FIN-4 | Résultats dans l'historique           | E     | [#60][i60] | —   | [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | Fait |
-
-## Interface (UI)
-
-| ID   | Exigence                         | Prio. | Issue                            | PR                                                         | Tests                                                                                                                                                                                                            | Statut   |
-| ---- | -------------------------------- | ----- | -------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| UI-1 | Interface en français et anglais | E     | [#10][i10]                       | [#28][p28]                                                 | [locale.test.ts](../__tests__/locale.test.ts), [messages.test.ts](../__tests__/messages.test.ts), [locale-switcher.test.tsx](../__tests__/locale-switcher.test.tsx), [e2e/locale.spec.ts](../e2e/locale.spec.ts) | Fait     |
-| UI-2 | Responsive                       | E     | [#62][i62]                       | [#49][p49]                                                 | [e2e/responsive.spec.ts](../e2e/responsive.spec.ts) (téléphone Pixel 7, tablette iPad Mini, ordinateur)                                                                                                          | Fait     |
-| UI-3 | Mode clair et mode sombre        | S     | [#11][i11]                       | [#29][p29]                                                 | [theme-switcher.test.tsx](../__tests__/theme-switcher.test.tsx), [e2e/theme.spec.ts](../e2e/theme.spec.ts)                                                                                                       | Fait     |
-| UI-4 | Direction artistique             | S     | [#1][i1], [#39][i39], [#41][i41] | [#37][p37], [#46][p46], [#47][p47], [#48][p48], [#49][p49] | [palette.test.ts](../__tests__/palette.test.ts), [e2e/home.spec.ts](../e2e/home.spec.ts), [e2e/logo.spec.ts](../e2e/logo.spec.ts), [e2e/design.spec.ts](../e2e/design.spec.ts)                                   | Fait     |
-
-## Technique (TECH)
-
-| ID     | Exigence                                | Prio. | Issue                              | PR                                 | Tests                                                                                                                                                               | Statut   |
-| ------ | --------------------------------------- | ----- | ---------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| TECH-1 | React + Next.js + TypeScript + Tailwind | E     | [#7][i7]                           | [#23][p23]                         | Toute la suite (build dans la CI)                                                                                                                                   | Fait     |
-| TECH-2 | PostgreSQL                              | E     | [#5][i5], [#2][i2]                 | [#17][p17], [#19][p19]             | [schema.test.ts](../__tests__/db/schema.test.ts), [migrate.test.ts](../__tests__/db/migrate.test.ts)                                                                | Fait     |
-| TECH-3 | Hébergé en HTTPS                        | E     | [#13][i13]                         | [#18][p18]                         | Vérifié à la main (https://laniproject.dev)                                                                                                                         | Fait     |
-| TECH-4 | Temps réel auto-hébergé (WebSocket)     | E     | [#4][i4], [#7][i7]                 | [#21][p21], [#23][p23]             | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait     |
-| TECH-5 | Progression validée par le serveur      | S     | [#78][i78]                         | —                                  | —                                                                                                                                                                   | En cours |
-| TECH-6 | Tests unitaires et End-to-End           | E     | [#6][i6], [#12][i12], [#40][i40]   | [#16][p16], [#30][p30], [#44][p44] | Vitest (avec PostgreSQL) et Playwright (Chromium), lancés par la [CI](../.github/workflows/ci.yml) sur chaque PR                                                    | Fait     |
-| TECH-7 | Code sur GitHub avec documentation      | E     | [#14][i14], [#15][i15], [#42][i42] | [#31][p31], [#32][p32], [#50][p50] | Aucun (documentation)                                                                                                                                               | Fait     |
+[i111]: https://github.com/Madlodon/taype-in/issues/111
+[i112]: https://github.com/Madlodon/taype-in/issues/112
+[i113]: https://github.com/Madlodon/taype-in/issues/113
+[i114]: https://github.com/Madlodon/taype-in/issues/114
+[i115]: https://github.com/Madlodon/taype-in/issues/115
+[i116]: https://github.com/Madlodon/taype-in/issues/116
+[i117]: https://github.com/Madlodon/taype-in/issues/117
+[i118]: https://github.com/Madlodon/taype-in/issues/118
+[i119]: https://github.com/Madlodon/taype-in/issues/119
+[i120]: https://github.com/Madlodon/taype-in/issues/120
+[i121]: https://github.com/Madlodon/taype-in/issues/121
+[i122]: https://github.com/Madlodon/taype-in/issues/122
+[i123]: https://github.com/Madlodon/taype-in/issues/123
+[i124]: https://github.com/Madlodon/taype-in/issues/124
+[i125]: https://github.com/Madlodon/taype-in/issues/125
+[i126]: https://github.com/Madlodon/taype-in/issues/126
+[i127]: https://github.com/Madlodon/taype-in/issues/127
+[i128]: https://github.com/Madlodon/taype-in/issues/128
+[i129]: https://github.com/Madlodon/taype-in/issues/129
+[i130]: https://github.com/Madlodon/taype-in/issues/130
+[i131]: https://github.com/Madlodon/taype-in/issues/131
+[i132]: https://github.com/Madlodon/taype-in/issues/132
+[i133]: https://github.com/Madlodon/taype-in/issues/133
+[i134]: https://github.com/Madlodon/taype-in/issues/134
+[i135]: https://github.com/Madlodon/taype-in/issues/135
+[i136]: https://github.com/Madlodon/taype-in/issues/136
+[i137]: https://github.com/Madlodon/taype-in/issues/137
+[i138]: https://github.com/Madlodon/taype-in/issues/138
