@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Chaque test crée ses propres comptes et salons : ils peuvent rouler en parallèle, même dans un fichier.
+  fullyParallel: true,
+  // Les runners GitHub ont 4 cœurs.
+  workers: process.env.CI ? 4 : undefined,
   use: {
     baseURL: "http://localhost:3000",
     // Le navigateur demande le français : les tests lisent les textes français.
@@ -19,7 +23,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "bun run dev",
+    // En CI, le build de production évite de compiler chaque page à la première visite.
+    command: process.env.CI ? "bun run start" : "bun run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
