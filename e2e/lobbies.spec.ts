@@ -80,7 +80,7 @@ test("Should_AskToLogIn_When_NotLoggedIn", async ({ page }) => {
 });
 
 test("Should_ReturnToLobbies_When_LoggingInFromRedirect", async ({ page }) => {
-  const username = `lobbies_${Date.now().toString(36)}`;
+  const username = `lobbies_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
@@ -181,7 +181,7 @@ test("Should_ReturnToInvite_When_SigningUpFromInviteLink", async ({ browser }) =
   await page.getByRole("link", { name: "Tu as un compte ? Connecte-toi d'abord." }).click();
   await page.getByRole("link", { name: "Créer un compte" }).click();
   await expect(page.getByRole("heading", { name: "Créer un compte" })).toBeVisible();
-  await page.getByLabel("Nom d'utilisateur").fill(`e2e_${Date.now().toString(36)}`);
+  await page.getByLabel("Nom d'utilisateur").fill(`e2e_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`);
   await page.getByLabel("Mot de passe").fill("motdepasse-solide");
   await page.getByRole("button", { name: "Créer le compte" }).click();
 
@@ -379,6 +379,90 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
     await expect(rows.nth(1)).toContainText("Bronze I · Div. II");
     await expect(rows.nth(2)).toContainText("Bronze I · Div. I");
   }
+});
+
+test("Should_ShowXpLevelUpAndUnlocks_When_RegisteredRacerWins", async ({ browser }) => {
+  test.slow();
+  const page = await (await browser.newContext()).newPage();
+  const username = `xp_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  await page.goto("/signup");
+  await page.getByLabel("Nom d'utilisateur").fill(username);
+  await page.getByLabel("Mot de passe").fill("motdepasse123");
+  await page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  const code = await createRace(page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(page)).toHaveCount(2);
+  await page.getByRole("button", { name: "Lancer et courir" }).click();
+  await expect(page.getByRole("textbox", { name: "Tape le texte" })).toBeFocused({ timeout: 8000 });
+  player.page.once("dialog", (dialog) => dialog.accept());
+  await player.page.getByRole("button", { name: "Abandonner" }).click();
+
+  await page.keyboard.type((await page.locator(".typing-text").textContent())!);
+
+  // 1er sur 2 : 100 XP, du niveau 1 au niveau 2 (#35).
+  const reward = page.getByRole("status").filter({ hasText: "+100 XP" });
+  await expect(reward).toContainText("Niveau supérieur ! Niveau 2");
+  await expect(reward).toContainText("Débloqué : Cône orange et Ballon de plage.");
+  await expect(player.page.getByRole("heading", { name: "Résultats" })).toBeVisible();
+  await expect(player.page.getByText(/\+\d+ XP/)).toHaveCount(0);
+  await reward.getByRole("link", { name: "Voir au garage" }).click();
+  await expect(page.getByRole("radio", { name: "Cône orange", exact: true })).toBeEnabled();
+});
+
+test("Should_ColourMissedKeyForEveryone_When_RaceEndsWithErrors", async ({ browser }) => {
+  test.slow();
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+  const input = host.page.getByRole("textbox", { name: "Tape le texte" });
+  await expect(input).toBeFocused({ timeout: 8000 });
+  player.page.once("dialog", (dialog) => dialog.accept());
+  await player.page.getByRole("button", { name: "Abandonner" }).click();
+  const text = (await host.page.locator(".typing-text").textContent())!;
+
+  // Mode bloquant : deux fausses touches sur la première lettre, puis tout le texte.
+  await host.page.keyboard.type("##");
+  await host.page.keyboard.type(text);
+
+  // Chacun voit d'abord son propre clavier : le joueur a abandonné sans faute.
+  await expect(player.page.getByText("Aucune faute : une course parfaite !")).toBeVisible();
+  await player.page.getByRole("combobox", { name: "Afficher" }).selectOption({ label: host.name });
+  for (const { page } of [host, player]) {
+    const missed = page.getByRole("region", { name: "Heatmap du clavier" }).locator(".heat-4");
+    await expect(missed).toHaveCount(1);
+    await expect(missed).toContainText("2 fautes");
+  }
+});
+
+test("Should_ShowSessionStatsAndKeepThemOnSignUp_When_GuestRaced", async ({ browser }) => {
+  const host = await newGuest(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+  await expect(player.page.getByRole("textbox", { name: "Tape le texte" })).toBeVisible({ timeout: 8000 });
+  for (const { page } of [player, host]) {
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Abandonner" }).click();
+  }
+
+  await expect(player.page.getByRole("region", { name: "Cette session : 1 course" })).toBeVisible();
+
+  const username = `e2e_${Math.random().toString(36).slice(2, 10)}`;
+  await player.page.goto("/signup");
+  await player.page.getByLabel("Nom d'utilisateur").fill(username);
+  await player.page.getByLabel("Mot de passe").fill("motdepasse123");
+  await player.page.getByRole("button", { name: "Créer le compte" }).click();
+  await expect(player.page).toHaveURL("/");
+  await player.page.goto(`/profile/${username}`);
+  const history = player.page.getByRole("table", { name: "Historique des courses" });
+  await expect(history.getByRole("row")).toHaveCount(2);
 });
 
 test("Should_RaceWithoutHost_When_HostStartsAndWatches", async ({ browser }) => {

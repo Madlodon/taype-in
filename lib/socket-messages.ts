@@ -74,6 +74,9 @@ export type RaceResult = {
   rankLevel: number;
   rankChange: number;
   bot?: Bot;
+  // XP totale après la course et XP gagnée (#35) ; xp = null pour un invité.
+  xp: number | null;
+  xpGained: number;
 };
 
 // Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5), avec le classement final.

@@ -17,7 +17,7 @@ import {
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
-import { rankRacers, saveResults, updateRanks } from "./results.ts";
+import { awardXp, rankRacers, saveResults, updateRanks } from "./results.ts";
 import {
   addBotSchema,
   joinLobbySchema,
@@ -178,12 +178,17 @@ export function createSocketServer(
     );
     await markRaceEnded(live.raceId);
     // Les bots prennent une place au classement, sans ligne de résultat ni rang (aucun utilisateur en base).
-    await saveResults(live.raceId, placements);
+    await saveResults(
+      live.raceId,
+      placements.filter((placement) => !live.positions.get(placement.id)?.bot),
+    );
     const ranks = await updateRanks(placements.map((placement) => placement.id));
+    const xp = await awardXp(placements);
     live.results = placements.map((placement) => ({
       ...placement,
       ...(ranks.get(placement.id) ?? { rankLevel: 0, rankChange: 0 }),
       bot: live.positions.get(placement.id)?.bot,
+      ...(xp.get(placement.id) ?? { xp: null, xpGained: 0 }),
     }));
     io.to(lobby.code).emit("race:ended", { reason, results: live.results });
   }

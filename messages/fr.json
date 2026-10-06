@@ -146,6 +146,11 @@
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
     "notFinished": "Non terminé",
+    "xpGained": "+{value} XP",
+    "levelUp": "Niveau supérieur ! Niveau {level}",
+    "currentLevel": "Niveau {level}",
+    "unlocked": "Débloqué : {items}.",
+    "toGarage": "Voir au garage",
     "you": "(toi)",
     "level": "Niveau",
     "rankName": "{tier} {subRank} · Div. {division}",
@@ -162,6 +167,22 @@
       "grandChampion": "Grand champion",
       "supersonicLegend": "Légende supersonique"
     }
+  },
+  "KeyboardHeatmap": {
+    "title": "Heatmap du clavier",
+    "show": "Afficher",
+    "wholeRace": "Toute la course",
+    "space": "Espace",
+    "errors": "{count, plural, one {# faute} other {# fautes}}",
+    "noErrors": "Aucune faute : une course parfaite !",
+    "extras": "Autres caractères"
+  },
+  "SessionStats": {
+    "title": "{count, plural, one {Cette session : # course} other {Cette session : # courses d’affilée}}",
+    "averageWpm": "Vitesse moyenne (MPM)",
+    "bestWpm": "Meilleure vitesse (MPM)",
+    "averageAccuracy": "Précision moyenne",
+    "percent": "{value} %"
   },
   "RaceTyping": {
     "label": "Tape le texte",
@@ -283,6 +304,9 @@
   "Profile": {
     "eyebrow": "Profil de pilote",
     "you": "Toi",
+    "level": "Niveau {level}",
+    "levelProgress": "Progression vers le niveau suivant",
+    "xpToNext": "{current} / {needed} XP",
     "stats": "Statistiques globales",
     "bestWpm": "Meilleure vitesse (MPM)",
     "averageWpm": "Vitesse moyenne (MPM)",
@@ -319,6 +343,7 @@
     "tag": "Ton bolide. Ton style.",
     "title": "Garage",
     "description": "Choisis ta voiture, tes accessoires et ton stade. Purement esthétique : ta vitesse ne change jamais.",
+    "lockedAt": "Niveau {level}",
     "categories": {
       "car": "Voiture",
       "boost": "Boost",
@@ -370,7 +395,8 @@
     "signUp": "Créer un compte",
     "errors": {
       "guest": "Crée un compte pour enregistrer ton garage.",
-      "invalid": "Cet objet n'existe pas."
+      "invalid": "Cet objet n'existe pas.",
+      "locked": "Cet objet n'est pas encore débloqué."
     },
     "stadiumPreview": "Aperçu du stade"
   }

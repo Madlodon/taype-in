@@ -18,12 +18,22 @@ import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
 import { BOT_LEVELS, type Bot } from "@/lib/bots";
 import { Arena } from "@/components/arena";
 import { BotBadge } from "@/components/bot-badge";
+import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
 import { RaceResults } from "@/components/race-results";
 import { RaceTyping } from "@/components/race-typing";
+import { SessionStats } from "@/components/session-stats";
+import type { SessionStats as Stats } from "@/lib/session-stats";
 import type { Typing } from "@/lib/typing";
 import type { Stadium } from "@/lib/garage-items";
 
-type Props = { code: string; hostId: string; isHost: boolean; userId: string; stadium?: Stadium };
+type Props = {
+  code: string;
+  hostId: string;
+  isHost: boolean;
+  userId: string;
+  stadium?: Stadium;
+  loadSessionStats: () => Promise<Stats | null>;
+};
 
 function toProgress({ typed, errors, keys, keyErrors }: Typing) {
   return { typed, errors, keys, keyErrors };
@@ -53,7 +63,7 @@ function formatTime(totalSeconds: number): string {
 // Salle d'attente : la liste des participants suit les arrivées et départs ;
 // l'hôte lance la course, tous voient le même compte à rebours puis le même texte (CRS-1).
 // Les coureurs tapent le texte ; ceux arrivés en cours de route le regardent.
-export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
+export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionStats }: Props) {
   const t = useTranslations("LobbyRoom");
   const format = useFormatter();
   const router = useRouter();
@@ -368,6 +378,8 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium }: Props) {
           </p>
         )}
         {endReason && <RaceResults results={results} userId={userId} />}
+        {endReason && <KeyboardHeatmap results={results} userId={userId} />}
+        {endReason && <SessionStats load={loadSessionStats} />}
         {race && (
           <>
             <h2 className="text-xl font-semibold mt-5">{t("raceText")}</h2>

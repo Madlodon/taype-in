@@ -146,6 +146,11 @@
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
     "notFinished": "Not finished",
+    "xpGained": "+{value} XP",
+    "levelUp": "Level up! Level {level}",
+    "currentLevel": "Level {level}",
+    "unlocked": "Unlocked: {items}.",
+    "toGarage": "See in the garage",
     "you": "(you)",
     "level": "Level",
     "rankName": "{tier} {subRank} · Div. {division}",
@@ -162,6 +167,22 @@
       "grandChampion": "Grand Champion",
       "supersonicLegend": "Supersonic Legend"
     }
+  },
+  "KeyboardHeatmap": {
+    "title": "Keyboard heatmap",
+    "show": "Show",
+    "wholeRace": "Whole race",
+    "space": "Space",
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "noErrors": "No errors: a clean race!",
+    "extras": "Other characters"
+  },
+  "SessionStats": {
+    "title": "{count, plural, one {This session: # race} other {This session: # races in a row}}",
+    "averageWpm": "Average speed (WPM)",
+    "bestWpm": "Best speed (WPM)",
+    "averageAccuracy": "Average accuracy",
+    "percent": "{value}%"
   },
   "RaceTyping": {
     "label": "Type the text",
@@ -283,6 +304,9 @@
   "Profile": {
     "eyebrow": "Driver profile",
     "you": "You",
+    "level": "Level {level}",
+    "levelProgress": "Progress to the next level",
+    "xpToNext": "{current} / {needed} XP",
     "stats": "Overall stats",
     "bestWpm": "Best speed (WPM)",
     "averageWpm": "Average speed (WPM)",
@@ -319,6 +343,7 @@
     "tag": "Your ride. Your style.",
     "title": "Garage",
     "description": "Pick your car, accessories, and stadium. Purely cosmetic: it never changes your speed.",
+    "lockedAt": "Level {level}",
     "categories": {
       "car": "Car",
       "boost": "Boost",
@@ -370,7 +395,8 @@
     "signUp": "Create an account",
     "errors": {
       "guest": "Create an account to save your garage.",
-      "invalid": "This item doesn't exist."
+      "invalid": "This item doesn't exist.",
+      "locked": "This item isn't unlocked yet."
     },
     "stadiumPreview": "Stadium preview"
   }

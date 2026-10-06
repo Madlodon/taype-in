@@ -694,6 +694,22 @@ describe("race results", () => {
     );
   });
 
+  test("Should_SendXpGained_When_TwoRacersFinish", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await progress(guestClient, typing(content, 0));
+
+    const { results: ranked } = await ended;
+
+    expect(ranked.map((result) => [result.id, result.xp, result.xpGained])).toEqual([
+      [host.id, 100, 100],
+      [guest.id, 20, 20],
+    ]);
+  });
+
   test("Should_SendResults_When_JoiningAfterEnd", async () => {
     const { lobby, hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);

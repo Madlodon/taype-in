@@ -20,6 +20,8 @@ function result(rank: number, overrides: Partial<RaceResult> = {}): RaceResult {
     keyErrors: {},
     rankLevel: 0,
     rankChange: 0,
+    xp: 0,
+    xpGained: 0,
     ...overrides,
   };
 }
@@ -155,4 +157,25 @@ test("Should_MarkBotWithoutAvatarOrRank_When_BotRaced", () => {
   expect(rows()[1][6]).toBe("—");
   expect(podium()[1]).toBe("Bot Expert 1Bot58 MPM2");
   expect(document.querySelectorAll("img.avatar")).toHaveLength(2);
+});
+
+test("Should_ShowXpGainedAndLevel_When_PlayerDidNotLevelUp", () => {
+  renderResults([result(1), result(2, { xp: 160, xpGained: 20 })]);
+
+  expect(screen.getByRole("status").textContent).toBe("+20 XPNiveau 2");
+});
+
+test("Should_ShowLevelUpAndUnlockedItems_When_PlayerReachedNewLevel", () => {
+  // 280 → 380 XP : du niveau 2 au niveau 3, qui débloque Flammes.
+  renderResults([result(1, { xp: 380, xpGained: 100 }), result(2)], "fr", "u1");
+
+  const status = screen.getByRole("status");
+  expect(status.textContent).toBe("+100 XPNiveau supérieur ! Niveau 3Débloqué : Flammes. Voir au garage");
+  expect(within(status).getByRole("link", { name: "Voir au garage" }).getAttribute("href")).toBe("/garage");
+});
+
+test("Should_ShowNoXp_When_PlayerIsGuest", () => {
+  renderResults([result(1), result(2, { xp: null })]);
+
+  expect(screen.queryByRole("status")).toBeNull();
 });
