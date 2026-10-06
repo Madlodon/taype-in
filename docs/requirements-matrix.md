@@ -92,17 +92,17 @@ Statut :
 | AUTH-4 | « Se souvenir de moi »                       | S     | [#72][i72] | —          | —                                                                                                                                             | En cours |
 | AUTH-5 | Aucune récupération de mot de passe          | E     | [#8][i8]   | [#25][p25] | Aucun (absence de fonction)                                                                                                                   | Fait     |
 | AUTH-6 | Mots de passe hachés, cookies httpOnly       | E     | [#8][i8]   | [#25][p25] | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [e2e/auth.spec.ts](../e2e/auth.spec.ts) | Fait     |
-| AUTH-7 | L'invité qui s'inscrit garde ses stats       | S     | [#70][i70] | —          | —                                                                                                                                             | En cours |
+| AUTH-7 | L'invité qui s'inscrit garde ses stats       | S     | [#70][i70] | —          | [auth.test.ts](../__tests__/auth.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [results.test.ts](../__tests__/results.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait     |
 
 ## Profil et statistiques (PROF)
 
 | ID     | Exigence                                    | Prio. | Issue                  | PR  | Tests | Statut   |
 | ------ | ------------------------------------------- | ----- | ---------------------- | --- | ----- | -------- |
-| PROF-1 | Photo de profil                             | S     | [#65][i65], [#71][i71] | —   | —     | En cours |
+| PROF-1 | Photo de profil                             | S     | [#65][i65], [#71][i71] | —   | [avatars.test.ts](../__tests__/avatars.test.ts), [avatar-actions.test.ts](../__tests__/avatar-actions.test.ts), [avatar-route.test.ts](../__tests__/avatar-route.test.ts), [avatar-form.test.tsx](../__tests__/avatar-form.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | Partiel |
 | PROF-2 | Historique des courses                      | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx), [e2e/profile.spec.ts](../e2e/profile.spec.ts) | Fait |
 | PROF-3 | Statistiques globales                       | E     | [#64][i64]             | —   | [profile.test.ts](../__tests__/profile.test.ts), [profile-page.test.tsx](../__tests__/profile-page.test.tsx) | Fait |
 | PROF-4 | Graphique de progression                    | S     | [#69][i69]             | —   | —     | En cours |
-| PROF-5 | Statistiques de session de courses          | S     | [#70][i70]             | —   | —     | En cours |
+| PROF-5 | Statistiques de session de courses          | S     | [#70][i70]             | —   | [session-stats.test.ts](../__tests__/session-stats.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | PROF-6 | Signaler une photo de profil                | —     | [#66][i66]             | —   | —     | En cours |
 | PROF-7 | Changer son nom d'utilisateur               | —     | [#67][i67]             | —   | —     | En cours |
 | PROF-8 | Bloquer les noms d'utilisateur inappropriés | —     | [#68][i68]             | —   | —     | En cours |
@@ -118,8 +118,8 @@ Statut :
 | LOB-5  | Tout utilisateur peut créer et être hôte   | E     | [#9][i9]               | [#27][p27]             | [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts)                                                                                                                                                                        | Fait     |
 | LOB-6  | Seul l'hôte démarre ; 2 à 300 participants | E     | [#55][i55], [#63][i63] | —                      | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts), [load-test.test.ts](../__tests__/load-test.test.ts) | Fait |
 | LOB-7  | Seul l'hôte invite                         | E     | [#26][i26]             | [#52][p52]             | [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts)                                                                                                                                                                          | Fait     |
-| LOB-8  | L'hôte participe ou regarde                | S     | [#73][i73]             | —                      | —                                                                                                                                                                                                                                                                                   | En cours |
-| LOB-9  | Relancer le même lobby                     | S     | [#3][i3], [#73][i73]   | [#20][p20]             | [lobby-state.test.ts](../__tests__/lobby-state.test.ts)                                                                                                                                                                                                                             | En cours |
+| LOB-8  | L'hôte participe ou regarde                | S     | [#73][i73]             | —                      | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
+| LOB-9  | Relancer le même lobby                     | S     | [#3][i3], [#73][i73]   | [#20][p20]             | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [lobbies.test.ts](../__tests__/lobbies.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | LOB-10 | L'hôte ferme le lobby                      | E     | [#3][i3], [#61][i61]   | [#20][p20], [#82][p82] | [lobby-state.test.ts](../__tests__/lobby-state.test.ts), [lobbies.test.ts](../__tests__/lobbies.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts)       | Fait     |
 
 ## Déroulement de la course (CRS)
@@ -154,7 +154,7 @@ Statut :
 | ----- | -------------------------------------- | ----- | ---------- | --- | ----- | -------- |
 | ERR-1 | Mode bloquant ou tolérant              | E     | [#56][i56] | —   | [typing.test.ts](../__tests__/typing.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [races.test.ts](../__tests__/races.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | ERR-2 | Caractère erroné mis en évidence       | E     | [#56][i56] | —   | [race-typing.test.tsx](../__tests__/race-typing.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| ERR-3 | Fautes dans la précision et la heatmap | E     | [#60][i60] | —   | [typing.test.ts](../__tests__/typing.test.ts), [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | Partiel (heatmap : [#77][i77]) |
+| ERR-3 | Fautes dans la précision et la heatmap | E     | [#60][i60], [#77][i77] | —   | [typing.test.ts](../__tests__/typing.test.ts), [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [heatmap.test.ts](../__tests__/heatmap.test.ts) | Fait |
 
 ## Bots (BOT)
 
@@ -178,7 +178,7 @@ Statut :
 | ----- | ------------------------------------- | ----- | ---------- | --- | ----- | -------- |
 | FIN-1 | Podium du top 3                       | E     | [#60][i60] | —   | [race-results.test.tsx](../__tests__/race-results.test.tsx), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | FIN-2 | Classement et statistiques par joueur | E     | [#60][i60] | —   | [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [race-results.test.tsx](../__tests__/race-results.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
-| FIN-3 | Heatmap du clavier                    | S     | [#77][i77] | —   | —     | En cours |
+| FIN-3 | Heatmap du clavier                    | S     | [#77][i77] | —   | [heatmap.test.ts](../__tests__/heatmap.test.ts), [keyboard-heatmap.test.tsx](../__tests__/keyboard-heatmap.test.tsx), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | Fait |
 | FIN-4 | Résultats dans l'historique           | E     | [#60][i60] | —   | [results.test.ts](../__tests__/results.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts) | Fait |
 
 ## Interface (UI)

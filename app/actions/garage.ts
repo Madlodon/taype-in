@@ -1,9 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { saveLoadout } from "@/lib/garage";
-import { loadoutSchema } from "@/lib/garage-items";
+import { CATEGORIES, loadoutSchema, unlockLevel } from "@/lib/garage-items";
 import { getCurrentUser } from "@/lib/session-cookie";
+import { levelFromXp } from "@/lib/xp";
 
 // error est une clé de traduction (Garage.errors).
 export type GarageFormState = { saved?: boolean; error?: string } | undefined;
@@ -19,6 +21,12 @@ export async function saveLoadoutAction(
 
   const loadout = loadoutSchema.safeParse(Object.fromEntries(formData));
   if (!loadout.success) return { error: "invalid" };
+  // Un objet verrouillé ne s'enregistre pas, même si le formulaire a été contourné (#35).
+  const level = levelFromXp(user.xp);
+  if (CATEGORIES.some((category) => unlockLevel(category, loadout.data[category]) > level)) {
+    return { error: "locked" };
+  }
   await saveLoadout(user.id, loadout.data);
+  revalidatePath("/", "layout");
   return { saved: true };
 }

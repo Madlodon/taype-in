@@ -15,11 +15,12 @@ import {
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
-import { rankRacers, saveResults } from "./results.ts";
+import { awardXp, rankRacers, saveResults, updateRanks } from "./results.ts";
 import {
   joinLobbySchema,
   MIN_RACERS,
   progressSchema,
+  startRaceSchema,
   type Ack,
   type CountdownMessage,
   type ParticipantsMessage,
@@ -79,6 +80,7 @@ export function createSocketServer(
     {
       "lobby:participants": (message: ParticipantsMessage) => void;
       "lobby:closed": () => void;
+      "lobby:restarted": () => void;
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
       "race:positions": (message: RacePositionsMessage) => void;
@@ -92,7 +94,7 @@ export function createSocketServer(
   const liveRaces = new Map<string, LiveRace>();
 
   // Faux si la machine à états refuse l'événement (ex. fermer pendant la course).
-  function canDo(lobby: Lobby, event: "start" | "close"): boolean {
+  function canDo(lobby: Lobby, event: "start" | "close" | "restart"): boolean {
     try {
       nextLobbyState(liveRaces.get(lobby.id)?.state ?? "waiting", event);
       return true;
@@ -132,7 +134,7 @@ export function createSocketServer(
     // Les dernières frappes arrivent avant la fin.
     sendPositions(lobby, live);
     const endedAt = Date.now();
-    live.results = rankRacers(
+    const placements = rankRacers(
       [...live.players].map(([id, player]) => {
         const { username, at } = live.positions.get(id)!;
         return {
@@ -148,7 +150,14 @@ export function createSocketServer(
       live.errorMode,
     );
     await markRaceEnded(live.raceId);
-    await saveResults(live.raceId, live.results);
+    await saveResults(live.raceId, placements);
+    const ranks = await updateRanks(placements.map((placement) => placement.id));
+    const xp = await awardXp(placements);
+    live.results = placements.map((placement) => ({
+      ...placement,
+      ...(ranks.get(placement.id) ?? { rankLevel: 0, rankChange: 0 }),
+      ...(xp.get(placement.id) ?? { xp: null, xpGained: 0 }),
+    }));
     io.to(lobby.code).emit("race:ended", { reason, results: live.results });
   }
 
@@ -254,8 +263,16 @@ export function createSocketServer(
     });
 
     // Seul l'hôte lance la course ; tous reçoivent le même compte à rebours, puis le même texte (CRS-1).
-    socket.on("race:start", async (ack?: (response: Ack) => void) => {
-      const { lobby, user } = socket.data;
+    // L'hôte court avec les autres ou regarde seulement (LOB-8).
+    socket.on("race:start", async (payload: unknown, ack?: (response: Ack) => void) => {
+      const { user } = socket.data;
+      const message = startRaceSchema.safeParse(payload);
+      if (!message.success) {
+        ack?.({ ok: false, error: "invalidMessage" });
+        return;
+      }
+      // Relu à chaque départ : l'hôte a pu changer les réglages avant de relancer (LOB-9).
+      const lobby = socket.data.lobby && (await findOpenLobby(socket.data.lobby.code));
       if (!lobby) {
         ack?.({ ok: false, error: "lobbyNotFound" });
         return;
@@ -264,8 +281,10 @@ export function createSocketServer(
         ack?.({ ok: false, error: "notHost" });
         return;
       }
-      const participants = await listParticipants(lobby.id);
-      if (participants.length < MIN_RACERS) {
+      const racers = (await listParticipants(lobby.id)).filter(
+        (participant) => !(message.data.watch && participant.id === user.id),
+      );
+      if (racers.length < MIN_RACERS) {
         ack?.({ ok: false, error: "notEnoughParticipants" });
         return;
       }
@@ -281,12 +300,12 @@ export function createSocketServer(
         startedAt: 0,
         content: "",
         errorMode: lobby.errorMode,
-        racerIds: participants.map((participant) => participant.id),
+        racerIds: racers.map((racer) => racer.id),
         timeLimitSeconds: null,
         endsAt: null,
         players: new Map(
-          participants.map((participant) => [
-            participant.id,
+          racers.map((racer) => [
+            racer.id,
             { state: "connected", typed: "", errors: 0, keys: 0, keyErrors: {} },
           ]),
         ),
@@ -327,7 +346,7 @@ export function createSocketServer(
           secondsLeft: secondsLeft(live),
         });
         // Tous les coureurs partent de 0, dans l'ordre d'arrivée dans le lobby.
-        for (const { id, username } of participants) {
+        for (const { id, username } of racers) {
           live.positions.set(id, { username, position: 0, at: Date.now() });
         }
         live.positionsChanged = true;
@@ -401,6 +420,28 @@ export function createSocketServer(
       player.state = nextPlayerState(player.state, "abandon");
       player.doneAt = Date.now();
       await endIfNobodyRacing(lobby, live);
+      ack?.({ ok: true });
+    });
+
+    // Après une course, l'hôte relance le même lobby : tous reviennent à la salle d'attente (LOB-9).
+    socket.on("lobby:restart", async (ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      if (!lobby) {
+        ack?.({ ok: false, error: "lobbyNotFound" });
+        return;
+      }
+      if (lobby.hostId !== user.id) {
+        ack?.({ ok: false, error: "notHost" });
+        return;
+      }
+      // Seulement après la fin d'une course (#3).
+      if (!canDo(lobby, "restart")) {
+        ack?.({ ok: false, error: "raceNotFinished" });
+        return;
+      }
+
+      liveRaces.delete(lobby.id);
+      io.to(lobby.code).emit("lobby:restarted");
       ack?.({ ok: true });
     });
 

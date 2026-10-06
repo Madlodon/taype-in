@@ -85,3 +85,17 @@ export function computeStats(history: HistoryEntry[]): ProfileStats {
       .map(([key, errors]) => ({ key, errors })),
   };
 }
+
+export type ProgressionPoint = { date: Date; wpm: number; accuracy: number };
+
+export const PROGRESSION_RACES = 30;
+
+// Points du graphique de progression (PROF-4), de la plus ancienne à la plus récente.
+// Mêmes courses que les vitesses : terminées et sans bonus.
+export function progressionPoints(history: HistoryEntry[]): ProgressionPoint[] {
+  return history
+    .filter((entry) => entry.finished && !entry.bonusesEnabled)
+    .slice(0, PROGRESSION_RACES)
+    .reverse()
+    .map(({ date, wpm, accuracy }) => ({ date, wpm, accuracy }));
+}

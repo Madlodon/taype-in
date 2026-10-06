@@ -99,7 +99,7 @@ export async function runLoadTest({
       });
     });
 
-    const ack = await clients[0].emitWithAck("race:start");
+    const ack = await clients[0].emitWithAck("race:start", { watch: false });
     if (!ack.ok) throw new Error(`race:start refusé : ${ack.error}`);
 
     // Chaque coureur tape à son rythme, décalé au hasard pour ne pas tous envoyer en même temps.

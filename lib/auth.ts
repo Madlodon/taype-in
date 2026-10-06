@@ -1,7 +1,7 @@
-// Comptes, invités et sessions (AUTH-1, AUTH-3, AUTH-5, AUTH-6).
+// Comptes, invités et sessions (AUTH-1, AUTH-3, AUTH-5, AUTH-6, AUTH-7).
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { hash, verify } from "@node-rs/argon2";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/index.ts";
 import { sessions, users } from "../db/schema.ts";
@@ -38,15 +38,21 @@ function pepper(): { secret: Buffer } {
   return { secret: Buffer.from(value) };
 }
 
+// Un invité qui s'inscrit garde sa ligne : ses résultats, son rang et son garage le suivent (AUTH-7).
 export async function signUp(
   username: string,
   password: string,
+  guestId?: string,
 ): Promise<User | "taken"> {
+  const passwordHash = await hash(password, pepper());
   try {
-    const [user] = await db
-      .insert(users)
-      .values({ username, passwordHash: await hash(password, pepper()) })
-      .returning();
+    const [user] = guestId
+      ? await db
+          .update(users)
+          .set({ username, passwordHash, isGuest: false })
+          .where(and(eq(users.id, guestId), eq(users.isGuest, true)))
+          .returning()
+      : await db.insert(users).values({ username, passwordHash }).returning();
     return user;
   } catch (error) {
     if ((error as { cause?: { code?: string } }).cause?.code === "23505") {

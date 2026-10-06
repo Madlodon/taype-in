@@ -5,7 +5,7 @@ import { verify } from "@node-rs/argon2";
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { sessions, users } from "../db/schema";
+import { lobbies, results, sessions, users } from "../db/schema";
 import {
   createGuest,
   createSession,
@@ -16,6 +16,8 @@ import {
   validateSessionToken,
   type User,
 } from "../lib/auth";
+import { createLobby } from "../lib/lobbies";
+import { createRace } from "../lib/races";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -48,6 +50,7 @@ beforeEach(() => {
 afterEach(async () => {
   vi.unstubAllEnvs();
   if (createdIds.length === 0) return;
+  await db.delete(lobbies).where(inArray(lobbies.hostId, createdIds));
   await db.delete(users).where(inArray(users.id, createdIds.splice(0)));
 });
 
@@ -162,6 +165,40 @@ test("Should_ReturnNull_When_GuestTriesToLogIn", async () => {
   createdIds.push(guest.id);
 
   expect(await logIn(guest.username, "")).toBeNull();
+});
+
+test("Should_KeepGuestRowAndResults_When_GuestSignsUp", async () => {
+  const guest = await createGuest();
+  createdIds.push(guest.id);
+  const race = (await createRace(await createLobby(guest.id, "unlisted")))!;
+  await db.insert(results).values({
+    raceId: race.id,
+    userId: guest.id,
+    rank: 1,
+    wpm: 42,
+    accuracy: 95,
+    durationMs: 60_000,
+    errorCount: 3,
+    finished: true,
+  });
+  const username = uniqueName();
+
+  const user = (await signUp(username, "motdepasse123", guest.id)) as User;
+
+  expect(user).toMatchObject({ id: guest.id, username, isGuest: false });
+  expect((await logIn(username, "motdepasse123"))?.id).toBe(guest.id);
+  const kept = await db.select().from(results).where(eq(results.userId, guest.id));
+  expect(kept.map((row) => [row.raceId, row.wpm])).toEqual([[race.id, 42]]);
+});
+
+test("Should_ReturnTakenAndStayGuest_When_GuestPicksTakenName", async () => {
+  const user = await newAccount();
+  const guest = await createGuest();
+  createdIds.push(guest.id);
+
+  expect(await signUp(user.username, "motdepasse123", guest.id)).toBe("taken");
+  const [row] = await db.select().from(users).where(eq(users.id, guest.id));
+  expect(row).toMatchObject({ username: guest.username, isGuest: true, passwordHash: null });
 });
 
 test("Should_ReturnUser_When_SessionTokenIsValid", async () => {

@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { saveLoadoutAction } from "../app/actions/garage";
 import { saveLoadout } from "../lib/garage";
 import { getCurrentUser } from "../lib/session-cookie";
+import { revalidatePath } from "next/cache";
+import { BALLS, BOOSTS, STADIUMS } from "../lib/garage-items";
+import { xpForLevel } from "../lib/xp";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(() => {
@@ -12,6 +15,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn() }));
 vi.mock("../lib/garage", () => ({ saveLoadout: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const aUser = {
   id: "user-1",
@@ -22,6 +26,10 @@ const aUser = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  stadium: "diorama",
+  rankLevel: 0,
+  // Tout est débloqué au niveau 15 (#35).
+  xp: xpForLevel(15),
   createdAt: new Date(),
 };
 const aGuest = { ...aUser, username: "Invité-123456", passwordHash: null, isGuest: true };
@@ -32,7 +40,7 @@ function form(fields: Record<string, string>) {
   return data;
 }
 
-const choice = { car: "dominus", boost: "flames", hat: "cone", ball: "beach" };
+const choice = { car: "dominus", boost: "flames", hat: "cone", ball: "beach", stadium: "diorama" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -49,6 +57,19 @@ test("Should_RefuseWithoutSaving_When_UserIsGuest", async () => {
 
   expect(await saveLoadoutAction(undefined, form(choice))).toEqual({ error: "guest" });
   expect(saveLoadout).not.toHaveBeenCalled();
+});
+
+test("Should_RefuseWithoutSaving_When_ItemIsAboveLevel", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue({ ...aUser, xp: xpForLevel(6) });
+
+  expect(await saveLoadoutAction(undefined, form(choice))).toEqual({ error: "locked" });
+  expect(saveLoadout).not.toHaveBeenCalled();
+});
+
+test("Should_SaveLoadout_When_ItemIsExactlyAtLevel", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue({ ...aUser, xp: xpForLevel(7) });
+
+  expect(await saveLoadoutAction(undefined, form(choice))).toEqual({ saved: true });
 });
 
 test("Should_RedirectHome_When_NobodyIsLoggedIn", async () => {
@@ -75,8 +96,27 @@ test("Should_RefuseWithoutSaving_When_BoostIsMissing", async () => {
   expect(saveLoadout).not.toHaveBeenCalled();
 });
 
-test.each(["standard", "flames", "ion", "sparkles"])("Should_SaveBoost_When_Selecting_%s", async (boost) => {
+test.each(BOOSTS)("Should_SaveBoost_When_Selecting_%s", async (boost) => {
   const loadout = { ...choice, boost };
   expect(await saveLoadoutAction(undefined, form(loadout))).toEqual({ saved: true });
   expect(saveLoadout).toHaveBeenCalledWith("user-1", loadout);
+});
+
+test.each(BALLS)("Should_SaveBall_When_Selecting_%s", async (ball) => {
+  const loadout = { ...choice, ball };
+  expect(await saveLoadoutAction(undefined, form(loadout))).toEqual({ saved: true });
+  expect(saveLoadout).toHaveBeenCalledWith("user-1", loadout);
+});
+
+test.each(STADIUMS)("Should_SaveStadiumAndRefreshRacePages_When_Selecting_%s", async stadium => {
+  const loadout = { ...choice, stadium };
+  expect(await saveLoadoutAction(undefined, form(loadout))).toEqual({ saved: true });
+  expect(saveLoadout).toHaveBeenCalledWith("user-1", loadout);
+  expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+});
+
+test("Should_RejectUnknownStadium_WithoutSaving", async () => {
+  expect(await saveLoadoutAction(undefined, form({ ...choice, stadium: "unknown" }))).toEqual({ error: "invalid" });
+  expect(saveLoadout).not.toHaveBeenCalled();
+  expect(revalidatePath).not.toHaveBeenCalled();
 });

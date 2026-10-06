@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { LobbyRoom } from "../components/lobby-room";
 import en from "../messages/en.json";
 import fr from "../messages/fr.json";
+import { STADIUMS, type Stadium } from "../lib/garage-items";
 
 type Handler = (...args: unknown[]) => void;
 
@@ -19,15 +20,17 @@ const socket = {
 
 vi.mock("socket.io-client", () => ({ io: () => socket }));
 
-const router = { replace: vi.fn() };
+const router = { replace: vi.fn(), push: vi.fn() };
+const loadSessionStats = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 // u1 est l'hôte ; l'utilisateur courant est u1 s'il est hôte, sinon u2.
 // Le socket se connecte aussitôt rendu.
-function renderRoom(locale: "fr" | "en" = "fr", isHost = false) {
+function renderRoom(locale: "fr" | "en" = "fr", isHost = false, stadium?: Stadium) {
   const result = render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} />
+      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} stadium={stadium}
+        loadSessionStats={loadSessionStats} />
     </NextIntlClientProvider>,
   );
   act(() => handlers["connect"]());
@@ -54,6 +57,7 @@ function listedNames() {
 beforeEach(() => {
   vi.clearAllMocks();
   socket.active = false;
+  loadSessionStats.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -161,7 +165,8 @@ test("Should_ReturnToLobbyListWithMessage_When_LobbyIsClosed", () => {
   expect(router.replace).toHaveBeenCalledWith("/lobbies?closed=1");
 });
 
-const startButton = () => screen.queryByRole("button", { name: "Lancer la course" });
+const startButton = () => screen.queryByRole("button", { name: "Lancer et courir" });
+const watchButton = () => screen.queryByRole("button", { name: "Lancer et regarder" });
 
 test("Should_NotShowStartButton_When_UserIsNotHost", () => {
   renderRoom();
@@ -185,14 +190,50 @@ test("Should_AskServerToStart_When_HostClicksStart", () => {
 
   fireEvent.click(startButton()!);
 
-  expect(socket.emit).toHaveBeenCalledWith("race:start", expect.any(Function));
+  expect(socket.emit).toHaveBeenCalledWith("race:start", { watch: false }, expect.any(Function));
+});
+
+test("Should_AskServerToStartWithHostWatching_When_HostClicksWatch", () => {
+  renderRoom("fr", true);
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "u2", username: "Invité-123456" },
+        { id: "u3", username: "sam" },
+      ],
+    }),
+  );
+
+  fireEvent.click(watchButton()!);
+
+  expect(socket.emit).toHaveBeenCalledWith("race:start", { watch: true }, expect.any(Function));
+});
+
+test("Should_DisableWatchOnlyAndExplain_When_HostHasOneOtherParticipant", () => {
+  renderRoom("fr", true);
+
+  sendParticipants();
+
+  expect(startButton()!.hasAttribute("disabled")).toBe(false);
+  expect(watchButton()!.hasAttribute("disabled")).toBe(true);
+  expect(
+    screen.getByText("Pour regarder sans courir, il faut au moins 2 autres participants."),
+  ).toBeTruthy();
+});
+
+test("Should_SayWaitingForHost_When_UserIsNotHostAndNoRaceIsOn", () => {
+  renderRoom();
+  sendParticipants();
+
+  expect(screen.getByText(/En attente de l'hôte/)).toBeTruthy();
 });
 
 test("Should_ShowError_When_StartIsRefused", () => {
   renderRoom("fr", true);
   sendParticipants();
   fireEvent.click(startButton()!);
-  const ack = socket.emit.mock.calls[1][1] as Handler;
+  const ack = socket.emit.mock.calls[1][2] as Handler;
 
   act(() => ack({ ok: false, error: "notEnoughParticipants" }));
 
@@ -327,7 +368,47 @@ test("Should_SayRaceIsOverInEnglish_When_LocaleIsEnglish", () => {
   expect(screen.getByRole("status").textContent).toBe("Race over: time is up.");
 });
 
-test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
+test("Should_ShowSessionStats_When_RaceEnds", async () => {
+  loadSessionStats.mockResolvedValue({ races: 6, averageWpm: 48.4, bestWpm: 61.6, averageAccuracy: 96.2 });
+  renderRoom();
+  startRace(["u1", "u2"]);
+  expect(loadSessionStats).not.toHaveBeenCalled();
+
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  const panel = await screen.findByRole("region", { name: "Cette session : 6 courses d’affilée" });
+  expect(within(panel).getAllByRole("definition").map((stat) => stat.textContent)).toEqual([
+    "48",
+    "62",
+    "96 %",
+  ]);
+});
+
+test("Should_HideSessionStats_When_UserHasNoRaceInSession", async () => {
+  loadSessionStats.mockResolvedValue({ races: 0, averageWpm: null, bestWpm: null, averageAccuracy: null });
+  renderRoom();
+
+  await act(async () => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  expect(loadSessionStats).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("region", { name: /Cette session/ })).toBeNull();
+});
+
+test("Should_ShowDashes_When_NoSessionRaceWasFinished", async () => {
+  loadSessionStats.mockResolvedValue({ races: 1, averageWpm: null, bestWpm: null, averageAccuracy: null });
+  renderRoom("en");
+
+  act(() => handlers["race:ended"]({ reason: "timeUp", results: [] }));
+
+  const panel = await screen.findByRole("region", { name: "This session: 1 race" });
+  expect(within(panel).getAllByRole("definition").map((stat) => stat.textContent)).toEqual([
+    "—",
+    "—",
+    "—",
+  ]);
+});
+
+test("Should_LetHostCloseOrRelaunchButNotStart_When_RaceHasEnded", () => {
   renderRoom("fr", true);
   sendParticipants();
   startRace(["u1", "u2"], "blocking", 300);
@@ -336,7 +417,78 @@ test("Should_LetHostCloseButNotRestart_When_RaceHasEnded", () => {
   act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
 
   expect(screen.getByRole("button", { name: "Fermer la course" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Relancer la course" })).toBeTruthy();
   expect(startButton()).toBeNull();
+});
+
+test("Should_NotShowRelaunch_When_UserIsNotHost", () => {
+  renderRoom();
+  startRace(["u1", "u2"]);
+
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  expect(screen.queryByRole("button", { name: "Relancer la course" })).toBeNull();
+});
+
+function endRaceAsHost() {
+  renderRoom("fr", true);
+  sendParticipants();
+  startRace(["u1", "u2"]);
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+  fireEvent.click(screen.getByRole("button", { name: "Relancer la course" }));
+  const call = socket.emit.mock.calls.find(([event]) => event === "lobby:restart")!;
+  return call[1] as Handler;
+}
+
+test("Should_OpenSettingsPage_When_HostRelaunches", () => {
+  const ack = endRaceAsHost();
+
+  act(() => ack({ ok: true }));
+
+  expect(router.push).toHaveBeenCalledWith("/lobbies/K7P3XM/settings");
+});
+
+test("Should_ShowErrorAndStay_When_RelaunchIsRefused", () => {
+  const ack = endRaceAsHost();
+
+  act(() => ack({ ok: false, error: "raceNotFinished" }));
+
+  expect(screen.getByRole("alert").textContent).toBe("La course n'est pas terminée");
+  expect(router.push).not.toHaveBeenCalled();
+});
+
+test("Should_ReturnToWaitingRoom_When_LobbyIsRestarted", () => {
+  renderRoom();
+  sendParticipants();
+  startRace(["u1", "u2"]);
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  act(() => handlers["lobby:restarted"]());
+
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByText("Un texte court.")).toBeNull();
+  expect(screen.queryByRole("list", { name: "Classement" })).toBeNull();
+  expect(screen.getByText(/En attente de l'hôte/)).toBeTruthy();
+});
+
+test("Should_MarkHostWatchingAndNotCountHim_When_HostWatchesRace", () => {
+  renderRoom("fr", true);
+  act(() =>
+    handlers["lobby:participants"]({
+      participants: [
+        { id: "u1", username: "alex" },
+        { id: "u2", username: "Invité-123456" },
+        { id: "u3", username: "sam" },
+      ],
+    }),
+  );
+
+  startRace(["u2", "u3"]);
+
+  expect(listedNames()).toEqual(["alex (hôte) (regarde)", "Invité-123456", "sam"]);
+  expect(screen.getByRole("heading", { name: "Participants (2)" })).toBeTruthy();
+  expect(screen.getByText("Tu regardes la course sans courir.")).toBeTruthy();
+  expect(screen.queryByRole("textbox")).toBeNull();
 });
 
 test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {
@@ -359,6 +511,7 @@ test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {
     within(screen.getByRole("list", { name: "Podium" })).getAllByRole("listitem"),
   ).toHaveLength(2);
   expect(screen.getByRole("table", { name: "Classement complet" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Heatmap du clavier" })).toBeTruthy();
 });
 
 test("Should_ShowNoResults_When_RaceIsRunning", () => {
@@ -367,6 +520,7 @@ test("Should_ShowNoResults_When_RaceIsRunning", () => {
   startRace(["u1", "u3"]);
 
   expect(screen.queryByRole("heading", { name: "Résultats" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Heatmap du clavier" })).toBeNull();
 });
 
 test("Should_SendTypedTextAndErrorsToServer_When_RacerTypes", () => {
@@ -594,6 +748,15 @@ test("Should_DrawOneCarTagPerShownPlayer_When_ServerSendsPositions", () => {
   expect(container.querySelectorAll(".car-tag")).toHaveLength(13);
 });
 
+test.each(STADIUMS)("Should_KeepPersonalStadium_When_LobbyRaceStarts_In_%s", stadium => {
+  const { container } = renderRoom("en", false, stadium);
+  expect(container.querySelector(".arena")?.getAttribute("data-stadium")).toBe(stadium);
+  startRace(["u1", "u2"]);
+  sendPositions(2, 1);
+  expect(container.querySelector(".arena")?.getAttribute("data-stadium")).toBe(stadium);
+  expect(container.querySelectorAll(".car-tag")).toHaveLength(2);
+});
+
 test("Should_KeepRanking_When_RaceHasEnded", () => {
   renderRoom();
   startRace(["u1", "u2"]);
@@ -620,4 +783,102 @@ test("Should_ShowRankingInEnglish_When_LocaleIsEnglish", () => {
   expect(
     within(screen.getByRole("list", { name: "Ranking" })).getAllByRole("listitem")[1].textContent,
   ).toBe("moi (you)0%");
+});
+
+// Classement dans l'ordre donné : u2 s'appelle « moi », les autres portent leur id comme nom.
+function sendOrder(...ids: string[]) {
+  const positions = ids.map((id, index) => ({
+    id,
+    username: id === "u2" ? "moi" : id,
+    position: ids.length - index,
+  }));
+  act(() => handlers["race:positions"]({ positions }));
+}
+
+function overtakeText(container: HTMLElement) {
+  return container.querySelector(".overtake")?.textContent;
+}
+
+test("Should_ShowWhoYouPassed_When_UserMovesUp", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2", "u3"]);
+  sendOrder("u1", "u3", "u2");
+
+  sendOrder("u2", "u1", "u3");
+
+  expect(overtakeText(container)).toBe("▲ Tu as dépassé u1 et u3 · 1er");
+  expect(container.querySelector(".overtake-up")).toBeTruthy();
+});
+
+test("Should_ShowWhoPassedYou_When_UserMovesDown", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2", "u3"]);
+  sendOrder("u1", "u2", "u3");
+
+  sendOrder("u1", "u3", "u2");
+
+  expect(overtakeText(container)).toBe("▼ u3 t'a dépassé · 3e");
+  expect(container.querySelector(".overtake-down")).toBeTruthy();
+});
+
+test("Should_ShowOvertakeInEnglish_When_LocaleIsEnglish", () => {
+  const { container } = renderRoom("en");
+  startRace(["u1", "u2", "u3"]);
+  sendOrder("u1", "u2", "u3");
+
+  sendOrder("u2", "u1", "u3");
+
+  expect(overtakeText(container)).toBe("▲ You passed u1 · 1st");
+});
+
+test("Should_ShowNoOvertake_When_UserRankIsUnchanged", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2", "u3"]);
+  sendOrder("u1", "u2", "u3");
+
+  sendOrder("u1", "u2", "u3");
+
+  expect(overtakeText(container)).toBe("");
+});
+
+test("Should_HideOvertake_When_ShownLongEnough", () => {
+  vi.useFakeTimers();
+  const { container } = renderRoom();
+  startRace(["u1", "u2"]);
+  sendOrder("u1", "u2");
+  sendOrder("u2", "u1");
+
+  act(() => vi.advanceTimersByTime(2500));
+
+  expect(overtakeText(container)).toBe("");
+});
+
+test("Should_AnnounceOvertake_When_ScreenReaderIsUsed", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2"]);
+
+  expect(container.querySelector(".overtake")?.getAttribute("aria-live")).toBe("polite");
+});
+
+test("Should_ShowNoOvertake_When_UserIsSpectating", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u3"]);
+  sendOrder("u1", "u3");
+
+  sendOrder("u3", "u1");
+
+  expect(container.querySelector(".overtake")).toBeNull();
+});
+
+test("Should_ShowNoOvertake_When_NextRaceStartsAfterRelaunch", () => {
+  const { container } = renderRoom();
+  startRace(["u1", "u2"]);
+  sendOrder("u2", "u1");
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+  act(() => handlers["lobby:restarted"]());
+  startRace(["u1", "u2"]);
+
+  sendOrder("u1", "u2");
+
+  expect(overtakeText(container)).toBe("");
 });

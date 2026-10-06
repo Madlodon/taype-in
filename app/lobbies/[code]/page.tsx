@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
+import { sessionStatsAction } from "@/app/actions/session-stats";
 import { InviteLinks } from "@/components/invite-links";
 import { LobbyRoom } from "@/components/lobby-room";
 import { canEnterLobby, findOpenLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
+import { DEFAULT_LOADOUT, loadoutSchema } from "@/lib/garage-items";
 
 export default async function LobbyPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -30,7 +32,9 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
       </div>
       <div className="split-layout">
         <div className="side-stack">
-          <LobbyRoom code={lobby.code} hostId={lobby.hostId} isHost={isHost} userId={user.id} />
+          <LobbyRoom code={lobby.code} hostId={lobby.hostId} isHost={isHost} userId={user.id}
+            stadium={loadoutSchema.shape.stadium.catch(DEFAULT_LOADOUT.stadium).parse(user.stadium)}
+            loadSessionStats={sessionStatsAction} />
         </div>
         <aside className="side-stack">
           {isHost && (lobby.visibility === "private" ? <InviteLinks lobby={lobby} /> :

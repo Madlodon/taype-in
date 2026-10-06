@@ -91,7 +91,7 @@ test("Should_TypeAndSeeRanking_When_RacingOnThisScreen", async ({ browser }) => 
   await expect(player.page.getByRole("list", { name: "Participants" })).toBeVisible();
   await expectNoHorizontalScroll(host.page);
 
-  await host.page.getByRole("button", { name: "Lancer la course" }).click();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const input = player.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused({ timeout: 8000 });
   await expect(input).toBeInViewport();
@@ -102,4 +102,32 @@ test("Should_TypeAndSeeRanking_When_RacingOnThisScreen", async ({ browser }) => 
   await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ %$`));
   await expectNoHorizontalScroll(host.page);
   await expectNoHorizontalScroll(player.page);
+});
+
+test("Should_FitResults_When_RaceEnds", async ({ browser }) => {
+  const host = await newGuest(browser);
+  await host.page.getByRole("link", { name: "Démarrer une course" }).click();
+  await host.page.getByRole("link", { name: "Créer une course" }).click();
+  await host.page.getByLabel(/Non répertoriée/).check();
+  await host.page.getByRole("button", { name: "Créer la course" }).click();
+  await expect(host.page.getByRole("heading", { name: "Salle d'attente" })).toBeVisible();
+  const player = await newGuest(browser);
+  await player.page.goto(host.page.url());
+  await expect(player.page.getByRole("list", { name: "Participants" })).toBeVisible();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+  const input = host.page.getByRole("textbox", { name: "Tape le texte" });
+  await expect(input).toBeFocused({ timeout: 8000 });
+  const text = (await host.page.locator(".typing-text").textContent())!;
+  await host.page.keyboard.type(text.slice(0, 10));
+
+  // Les deux abandonnent : la course finit tout de suite et les résultats s'affichent.
+  for (const { page } of [player, host]) {
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Abandonner" }).click();
+  }
+
+  for (const { page } of [host, player]) {
+    await expect(page.getByRole("heading", { name: "Résultats" })).toBeVisible();
+    await expectNoHorizontalScroll(page);
+  }
 });

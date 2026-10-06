@@ -71,7 +71,6 @@
     "host": "(hôte)",
     "close": "Fermer la course",
     "confirmClose": "Fermer la course ? Tous les participants seront renvoyés à la liste des courses.",
-    "start": "Lancer la course",
     "needMore": "Il faut au moins {count} participants pour lancer la course.",
     "countdown": "Départ dans {seconds}",
     "raceText": "Texte de la course",
@@ -85,6 +84,10 @@
     "you": "(toi)",
     "percent": "{value} %",
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
+    "overtake": {
+      "up": "Tu as dépassé {names} · {rank, selectordinal, one {#er} other {#e}}",
+      "down": "{names} {count, plural, one {t'a dépassé} other {t'ont dépassé}} · {rank, selectordinal, one {#er} other {#e}}"
+    },
     "giveUp": "Abandonner",
     "confirmGiveUp": "Abandonner la course ? Tu deviendras spectateur et ne pourras plus taper.",
     "gaveUp": "Tu as abandonné : tu regardes la fin de la course.",
@@ -99,8 +102,22 @@
       "noText": "Aucun texte disponible dans cette langue",
       "raceNotRunning": "Aucune course en cours",
       "notRacer": "Tu ne cours pas dans cette course",
-      "cannotGiveUp": "Tu ne peux plus abandonner"
-    }
+      "cannotGiveUp": "Tu ne peux plus abandonner",
+      "raceNotFinished": "La course n'est pas terminée"
+    },
+    "startRacing": "Lancer et courir",
+    "startWatching": "Lancer et regarder",
+    "needMoreWatching": "Pour regarder sans courir, il faut au moins {count} autres participants.",
+    "watching": "(regarde)",
+    "hostWatching": "Tu regardes la course sans courir.",
+    "relaunch": "Relancer la course",
+    "waitingForHost": "En attente de l'hôte : il choisit les réglages et lance la prochaine course."
+  },
+  "LobbySettings": {
+    "title": "Réglages de la prochaine course",
+    "description": "Change les réglages, puis lance la course depuis la salle d'attente.",
+    "back": "Retour à la salle d'attente",
+    "submit": "Enregistrer et retourner à la salle"
   },
   "RaceResults": {
     "title": "Résultats",
@@ -117,7 +134,43 @@
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
     "notFinished": "Non terminé",
-    "you": "(toi)"
+    "xpGained": "+{value} XP",
+    "levelUp": "Niveau supérieur ! Niveau {level}",
+    "currentLevel": "Niveau {level}",
+    "unlocked": "Débloqué : {items}.",
+    "toGarage": "Voir au garage",
+    "you": "(toi)",
+    "level": "Niveau",
+    "rankName": "{tier} {subRank} · Div. {division}",
+    "rankUp": "monte d'une division",
+    "rankDown": "descend d'une division",
+    "rankSame": "aucun changement",
+    "tiers": {
+      "bronze": "Bronze",
+      "silver": "Argent",
+      "gold": "Or",
+      "platinum": "Platine",
+      "diamond": "Diamant",
+      "champion": "Champion",
+      "grandChampion": "Grand champion",
+      "supersonicLegend": "Légende supersonique"
+    }
+  },
+  "KeyboardHeatmap": {
+    "title": "Heatmap du clavier",
+    "show": "Afficher",
+    "wholeRace": "Toute la course",
+    "space": "Espace",
+    "errors": "{count, plural, one {# faute} other {# fautes}}",
+    "noErrors": "Aucune faute : une course parfaite !",
+    "extras": "Autres caractères"
+  },
+  "SessionStats": {
+    "title": "{count, plural, one {Cette session : # course} other {Cette session : # courses d’affilée}}",
+    "averageWpm": "Vitesse moyenne (MPM)",
+    "bestWpm": "Meilleure vitesse (MPM)",
+    "averageAccuracy": "Précision moyenne",
+    "percent": "{value} %"
   },
   "RaceTyping": {
     "label": "Tape le texte",
@@ -239,10 +292,16 @@
   "Profile": {
     "eyebrow": "Profil de pilote",
     "you": "Toi",
+    "level": "Niveau {level}",
+    "levelProgress": "Progression vers le niveau suivant",
+    "xpToNext": "{current} / {needed} XP",
     "stats": "Statistiques globales",
     "bestWpm": "Meilleure vitesse (MPM)",
     "averageWpm": "Vitesse moyenne (MPM)",
     "averageAccuracy": "Précision moyenne",
+    "progression": "Progression",
+    "progressionHint": "{count, plural, one {Dernière course} other {# dernières courses}}, sans bonus.",
+    "noProgression": "Termine une course sans bonus pour voir ta progression.",
     "history": "Historique des courses",
     "noRaces": "Aucune course pour l’instant.",
     "date": "Date",
@@ -254,17 +313,31 @@
     "hardestKeys": "Touches les plus difficiles",
     "noHardKeys": "Aucune faute enregistrée.",
     "space": "Espace",
-    "errors": "{count, plural, one {# faute} other {# fautes}}"
+    "errors": "{count, plural, one {# faute} other {# fautes}}",
+    "photo": {
+      "label": "Photo de profil (PNG, JPEG ou WebP, 2 Mo max)",
+      "upload": "Téléverser",
+      "replace": "Remplacer",
+      "remove": "Retirer la photo",
+      "errors": {
+        "tooLarge": "Ce fichier dépasse 2 Mo.",
+        "type": "Choisis une image PNG, JPEG ou WebP.",
+        "missing": "Choisis une image.",
+        "guest": "Crée un compte pour avoir une photo de profil."
+      }
+    }
   },
   "Garage": {
     "tag": "Ton bolide. Ton style.",
     "title": "Garage",
-    "description": "Choisis ta voiture et personnalise-la. Purement esthétique : ta vitesse ne change jamais.",
+    "description": "Choisis ta voiture, tes accessoires et ton stade. Purement esthétique : ta vitesse ne change jamais.",
+    "lockedAt": "Niveau {level}",
     "categories": {
       "car": "Voiture",
       "boost": "Boost",
       "hat": "Chapeau",
-      "ball": "Ballon"
+      "ball": "Ballon",
+      "stadium": "Stade"
     },
     "items": {
       "car": {
@@ -277,7 +350,8 @@
         "standard": "Standard",
         "flames": "Flammes",
         "ion": "Ion",
-        "sparkles": "Étincelles"
+        "sparkles": "Étincelles",
+        "alpha": "Boost Alpha"
       },
       "hat": {
         "none": "Aucun",
@@ -292,7 +366,13 @@
         "beach": "Ballon de plage",
         "emerald": "Émeraude",
         "glacier": "Glacier",
-        "solar": "Solaire"
+        "solar": "Solaire",
+        "gold": "Ballon doré"
+      },
+      "stadium": {
+        "diorama": "Diorama 3D",
+        "cutaway": "Stade en coupe",
+        "top-down": "Vue du dessus"
       }
     },
     "preview": "Aperçu",
@@ -303,7 +383,9 @@
     "signUp": "Créer un compte",
     "errors": {
       "guest": "Crée un compte pour enregistrer ton garage.",
-      "invalid": "Cet objet n'existe pas."
-    }
+      "invalid": "Cet objet n'existe pas.",
+      "locked": "Cet objet n'est pas encore débloqué."
+    },
+    "stadiumPreview": "Aperçu du stade"
   }
 }

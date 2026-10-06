@@ -1,7 +1,19 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { computeStats, findProfileUser, listRaceHistory, type HistoryEntry } from "@/lib/profile";
+import { removeAvatarAction, uploadAvatarAction } from "@/app/actions/avatar";
+import { Avatar } from "@/components/avatar";
+import { AvatarForm } from "@/components/avatar-form";
+import { ProgressionChart } from "@/components/progression-chart";
+import { getAvatarVersion, MAX_AVATAR_BYTES } from "@/lib/avatars";
+import {
+  computeStats,
+  findProfileUser,
+  listRaceHistory,
+  progressionPoints,
+  type HistoryEntry,
+} from "@/lib/profile";
 import { getCurrentUser } from "@/lib/session-cookie";
+import { levelProgress } from "@/lib/xp";
 
 // Premiers mots d'un texte écrit par l'hôte, qui n'a pas de titre.
 function excerpt(content: string): string {
@@ -15,23 +27,48 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   if (!profile) notFound();
   const isOwner = (await getCurrentUser())?.id === profile.id;
   const history = await listRaceHistory(profile.id);
+  const avatarVersion = await getAvatarVersion(profile.id);
   const stats = computeStats(history);
+  const progression = progressionPoints(history);
+  const level = levelProgress(profile.xp);
   const t = await getTranslations("Profile");
   const format = await getFormatter();
   const wpm = (value: number | null) => (value === null ? "—" : Math.round(value));
   const percent = (value: number | null) =>
     value === null ? "—" : t("percent", { value: Math.round(value) });
   const text = (entry: HistoryEntry) => entry.textTitle ?? excerpt(entry.content);
+  const chartDate = (date: Date) => format.dateTime(date, { day: "numeric", month: "short" });
 
   return (
     <main id="main" className="page-shell">
       <div className="section-heading">
-        <div>
-          <p className="eyebrow">{t("eyebrow")}</p>
-          <h1 className="page-title">{profile.username}</h1>
+        <div className="profile-identity">
+          <Avatar userId={profile.id} version={avatarVersion} size={96} />
+          <div>
+            <p className="eyebrow">{t("eyebrow")}</p>
+            <h1 className="page-title">{profile.username}</h1>
+            {/* Les invités ne gagnent pas d'XP (#35). */}
+            {!profile.isGuest && (
+              <div className="level-progress">
+                <span className="badge">{t("level", { level: level.level })}</span>
+                <progress value={level.current} max={level.needed} aria-label={t("levelProgress")} />
+                <span className="description">
+                  {t("xpToNext", { current: level.current, needed: level.needed })}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         {isOwner && <span className="badge">{t("you")}</span>}
       </div>
+      {isOwner && (
+        <AvatarForm
+          upload={uploadAvatarAction}
+          remove={removeAvatarAction}
+          hasPhoto={avatarVersion !== null}
+          maxBytes={MAX_AVATAR_BYTES}
+        />
+      )}
       <dl className="race-stats" aria-label={t("stats")}>
         <div>
           <dt>{t("bestWpm")}</dt>
@@ -46,6 +83,37 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <dd>{percent(stats.averageAccuracy)}</dd>
         </div>
       </dl>
+      <section className="panel progression" aria-labelledby="progression-title">
+        <h2 id="progression-title">{t("progression")}</h2>
+        {progression.length === 0 ? (
+          <p className="description mt-5">{t("noProgression")}</p>
+        ) : (
+          <>
+            <p className="description mt-2">{t("progressionHint", { count: progression.length })}</p>
+            <div className="progression-charts">
+              <ProgressionChart
+                title={t("wpm")}
+                color="var(--primary)"
+                points={progression.map((point) => ({
+                  date: chartDate(point.date),
+                  value: Math.round(point.wpm),
+                  display: String(Math.round(point.wpm)),
+                }))}
+              />
+              <ProgressionChart
+                title={t("accuracy")}
+                color="var(--accent)"
+                max={100}
+                points={progression.map((point) => ({
+                  date: chartDate(point.date),
+                  value: Math.round(point.accuracy),
+                  display: percent(point.accuracy),
+                }))}
+              />
+            </div>
+          </>
+        )}
+      </section>
       <div className="split-layout">
         <section className="panel">
           <h2 id="history-title">{t("history")}</h2>

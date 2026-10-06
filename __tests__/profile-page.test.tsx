@@ -1,10 +1,14 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
 import ProfilePage from "../app/profile/[username]/page";
+import { getAvatarVersion } from "../lib/avatars";
 import { findProfileUser, listRaceHistory, type HistoryEntry } from "../lib/profile";
 import { getCurrentUser } from "../lib/session-cookie";
+import fr from "../messages/fr.json";
 
 vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn() }));
+vi.mock("../lib/avatars", () => ({ getAvatarVersion: vi.fn(), MAX_AVATAR_BYTES: 2 * 1024 * 1024 }));
 vi.mock("../lib/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/profile")>()),
   findProfileUser: vi.fn(),
@@ -20,6 +24,9 @@ const alex = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  stadium: "diorama",
+  rankLevel: 0,
+  xp: 0,
   createdAt: new Date(),
 };
 const sam = { ...alex, id: "2", username: "sam" };
@@ -41,7 +48,11 @@ function entry(overrides: Partial<HistoryEntry> = {}): HistoryEntry {
 }
 
 async function renderProfile(username = "alex") {
-  render(await ProfilePage({ params: Promise.resolve({ username }) }));
+  render(
+    <NextIntlClientProvider locale="fr" messages={fr}>
+      {await ProfilePage({ params: Promise.resolve({ username }) })}
+    </NextIntlClientProvider>,
+  );
 }
 
 function historyRows() {
@@ -56,6 +67,7 @@ beforeEach(() => {
   vi.mocked(findProfileUser).mockResolvedValue(alex);
   vi.mocked(listRaceHistory).mockResolvedValue([]);
   vi.mocked(getCurrentUser).mockResolvedValue(null);
+  vi.mocked(getAvatarVersion).mockResolvedValue(null);
 });
 
 test("Should_ShowYouBadge_When_OwnerViewsTheirProfile", async () => {
@@ -142,4 +154,85 @@ test("Should_ListHardestKeys_When_UserMadeErrors", async () => {
     .getAllByRole("listitem")
     .map((item) => item.textContent);
   expect(keys).toEqual(["é3 fautes", "Espace1 faute"]);
+});
+
+function avatarSrc() {
+  return document.querySelector("img.avatar")?.getAttribute("src");
+}
+
+test("Should_ShowInitialsImage_When_UserHasNoPhoto", async () => {
+  await renderProfile();
+
+  expect(avatarSrc()).toBe("/avatars/1");
+});
+
+test("Should_ShowVersionedPhoto_When_UserHasPhoto", async () => {
+  vi.mocked(getAvatarVersion).mockResolvedValue(1234);
+
+  await renderProfile();
+
+  expect(avatarSrc()).toBe("/avatars/1?v=1234");
+});
+
+test("Should_ShowPhotoForm_When_OwnerViewsTheirProfile", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(alex);
+  vi.mocked(getAvatarVersion).mockResolvedValue(1234);
+
+  await renderProfile();
+
+  expect(screen.getByLabelText(/Photo de profil/)).toBeDefined();
+  expect(screen.getByRole("button", { name: "Retirer la photo" })).toBeDefined();
+});
+
+test.each([
+  ["another user visits", sam],
+  ["visitor is logged out", null],
+])("Should_HidePhotoForm_When_%s", async (_name, visitor) => {
+  vi.mocked(getCurrentUser).mockResolvedValue(visitor);
+
+  await renderProfile();
+
+  expect(screen.queryByLabelText(/Photo de profil/)).toBeNull();
+});
+
+test("Should_ShowProgressionEmptyState_When_NoRaceCounts", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue([entry({ finished: false })]);
+
+  await renderProfile();
+
+  expect(screen.getByText("Termine une course sans bonus pour voir ta progression.")).toBeDefined();
+  expect(screen.queryByRole("figure")).toBeNull();
+});
+
+test("Should_ShowSpeedAndAccuracyCharts_When_UserHasFinishedRaces", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue([entry({ wpm: 60 }), entry({ wpm: 40 })]);
+
+  await renderProfile();
+
+  const progression = screen.getByRole("region", { name: "Progression" });
+  expect(within(progression).getByText("2 dernières courses, sans bonus.")).toBeDefined();
+  const captions = within(progression)
+    .getAllByRole("figure")
+    .map((figure) => figure.querySelector("figcaption")?.textContent);
+  expect(captions).toEqual(["MPM", "Précision"]);
+});
+
+test("Should_ShowLevelAndProgress_When_UserIsRegistered", async () => {
+  // 450 XP : niveau 3 (300 XP), 150 sur les 300 du niveau suivant.
+  vi.mocked(findProfileUser).mockResolvedValue({ ...alex, xp: 450 });
+
+  await renderProfile();
+
+  expect(screen.getByText("Niveau 3")).toBeDefined();
+  const bar = screen.getByRole("progressbar", { name: "Progression vers le niveau suivant" });
+  expect([bar.getAttribute("value"), bar.getAttribute("max")]).toEqual(["150", "300"]);
+  expect(screen.getByText("150 / 300 XP")).toBeDefined();
+});
+
+test("Should_HideLevel_When_ProfileIsGuest", async () => {
+  vi.mocked(findProfileUser).mockResolvedValue({ ...alex, isGuest: true, passwordHash: null });
+
+  await renderProfile();
+
+  expect(screen.queryByRole("progressbar")).toBeNull();
 });

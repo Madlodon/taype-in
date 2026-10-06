@@ -71,7 +71,6 @@
     "host": "(host)",
     "close": "Close the race",
     "confirmClose": "Close the race? Every participant will be sent back to the race list.",
-    "start": "Start the race",
     "needMore": "At least {count} participants are needed to start the race.",
     "countdown": "Starting in {seconds}",
     "raceText": "Race text",
@@ -85,6 +84,10 @@
     "you": "(you)",
     "percent": "{value}%",
     "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
+    "overtake": {
+      "up": "You passed {names} · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+      "down": "{names} passed you · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}"
+    },
     "giveUp": "Give up",
     "confirmGiveUp": "Give up the race? You'll become a spectator and won't be able to type anymore.",
     "gaveUp": "You gave up: you're watching the rest of the race.",
@@ -99,8 +102,22 @@
       "noText": "No text available in this language",
       "raceNotRunning": "No race is running",
       "notRacer": "You are not racing in this race",
-      "cannotGiveUp": "You can't give up anymore"
-    }
+      "cannotGiveUp": "You can't give up anymore",
+      "raceNotFinished": "The race isn't over"
+    },
+    "startRacing": "Start and race",
+    "startWatching": "Start and watch",
+    "needMoreWatching": "To watch without racing, you need at least {count} other participants.",
+    "watching": "(watching)",
+    "hostWatching": "You're watching this race without racing.",
+    "relaunch": "Relaunch the race",
+    "waitingForHost": "Waiting for the host to choose the settings and start the next race."
+  },
+  "LobbySettings": {
+    "title": "Next race settings",
+    "description": "Change the settings, then start the race from the waiting room.",
+    "back": "Back to the waiting room",
+    "submit": "Save and go back to the room"
   },
   "RaceResults": {
     "title": "Results",
@@ -117,7 +134,43 @@
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
     "notFinished": "Not finished",
-    "you": "(you)"
+    "xpGained": "+{value} XP",
+    "levelUp": "Level up! Level {level}",
+    "currentLevel": "Level {level}",
+    "unlocked": "Unlocked: {items}.",
+    "toGarage": "See in the garage",
+    "you": "(you)",
+    "level": "Level",
+    "rankName": "{tier} {subRank} · Div. {division}",
+    "rankUp": "up a division",
+    "rankDown": "down a division",
+    "rankSame": "no change",
+    "tiers": {
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold",
+      "platinum": "Platinum",
+      "diamond": "Diamond",
+      "champion": "Champion",
+      "grandChampion": "Grand Champion",
+      "supersonicLegend": "Supersonic Legend"
+    }
+  },
+  "KeyboardHeatmap": {
+    "title": "Keyboard heatmap",
+    "show": "Show",
+    "wholeRace": "Whole race",
+    "space": "Space",
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "noErrors": "No errors: a clean race!",
+    "extras": "Other characters"
+  },
+  "SessionStats": {
+    "title": "{count, plural, one {This session: # race} other {This session: # races in a row}}",
+    "averageWpm": "Average speed (WPM)",
+    "bestWpm": "Best speed (WPM)",
+    "averageAccuracy": "Average accuracy",
+    "percent": "{value}%"
   },
   "RaceTyping": {
     "label": "Type the text",
@@ -239,10 +292,16 @@
   "Profile": {
     "eyebrow": "Driver profile",
     "you": "You",
+    "level": "Level {level}",
+    "levelProgress": "Progress to the next level",
+    "xpToNext": "{current} / {needed} XP",
     "stats": "Overall stats",
     "bestWpm": "Best speed (WPM)",
     "averageWpm": "Average speed (WPM)",
     "averageAccuracy": "Average accuracy",
+    "progression": "Progression",
+    "progressionHint": "{count, plural, one {Last race} other {Last # races}}, without bonuses.",
+    "noProgression": "Finish a race without bonuses to see your progress.",
     "history": "Race history",
     "noRaces": "No races yet.",
     "date": "Date",
@@ -254,17 +313,31 @@
     "hardestKeys": "Hardest keys",
     "noHardKeys": "No errors recorded.",
     "space": "Space",
-    "errors": "{count, plural, one {# error} other {# errors}}"
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "photo": {
+      "label": "Profile photo (PNG, JPEG or WebP, 2 MB max)",
+      "upload": "Upload",
+      "replace": "Replace",
+      "remove": "Remove photo",
+      "errors": {
+        "tooLarge": "This file is larger than 2 MB.",
+        "type": "Choose a PNG, JPEG or WebP image.",
+        "missing": "Choose an image.",
+        "guest": "Create an account to have a profile photo."
+      }
+    }
   },
   "Garage": {
     "tag": "Your ride. Your style.",
     "title": "Garage",
-    "description": "Pick your car and dress it up. Purely cosmetic: it never changes your speed.",
+    "description": "Pick your car, accessories, and stadium. Purely cosmetic: it never changes your speed.",
+    "lockedAt": "Level {level}",
     "categories": {
       "car": "Car",
       "boost": "Boost",
       "hat": "Hat",
-      "ball": "Ball"
+      "ball": "Ball",
+      "stadium": "Stadium"
     },
     "items": {
       "car": {
@@ -277,7 +350,8 @@
         "standard": "Standard",
         "flames": "Flames",
         "ion": "Ion",
-        "sparkles": "Sparkles"
+        "sparkles": "Sparkles",
+        "alpha": "Alpha Boost"
       },
       "hat": {
         "none": "None",
@@ -292,7 +366,13 @@
         "beach": "Beach ball",
         "emerald": "Emerald",
         "glacier": "Glacier",
-        "solar": "Solar"
+        "solar": "Solar",
+        "gold": "Gold Ball"
+      },
+      "stadium": {
+        "diorama": "3D diorama",
+        "cutaway": "Stadium cutaway",
+        "top-down": "Top-down"
       }
     },
     "preview": "Preview",
@@ -303,7 +383,9 @@
     "signUp": "Create an account",
     "errors": {
       "guest": "Create an account to save your garage.",
-      "invalid": "This item doesn't exist."
-    }
+      "invalid": "This item doesn't exist.",
+      "locked": "This item isn't unlocked yet."
+    },
+    "stadiumPreview": "Stadium preview"
   }
 }

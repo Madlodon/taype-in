@@ -24,6 +24,7 @@ vi.mock("../lib/auth", async (importOriginal) => ({
   createGuest: vi.fn(),
   createSession: vi.fn(),
   invalidateSession: vi.fn(),
+  validateSessionToken: vi.fn(),
 }));
 
 const aUser = {
@@ -35,6 +36,9 @@ const aUser = {
   boost: "standard",
   hat: "none",
   ball: "none",
+  stadium: "diorama",
+  rankLevel: 0,
+  xp: 0,
   createdAt: new Date(),
 };
 const expiresAt = new Date("2026-10-29T00:00:00Z");
@@ -48,6 +52,7 @@ function form(username: string, password: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  cookieStore.get.mockReturnValue(undefined);
   vi.mocked(auth.createSession).mockResolvedValue({ token: "jeton", expiresAt });
 });
 
@@ -83,6 +88,33 @@ test("Should_SetHttpOnlySessionCookieAndRedirect_When_SignUpSucceeds", async () 
     "jeton",
     expect.objectContaining({ httpOnly: true, sameSite: "lax", expires: expiresAt }),
   );
+});
+
+test("Should_UpgradeGuestAndRenewSession_When_GuestSignsUp", async () => {
+  cookieStore.get.mockReturnValue({ value: "jeton-invite" });
+  vi.mocked(auth.validateSessionToken).mockResolvedValue({ ...aUser, id: "guest-1", isGuest: true });
+  vi.mocked(auth.signUp).mockResolvedValue({ ...aUser, id: "guest-1" });
+
+  await expect(
+    signUpAction(undefined, form("alex", "motdepasse123")),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(auth.signUp).toHaveBeenCalledWith("alex", "motdepasse123", "guest-1");
+  expect(auth.invalidateSession).toHaveBeenCalledWith("jeton-invite");
+  expect(auth.createSession).toHaveBeenCalledWith("guest-1");
+});
+
+test("Should_CreateNewAccount_When_RegisteredUserSignsUp", async () => {
+  cookieStore.get.mockReturnValue({ value: "jeton" });
+  vi.mocked(auth.validateSessionToken).mockResolvedValue(aUser);
+  vi.mocked(auth.signUp).mockResolvedValue({ ...aUser, id: "user-2" });
+
+  await expect(
+    signUpAction(undefined, form("sam", "motdepasse123")),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(auth.signUp).toHaveBeenCalledWith("sam", "motdepasse123", undefined);
+  expect(auth.invalidateSession).not.toHaveBeenCalled();
 });
 
 test("Should_ReturnGenericError_When_LogInFails", async () => {
