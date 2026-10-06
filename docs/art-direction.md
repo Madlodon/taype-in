@@ -112,7 +112,7 @@ Chargées avec `next/font` (aucune dépendance), licence OFL.
 ## Maquettes
 
 Écrans de course statiques, avec de fausses données : 4 joueurs, dont toi en bleu.
-On peut **taper pour vrai** : ta voiture avance et les bots roulent seuls ([`demo.js`](mockups/demo.js)).
+On peut **taper pour vrai** : ta voiture avance et les bots roulent seuls (démo intégrée à chaque page).
 Pour les ouvrir : `python3 -m http.server 8123 -d docs/mockups`, puis http://localhost:8123.
 
 | Maquette                                         | Style                                           | Texte                   | Caméra            |
