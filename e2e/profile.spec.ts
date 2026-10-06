@@ -65,7 +65,7 @@ test("Should_ShowPhotoThenInitials_When_OwnerUploadsThenRemovesPhoto", async ({ 
 
   await expect(avatar).toHaveAttribute("src", /\?v=\d+$/);
   await expect(page.locator("nav img.avatar")).toHaveAttribute("src", /\?v=\d+$/);
-  expect(await contentType()).toBe("image/png");
+  expect(await contentType()).toBe("image/webp");
 
   await page.getByRole("button", { name: "Retirer la photo" }).click();
 

@@ -2,9 +2,11 @@
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 import { inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+import sharp from "sharp";
 import { db } from "../db";
 import { avatars, users } from "../db/schema";
 import {
+  AVATAR_SIZE,
   getAvatarImage,
   getAvatarVersion,
   initials,
@@ -22,18 +24,27 @@ async function newUser(username = `t_${Math.random().toString(36).slice(2, 12)}`
   return user;
 }
 
-// Juste les premiers octets qui identifient chaque format, complétés jusqu'à size.
-const SIGNATURES = {
-  png: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-  jpeg: [0xff, 0xd8, 0xff, 0xe0],
-  webp: [...Buffer.from("RIFF"), 0, 0, 0, 0, ...Buffer.from("WEBP")],
-  gif: [...Buffer.from("GIF89a")],
-};
+// Une vraie image d'une seule couleur, complétée par des zéros jusqu'à size si demandé.
+async function image(
+  format: "png" | "jpeg" | "webp",
+  { width = 40, height = 20, color = "#f97316", size = 0, type = `image/${format}` } = {},
+) {
+  const bytes = await sharp({ create: { width, height, channels: 3, background: color } })[format]().toBuffer();
+  const padded = Buffer.concat([bytes, Buffer.alloc(Math.max(0, size - bytes.length))]);
+  return new File([padded], `photo.${format}`, { type });
+}
 
-function image(format: keyof typeof SIGNATURES, size = 100, type = `image/${format}`) {
-  const bytes = new Uint8Array(size);
-  bytes.set(SIGNATURES[format]);
-  return new File([bytes], `photo.${format}`, { type });
+// Juste les premiers octets qui identifient le format, le reste est vide.
+function signatureOnly(signature: number[], type: string) {
+  const bytes = new Uint8Array(100);
+  bytes.set(signature);
+  return new File([bytes], "photo", { type });
+}
+
+async function storedSize(userId: string) {
+  const avatar = await getAvatarImage(userId);
+  const { format, width, height } = await sharp(avatar!.body as Uint8Array).metadata();
+  return { contentType: avatar?.contentType, format, width, height };
 }
 
 beforeAll(async () => {
@@ -49,37 +60,44 @@ afterAll(async () => {
   await db.$client.end();
 });
 
-test.each([
-  ["png", "image/png"],
-  ["jpeg", "image/jpeg"],
-  ["webp", "image/webp"],
-] as const)("Should_ServeUploadedPhoto_When_Uploading_%s", async (format, contentType) => {
+const SQUARE_WEBP = { contentType: "image/webp", format: "webp", width: AVATAR_SIZE, height: AVATAR_SIZE };
+
+test.each(["png", "jpeg", "webp"] as const)("Should_StoreSquareWebp_When_Uploading_%s", async (format) => {
   const user = await newUser();
-  const file = image(format);
 
-  expect(await saveAvatar(user.id, file)).toEqual({});
+  expect(await saveAvatar(user.id, await image(format))).toEqual({});
 
-  const avatar = await getAvatarImage(user.id);
-  expect(avatar?.contentType).toBe(contentType);
-  expect(avatar?.body).toEqual(new Uint8Array(await file.arrayBuffer()));
+  expect(await storedSize(user.id)).toEqual(SQUARE_WEBP);
+});
+
+test("Should_ShrinkToTargetSize_When_PhotoIsLarge", async () => {
+  const user = await newUser();
+  const file = await image("jpeg", { width: 3000, height: 2000 });
+
+  await saveAvatar(user.id, file);
+
+  expect(await storedSize(user.id)).toEqual(SQUARE_WEBP);
+  expect((await getAvatarImage(user.id))!.body.length).toBeLessThan(file.size);
 });
 
 test("Should_AcceptPhoto_When_ExactlyTwoMegabytes", async () => {
   const user = await newUser();
 
-  expect(await saveAvatar(user.id, image("png", MAX_AVATAR_BYTES))).toEqual({});
+  expect(await saveAvatar(user.id, await image("png", { size: MAX_AVATAR_BYTES }))).toEqual({});
+  expect(await storedSize(user.id)).toEqual(SQUARE_WEBP);
 });
 
 test("Should_RefuseWithoutSaving_When_PhotoIsOverTwoMegabytes", async () => {
   const user = await newUser();
 
-  expect(await saveAvatar(user.id, image("png", MAX_AVATAR_BYTES + 1))).toEqual({ error: "tooLarge" });
+  expect(await saveAvatar(user.id, await image("png", { size: MAX_AVATAR_BYTES + 1 }))).toEqual({ error: "tooLarge" });
   expect(await getAvatarVersion(user.id)).toBeNull();
 });
 
 test.each([
-  ["a GIF", image("gif")],
+  ["a GIF", signatureOnly([...Buffer.from("GIF89a")], "image/gif")],
   ["text renamed to .png", new File(["<script>alert(1)</script>"], "photo.png", { type: "image/png" })],
+  ["a PNG signature with nothing after", signatureOnly([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], "image/png")],
 ])("Should_RefuseWithoutSaving_When_FileIs_%s", async (_name, file) => {
   const user = await newUser();
 
@@ -87,29 +105,28 @@ test.each([
   expect(await getAvatarVersion(user.id)).toBeNull();
 });
 
-test("Should_UseDetectedType_When_BrowserAnnouncesAnotherOne", async () => {
+test("Should_AcceptPhoto_When_BrowserAnnouncesAnotherType", async () => {
   const user = await newUser();
 
-  await saveAvatar(user.id, image("webp", 100, "image/png"));
-
-  expect((await getAvatarImage(user.id))?.contentType).toBe("image/webp");
+  expect(await saveAvatar(user.id, await image("webp", { type: "image/png" }))).toEqual({});
 });
 
 test("Should_ServeNewPhotoAndChangeVersion_When_PhotoIsReplaced", async () => {
   const user = await newUser();
-  await saveAvatar(user.id, image("png"));
-  const first = await getAvatarVersion(user.id);
+  await saveAvatar(user.id, await image("png", { color: "#000000" }));
+  const first = await getAvatarImage(user.id);
+  const firstVersion = await getAvatarVersion(user.id);
 
-  await saveAvatar(user.id, image("jpeg"));
+  await saveAvatar(user.id, await image("jpeg", { color: "#ffffff" }));
 
-  expect((await getAvatarImage(user.id))?.contentType).toBe("image/jpeg");
-  expect(await getAvatarVersion(user.id)).not.toBe(first);
+  expect((await getAvatarImage(user.id))?.body).not.toEqual(first?.body);
+  expect(await getAvatarVersion(user.id)).not.toBe(firstVersion);
   expect(await db.select().from(avatars).where(inArray(avatars.userId, [user.id]))).toHaveLength(1);
 });
 
 test("Should_ServeInitials_When_PhotoIsRemoved", async () => {
   const user = await newUser("alex_martin");
-  await saveAvatar(user.id, image("png"));
+  await saveAvatar(user.id, await image("png"));
 
   await removeAvatar(user.id);
 
@@ -134,7 +151,7 @@ test("Should_ReturnNull_When_UserDoesNotExist", async () => {
 
 test("Should_DeletePhoto_When_UserIsDeleted", async () => {
   const user = await newUser();
-  await saveAvatar(user.id, image("png"));
+  await saveAvatar(user.id, await image("png"));
 
   await db.delete(users).where(inArray(users.id, [user.id]));
 

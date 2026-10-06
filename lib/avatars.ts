@@ -1,11 +1,14 @@
 // Photo de profil (PROF-1) : tout le stockage est ici pour pouvoir le déplacer plus tard.
 // Gardée dans Postgres (bytea) pour rester gratuit.
 import { eq } from "drizzle-orm";
+import sharp from "sharp";
 import { db } from "../db/index.ts";
 import { avatars, users } from "../db/schema.ts";
 
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+// Côté du carré gardé : 2 × la plus grande taille affichée (96 px), pour les écrans haute densité.
+export const AVATAR_SIZE = 256;
 
 export type AvatarImage = { contentType: string; body: Uint8Array<ArrayBuffer> | string; etag: string };
 
@@ -21,12 +24,22 @@ export function detectImageType(bytes: Uint8Array): (typeof AVATAR_TYPES)[number
 // error est une clé de traduction (Profile.photo.errors).
 export async function saveAvatar(userId: string, file: File): Promise<{ error?: "tooLarge" | "type" }> {
   if (file.size > MAX_AVATAR_BYTES) return { error: "tooLarge" };
-  const data = Buffer.from(await file.arrayBuffer());
-  const contentType = detectImageType(data);
-  if (!contentType) return { error: "type" };
-  const row = { userId, contentType, data, updatedAt: new Date() };
+  const original = Buffer.from(await file.arrayBuffer());
+  if (!detectImageType(original)) return { error: "type" };
+  const data = await resizeAvatar(original);
+  if (!data) return { error: "type" };
+  const row = { userId, contentType: "image/webp", data, updatedAt: new Date() };
   await db.insert(avatars).values(row).onConflictDoUpdate({ target: avatars.userId, set: row });
   return {};
+}
+
+// Carré recadré au centre, en WebP ; null si l'image est illisible malgré sa signature.
+async function resizeAvatar(original: Buffer): Promise<Buffer | null> {
+  try {
+    return await sharp(original).rotate().resize(AVATAR_SIZE, AVATAR_SIZE, { fit: "cover" }).webp().toBuffer();
+  } catch {
+    return null;
+  }
 }
 
 export async function removeAvatar(userId: string): Promise<void> {
