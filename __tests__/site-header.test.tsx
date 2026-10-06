@@ -28,7 +28,7 @@ vi.mock("../components/locale-switcher", () => ({ LocaleSwitcher: () => null }))
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 
 test("Should_ShowOrangeLogoBeforeNavigationAndBlueLogoAfter_When_HeaderRenders", async () => {
-  render(await RootLayout({ children: <main /> }));
+  render(await RootLayout({ children: <main />, params: Promise.resolve({}) }));
 
   const header = screen.getByRole("banner");
   const logos = within(header).getAllByRole("img", { name: "Taype-in" });
