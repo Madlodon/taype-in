@@ -1,19 +1,22 @@
-import { memo, useId } from "react";
+"use client";
+
+import { memo, useEffect, useId, useState } from "react";
+import { FieldCar } from "@/components/field-car";
 import { CarBall } from "@/components/car-ball";
 import { CarHat } from "@/components/car-hat";
 import { CarBoost } from "@/components/car-boost";
 import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
 import { STADIUM_IMAGES, type Stadium } from "@/lib/garage-items";
-import { stadiumPosition, stadiumRoute } from "@/lib/stadium-track";
+import { fieldPose, project } from "@/lib/stadium-track";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
 export function arenaPosition(progress: number) {
   const points = [
-    [0, 180, 370], [0.36, 780, 370], [0.49, 840, 205],
-    [0.59, 765, 140], [0.78, 430, 140], [1, 800, 310],
+    [0, 240, 395], [0.36, 710, 395], [0.49, 740, 335],
+    [0.59, 660, 325], [0.78, 430, 325], [1, 760, 350],
   ];
-  const value = Math.max(0, Math.min(1, progress));
+  const value = Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0;
   const end = points.findIndex((point, index) => index > 0 && value <= point[0]);
   const a = points[end - 1];
   const b = points[end];
@@ -57,26 +60,40 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
 // Une voiture par joueur affiché sur la piste (CRS-2) : la tienne en bleu, les autres en orange.
 export type TrackCar = { id: string; name: string; progress: number; you: boolean };
 
-type ArenaProps = { progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium };
+type ArenaProps = { progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
 
-export function Arena({ progress, cars, className = "", stadium }: ArenaProps) {
+export function Arena({ progress, cars, className = "", stadium = "diorama", carScale = .65 }: ArenaProps) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const start = performance.now();
+    let frame = requestAnimationFrame(function tick(now) {
+      setSeconds((now - start) / 1000);
+      frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
   const id = useId().replaceAll(":", "");
   const position = arenaPosition(progress ?? 0.16);
   if (stadium) {
     const racers = cars ?? [{ id: "preview", name: "", progress: progress ?? .16, you: true }];
     return <svg className={`arena ${className}`} viewBox="0 0 1400 900" fill="none" aria-hidden="true" data-stadium={stadium}>
       <image href={STADIUM_IMAGES[stadium]} width="1400" height="900" />
-      <path d={stadiumRoute(stadium).map((point, index) => `${index ? "L" : "M"}${point.x} ${point.y}`).join(" ")}
-        stroke="#e3f3ff" strokeOpacity=".4" strokeWidth="2" strokeDasharray="5 10" />
-      {[...racers].sort((a, b) => Number(a.you) - Number(b.you)).map(car => {
-        const at = stadiumPosition(car.progress, stadium);
-        return <g key={car.id}>
-          <g transform={`translate(${at.x} ${at.y}) scale(.65)`}>
-            <Car x={0} y={0} angle={at.angle} orange={!car.you} />
-          </g>
-          {car.name && <text x={at.x} y={at.y - 22} textAnchor="middle" className="car-tag">{car.name}</text>}
-        </g>;
-      })}
+      {racers.map((car, index) => {
+        const pose = fieldPose(seconds, index / Math.max(1, racers.length) + car.progress * .15);
+        const at = project(pose.x, pose.y, 0, stadium);
+        const ball = project(pose.x + 5.7 * Math.cos(pose.heading), pose.y + 5.7 * Math.sin(pose.heading), 1.2, stadium);
+        const shadow = project(pose.x + 5.7 * Math.cos(pose.heading), pose.y + 5.7 * Math.sin(pose.heading), 0, stadium);
+        return { car, pose, at, ball, shadow };
+      }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow }) => <g key={car.id}>
+        <g transform={`translate(${at.x} ${at.y})`}>
+          <g transform={`translate(${-at.x} ${-at.y})`}><FieldCar pose={pose} stadium={stadium} orange={!car.you} scale={Math.min(carScale, 1.4)} /></g>
+        </g>
+        <ellipse cx={shadow.x} cy={shadow.y} rx="10" ry="4" fill="#071820" opacity=".35" />
+        <circle cx={ball.x} cy={ball.y} r="9" fill="#ecf2e8" stroke="#273c48" strokeWidth="2" />
+        <path d={`M${ball.x-4} ${ball.y-2}l4 -3 4 3 -2 5h-4Z`} fill="#304657" />
+        {car.name && <text x={at.x} y={at.y - 26} textAnchor="middle" className="car-tag">{car.name}</text>}
+      </g>)}
     </svg>;
   }
   return (
@@ -120,7 +137,7 @@ export function Arena({ progress, cars, className = "", stadium }: ArenaProps) {
       <path d="M60 351 V275 L153 271 V340Z" fill={`url(#${id}-net)`} stroke="#66b9ff" strokeWidth="4" />
       <path d="M807 340 V271 L900 275 V351Z" fill={`url(#${id}-net)`} stroke="#ffab5e" strokeWidth="4" />
       <path d="M153 271 L170 287 V340 M807 271 L790 287 V340" stroke="#d6efff" strokeOpacity=".4" strokeWidth="2" />
-      <path d="M180 370 H780 L840 205 L765 140 H430 L800 310" stroke="#a3c9ef" strokeOpacity=".3" strokeWidth="2" strokeDasharray="5 10" />
+      <path d="M240 395 H710 L740 335 L660 325 H430 L760 350" stroke="#a3c9ef" strokeOpacity=".3" strokeWidth="2" strokeDasharray="5 10" />
       <g fill="#ffad55" opacity=".8">{[240, 360, 600, 720].map((x) => <ellipse key={x} cx={x} cy="431" rx="10" ry="3" />)}</g>
       {progress === undefined && !cars && <g transform="translate(660 315) scale(.72)">
         <Car x={0} y={0} orange />
