@@ -61,6 +61,31 @@ test("Should_SeeEachOtherInRealTime_When_GuestJoinsUnlistedRaceByCode", async ({
   await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`]);
 });
 
+// JOIN-01 : le champ de code est sur l'accueil, même sans session.
+test("Should_JoinByCodeFromHomePage_When_VisitorIsLoggedOut", async ({ browser }) => {
+  const host = await newHost(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+
+  const page = await (await browser.newContext()).newPage();
+  await page.goto("/");
+  await page.getByLabel("Code de la course").fill(code.toLowerCase());
+  await page.getByRole("button", { name: "Rejoindre", exact: true }).click();
+  await expect(page).toHaveURL(`/login?next=/lobbies/${code}`);
+  await page.getByRole("button", { name: "Jouer en invité" }).click();
+
+  await expect(page).toHaveURL(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+});
+
+test("Should_ShowError_When_HomePageCodeMatchesNoRace", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Code de la course").fill("ZZZZZZ");
+  await page.getByRole("button", { name: "Rejoindre", exact: true }).click();
+
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page).toHaveURL("/");
+});
+
 test("Should_JoinFromList_When_RaceIsPublic", async ({ browser }) => {
   const host = await newHost(browser);
   await createRace(host.page, /Publique/);
