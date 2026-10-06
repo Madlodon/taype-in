@@ -80,7 +80,7 @@ test("Should_AskToLogIn_When_NotLoggedIn", async ({ page }) => {
 });
 
 test("Should_ReturnToLobbies_When_LoggingInFromRedirect", async ({ page }) => {
-  const username = `lobbies_${Date.now().toString(36)}`;
+  const username = `lobbies_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
@@ -181,7 +181,7 @@ test("Should_ReturnToInvite_When_SigningUpFromInviteLink", async ({ browser }) =
   await page.getByRole("link", { name: "Tu as un compte ? Connecte-toi d'abord." }).click();
   await page.getByRole("link", { name: "Créer un compte" }).click();
   await expect(page.getByRole("heading", { name: "Créer un compte" })).toBeVisible();
-  await page.getByLabel("Nom d'utilisateur").fill(`e2e_${Date.now().toString(36)}`);
+  await page.getByLabel("Nom d'utilisateur").fill(`e2e_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`);
   await page.getByLabel("Mot de passe").fill("motdepasse-solide");
   await page.getByRole("button", { name: "Créer le compte" }).click();
 
@@ -384,7 +384,7 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
 test("Should_ShowXpLevelUpAndUnlocks_When_RegisteredRacerWins", async ({ browser }) => {
   test.slow();
   const page = await (await browser.newContext()).newPage();
-  const username = `xp_${Date.now().toString(36)}`;
+  const username = `xp_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");

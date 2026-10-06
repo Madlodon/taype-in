@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("Should_StayLoggedIn_When_SigningUpThenLoggingOutAndBackIn", async ({
   page,
 }) => {
-  const username = `e2e_${Date.now().toString(36)}`;
+  const username = `e2e_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);

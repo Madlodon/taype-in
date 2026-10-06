@@ -14,7 +14,7 @@ async function giveLevel(username: string, level: number) {
 
 test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
   // Préfixe propre à ce fichier : auth.spec.ts crée aussi des comptes en parallèle.
-  const username = `garage_${Date.now().toString(36)}`;
+  const username = `garage_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
@@ -63,7 +63,7 @@ test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
 });
 
 test("Should_LockItemsAboveLevel_When_NewUserOpensGarage", async ({ page }) => {
-  const username = `garage_new_${Date.now().toString(36)}`;
+  const username = `garage_new_${Math.random().toString(36).slice(2, 10)}`;
   await page.goto("/signup");
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
