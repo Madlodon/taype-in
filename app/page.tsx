@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { guestAction, logOutAction } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/session-cookie";
-import { Arena } from "@/components/arena";
+import { HeroBattle } from "@/components/hero-battle";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -39,7 +39,7 @@ export default async function Home() {
         </div>
         <div className="hero-visual">
           <span className="badge visual-topline">{d("stadiumLabel")}</span>
-          <Arena />
+          <HeroBattle youName={user?.username ?? d("battleYou")} />
           <div className="visual-label">
             <span>{d("visualCaption")}</span>
             <Link className="text-link" href="/race">{d("explore")} ↗</Link>

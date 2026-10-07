@@ -9,7 +9,7 @@ const FINISHES = {
   solar: { shell: "#707982", shadow: "#232b38", panel: "#f5a345", dark: "#a34217", edge: "#ffcf84", light: "#ffe5ac" },
   gold: { shell: "#f5cd61", shadow: "#7b430d", panel: "#f8d16a", dark: "#875018", edge: "#ffe59a", light: "#fff1b5" },
 };
-export function CarBall({ ball }: { ball: Loadout["ball"] }) {
+export function CarBall({ ball, centered = false }: { ball: Loadout["ball"]; centered?: boolean }) {
   const id = useId().replaceAll(":", "");
   const finish = FINISHES[ball === "beach" ? "none" : ball];
   const isGold = ball === "gold";
@@ -20,7 +20,7 @@ export function CarBall({ ball }: { ball: Loadout["ball"] }) {
   const shade = `${id}-ball-shade`;
 
   return (
-    <g transform="translate(65 -2)" data-item={ball === "none" ? undefined : ball}>
+    <g transform={centered ? undefined : "translate(65 -2)"} data-ball={ball} data-item={ball === "none" ? undefined : ball}>
       {ball === "beach" ? <>
         <circle r="16" fill="#f8fafc" stroke="#9bacbf" strokeWidth="2" />
         <path d="M0 0 L0-16 A16 16 0 0 1 13.86-8Z" fill="#ef4444" />

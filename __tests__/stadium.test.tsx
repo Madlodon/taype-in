@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { Arena } from "../components/arena";
 import { STADIUMS, STADIUM_IMAGES } from "../lib/garage-items";
-import { DRIVING_AREA, MAX_CAR_SCALE, fieldPose, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
+import { DRIVING_AREA, MAX_CAR_SCALE, project, fieldPose, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -93,12 +93,12 @@ test("Should_AnimateASentenceShotWhileTheCarKeepsMoving", () => {
     shots={{ you: { sequence: 3, scored: true, receivedAt: 0 } }} />);
   const initial = container.querySelector("svg > g > g > g")!.getAttribute("transform");
   act(() => tick(600));
-  const airborne = container.querySelector("svg > g > circle")!.getAttribute("cx");
+  const airborne = container.querySelector("[data-field-ball]")!.getAttribute("transform");
   act(() => tick(1200));
   expect(container.querySelector("svg > g > g > g")!.getAttribute("transform")).not.toBe(initial);
-  expect(container.querySelector("svg > g > circle")!.getAttribute("cx")).not.toBe(airborne);
+  expect(container.querySelector("[data-field-ball]")!.getAttribute("transform")).not.toBe(airborne);
   act(() => tick(2500));
-  expect(container.querySelector("svg > g > circle")!.getAttribute("cx")).not.toBe(airborne);
+  expect(container.querySelector("[data-field-ball]")!.getAttribute("transform")).not.toBe(airborne);
 });
 
 
@@ -109,4 +109,44 @@ test.each([1.4, 100])("Should_KeepCarsSmall_When_CallerRequestsScale_%s", carSca
   const xs = vertices.map(([x]) => x), ys = vertices.map(([, y]) => y);
   expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(40);
   expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(30);
+});
+
+
+test("Should_RenderTheGarageArtworkForEachDemoCarAndBall", async () => {
+  const { battleCars } = await import("../components/hero-battle");
+  const cars = battleCars(6000, "You");
+  const { container } = render(<Arena cars={cars} />);
+  for (const car of cars) {
+    const element = container.querySelector(`[data-car-id="${car.id}"]`)!;
+    expect(element.querySelector(`[data-body="${car.body}"] path`)).not.toBeNull();
+    expect(element.querySelector(`[data-ball="${car.ball}"] circle`)).not.toBeNull();
+  }
+  const ids = [...container.querySelectorAll("[id]")].map(element => element.id);
+  expect(new Set(ids).size).toBe(ids.length);
+});
+
+test("Should_ShowExhaustAndGainSpeedThenStopBoostingWithoutJumping", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const cars = [{ id: "you", name: "Alex", progress: .2, you: true }];
+  const { container, rerender } = render(<Arena cars={cars} />);
+  expect(container.querySelector(".car-boost")).toBeNull();
+  act(() => tick(100));
+  const at = () => container.querySelector('[data-car-id="you"] > g > g')!.getAttribute("transform");
+  const before = at();
+  rerender(<Arena cars={cars} boosts={{ you: 100 }} />);
+  expect(at()).toBe(before);
+  act(() => tick(200));
+  expect(container.querySelector(".car-boost")).not.toBeNull();
+  const boosted = fieldPose(.3, "you"); // .2 seconds driving + .1 extra from boost.
+  const projected = project(boosted.x, boosted.y, 0, "diorama");
+  expect(at()).toBe(`translate(${projected.x} ${projected.y})`);
+  act(() => tick(600));
+  expect(container.querySelector(".car-boost")).toBeNull();
+  const coasting = fieldPose(.95, "you"); // .6 seconds driving + .35 boost, retained.
+  const after = project(coasting.x, coasting.y, 0, "diorama");
+  expect(at()).toBe(`translate(${after.x} ${after.y})`);
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useId, useState } from "react";
+import { memo, useEffect, useId, useRef, useState } from "react";
 import { FieldCar } from "@/components/field-car";
 import { CarBall } from "@/components/car-ball";
 import { CarHat } from "@/components/car-hat";
@@ -58,25 +58,43 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
 }
 
 // Une voiture par joueur affiché sur la piste (CRS-2) : la tienne en bleu, les autres en orange.
-export type TrackCar = { id: string; name: string; progress: number; you: boolean };
+export type TrackCar = { id: string; name: string; progress: number; you: boolean; body?: Loadout["car"]; ball?: Loadout["ball"]; boost?: Loadout["boost"] };
 
 type Shot = { sequence: number; scored: boolean; receivedAt: number };
 
-type ArenaProps = { shots?: Record<string, Shot>; progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
+export const BOOST_MS = 350;
 
-export function Arena({ progress, cars, shots = {}, className = "", stadium = "diorama", carScale = .45 }: ArenaProps) {
-  const [seconds, setSeconds] = useState(0);
-  const [now, setNow] = useState(0);
+type ArenaProps = { boosts?: Record<string, number>; shots?: Record<string, Shot>; progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
+
+export function Arena({ progress, cars, shots = {}, boosts = {}, className = "", stadium = "diorama", carScale = .45 }: ArenaProps) {
+  const inputs = useRef({ boosts, shots });
+  useEffect(() => { inputs.current = { boosts, shots }; }, [boosts, shots]);
+  const [motion, setMotion] = useState({ seconds: 0, now: 0,
+    offsets: {} as Record<string, number>,
+    launches: {} as Record<string, { sequence: number; pose: ReturnType<typeof fieldPose> }> });
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const start = performance.now();
     let frame = requestAnimationFrame(function tick(now) {
-      setSeconds((now - start) / 1000);
-      setNow(now);
+      const { boosts, shots } = inputs.current;
+      setMotion(previous => {
+        const offsets = { ...previous.offsets }, launches = { ...previous.launches };
+        for (const [id, began] of Object.entries(boosts)) {
+          // Integrate extra travel instead of changing the route phase abruptly.
+          const activeMs = Math.max(0, Math.min(now, began + BOOST_MS) - Math.max(previous.now || start, began));
+          offsets[id] = (offsets[id] ?? 0) + activeMs / 1000;
+        }
+        for (const [id, shot] of Object.entries(shots)) {
+          if (launches[id]?.sequence !== shot.sequence) launches[id] = { sequence: shot.sequence,
+            pose: fieldPose((shot.receivedAt - start) / 1000 + (offsets[id] ?? 0), id) };
+        }
+        return { seconds: (now - start) / 1000, now, offsets, launches };
+      });
       frame = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(frame);
   }, []);
+  const { seconds, now, offsets, launches } = motion;
   const id = useId().replaceAll(":", "");
   const position = arenaPosition(progress ?? 0.16);
   if (stadium) {
@@ -92,14 +110,14 @@ export function Arena({ progress, cars, shots = {}, className = "", stadium = "d
       </defs>
       <image href={STADIUM_IMAGES[stadium]} width="1400" height="900" />
       {racers.map(car => {
-        const pose = fieldPose(seconds, car.id);
+        const pose = fieldPose(seconds + (offsets[car.id] ?? 0), car.id);
         const at = project(pose.x, pose.y, 0, stadium);
         const shot = shots[car.id];
         const elapsed = shot ? Math.max(0, (now - shot.receivedAt) / 1000) : Infinity;
         const dribble = { x: pose.x + 5.7 * Math.cos(pose.heading), y: pose.y + 5.7 * Math.sin(pose.heading), z: 1.2 };
         let flight = dribble;
         if (shot && now > 0 && elapsed <= 2) {
-          const launch = fieldPose(seconds - elapsed, car.id);
+          const launch = launches[car.id]?.pose ?? pose;
           flight = shotBall(launch, elapsed, shot.scored);
           if (elapsed > 1.2) {
             const recovery = (elapsed - 1.2) / .8;
@@ -112,11 +130,13 @@ export function Arena({ progress, cars, shots = {}, className = "", stadium = "d
         return { car, pose, at, ball, shadow };
       }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow }) => <g key={car.id} data-car-id={car.id}>
         <g clipPath={`url(#${id}-driving-area)`}><g transform={`translate(${at.x} ${at.y})`}>
-          <g transform={`translate(${-at.x} ${-at.y})`}><FieldCar pose={pose} stadium={stadium} orange={!car.you} scale={Math.max(.1, Math.min(carScale, MAX_CAR_SCALE))} /></g>
+          <g transform={`translate(${-at.x} ${-at.y})`}><FieldCar pose={pose} stadium={stadium} orange={!car.you} scale={Math.max(.1, Math.min(carScale, MAX_CAR_SCALE))} body={car.body} boost={car.boost}
+            boosting={boosts[car.id] !== undefined && now >= boosts[car.id] && now < boosts[car.id] + BOOST_MS} /></g>
         </g></g>
         <ellipse cx={shadow.x} cy={shadow.y} rx="10" ry="4" fill="#071820" opacity=".35" />
-        <circle cx={ball.x} cy={ball.y} r="9" fill="#ecf2e8" stroke="#273c48" strokeWidth="2" />
-        <path d={`M${ball.x-4} ${ball.y-2}l4 -3 4 3 -2 5h-4Z`} fill="#304657" />
+        <g data-field-ball={car.ball ?? "none"} transform={`translate(${ball.x} ${ball.y}) scale(.56)`}>
+          <CarBall ball={car.ball ?? "none"} centered />
+        </g>
         {car.name && <text x={at.x} y={at.y - 20} textAnchor="middle" className="car-tag" style={{ fontSize: 20 }}>{car.name}</text>}
       </g>)}
     </svg>;
