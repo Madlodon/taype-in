@@ -1,4 +1,4 @@
-// Test de charge (LOB-6) : 300 participants dans une même course, via Socket.IO.
+// Test de charge (PERF-03) : 300 participants dans une même course, via Socket.IO.
 // Lance son propre serveur Socket.IO avec la base locale, crée des utilisateurs temporaires,
 // fait taper tout le monde, mesure le délai des positions, puis supprime tout.
 // Usage : bun run test:load [participants]
@@ -10,9 +10,12 @@ import { io as connect, type Socket } from "socket.io-client";
 import { db } from "../db/index.ts";
 import { lobbies, users } from "../db/schema.ts";
 import { createSession } from "../lib/auth.ts";
-import { createLobby, MAX_PARTICIPANTS } from "../lib/lobbies.ts";
+import { createLobby } from "../lib/lobbies.ts";
 import { createSocketServer } from "../lib/socket-server.ts";
 import type { RacePositionsMessage, RaceStartedMessage } from "../lib/socket-messages.ts";
+
+// Bien au-delà de la capacité maximale d'une salle (30).
+const DEFAULT_PARTICIPANTS = 300;
 
 // Délai jugé raisonnable entre une frappe et son affichage chez les autres (tick de 250 ms + marge).
 export const MAX_P95_MS = 500;
@@ -33,7 +36,7 @@ function percentile(sorted: number[], p: number): number {
 }
 
 export async function runLoadTest({
-  participants = MAX_PARTICIPANTS,
+  participants = DEFAULT_PARTICIPANTS,
   // Durée de frappe ; une frappe toutes les 200 ms ≈ 60 mots par minute.
   typingMs = 10_000,
   keystrokeMs = 200,
@@ -55,7 +58,8 @@ export async function runLoadTest({
   const clients: Socket[] = [];
 
   try {
-    const lobby = await createLobby(ids[0], "unlisted");
+    // Capacité à la taille du test, au-delà de ce que l'hôte peut choisir.
+    const lobby = await createLobby(ids[0], "unlisted", { capacity: participants });
     const tokens = await Promise.all(ids.map((id) => createSession(id)));
 
     // Moment d'envoi de chaque frappe : sentAt[coureur][position].
@@ -145,7 +149,7 @@ export async function runLoadTest({
 
 // Lancé en ligne de commande (et non importé par un test).
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const participants = Number(process.argv[2] ?? MAX_PARTICIPANTS);
+  const participants = Number(process.argv[2] ?? DEFAULT_PARTICIPANTS);
   try {
     const stats = await runLoadTest({ participants });
     console.log(`Participants          : ${stats.participants}`);

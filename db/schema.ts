@@ -100,6 +100,8 @@ export const lobbies = pgTable("lobbies", {
   errorMode: errorModeEnum("error_mode").notNull().default("blocking"),
   // Minuterie de la course, 5 min par défaut ; null = pas de minuterie (CRS-4).
   timeLimitSeconds: integer("time_limit_seconds").default(300),
+  // Capacité maximale choisie par l'hôte, de 2 à 30 (SALLE-05).
+  capacity: integer("capacity").notNull().default(30),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
