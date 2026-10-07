@@ -8,7 +8,7 @@ import { CarBoost } from "@/components/car-boost";
 import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
 import { STADIUM_IMAGES, type Stadium } from "@/lib/garage-items";
-import { fieldPose, project, shotBall } from "@/lib/stadium-track";
+import { DRIVING_AREA, MAX_CAR_SCALE, fieldPose, project, shotBall } from "@/lib/stadium-track";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
 export function arenaPosition(progress: number) {
@@ -64,7 +64,7 @@ type Shot = { sequence: number; scored: boolean; receivedAt: number };
 
 type ArenaProps = { shots?: Record<string, Shot>; progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
 
-export function Arena({ progress, cars, shots = {}, className = "", stadium = "diorama", carScale = .65 }: ArenaProps) {
+export function Arena({ progress, cars, shots = {}, className = "", stadium = "diorama", carScale = .45 }: ArenaProps) {
   const [seconds, setSeconds] = useState(0);
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -82,16 +82,24 @@ export function Arena({ progress, cars, shots = {}, className = "", stadium = "d
   if (stadium) {
     const racers = cars ?? [{ id: "preview", name: "", progress: progress ?? .16, you: true }];
     return <svg className={`arena ${className}`} viewBox="0 0 1400 900" fill="none" aria-hidden="true" data-stadium={stadium}>
+      <defs>
+        <clipPath id={`${id}-driving-area`}>
+          <polygon points={[[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => {
+            const point = project(x * DRIVING_AREA.halfLength, y * DRIVING_AREA.halfWidth, 0, stadium);
+            return `${point.x},${point.y}`;
+          }).join(" ")} />
+        </clipPath>
+      </defs>
       <image href={STADIUM_IMAGES[stadium]} width="1400" height="900" />
-      {racers.map((car, index) => {
-        const pose = fieldPose(seconds, index / Math.max(1, racers.length) + car.progress * .15);
+      {racers.map(car => {
+        const pose = fieldPose(seconds, car.id);
         const at = project(pose.x, pose.y, 0, stadium);
         const shot = shots[car.id];
         const elapsed = shot ? Math.max(0, (now - shot.receivedAt) / 1000) : Infinity;
         const dribble = { x: pose.x + 5.7 * Math.cos(pose.heading), y: pose.y + 5.7 * Math.sin(pose.heading), z: 1.2 };
         let flight = dribble;
         if (shot && now > 0 && elapsed <= 2) {
-          const launch = fieldPose(seconds - elapsed, index / Math.max(1, racers.length) + car.progress * .15);
+          const launch = fieldPose(seconds - elapsed, car.id);
           flight = shotBall(launch, elapsed, shot.scored);
           if (elapsed > 1.2) {
             const recovery = (elapsed - 1.2) / .8;
@@ -102,14 +110,14 @@ export function Arena({ progress, cars, shots = {}, className = "", stadium = "d
         const ball = project(flight.x, flight.y, flight.z, stadium);
         const shadow = project(flight.x, flight.y, 0, stadium);
         return { car, pose, at, ball, shadow };
-      }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow }) => <g key={car.id}>
-        <g transform={`translate(${at.x} ${at.y})`}>
-          <g transform={`translate(${-at.x} ${-at.y})`}><FieldCar pose={pose} stadium={stadium} orange={!car.you} scale={Math.min(carScale, 1.4)} /></g>
-        </g>
+      }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow }) => <g key={car.id} data-car-id={car.id}>
+        <g clipPath={`url(#${id}-driving-area)`}><g transform={`translate(${at.x} ${at.y})`}>
+          <g transform={`translate(${-at.x} ${-at.y})`}><FieldCar pose={pose} stadium={stadium} orange={!car.you} scale={Math.max(.1, Math.min(carScale, MAX_CAR_SCALE))} /></g>
+        </g></g>
         <ellipse cx={shadow.x} cy={shadow.y} rx="10" ry="4" fill="#071820" opacity=".35" />
         <circle cx={ball.x} cy={ball.y} r="9" fill="#ecf2e8" stroke="#273c48" strokeWidth="2" />
         <path d={`M${ball.x-4} ${ball.y-2}l4 -3 4 3 -2 5h-4Z`} fill="#304657" />
-        {car.name && <text x={at.x} y={at.y - 26} textAnchor="middle" className="car-tag">{car.name}</text>}
+        {car.name && <text x={at.x} y={at.y - 20} textAnchor="middle" className="car-tag" style={{ fontSize: 20 }}>{car.name}</text>}
       </g>)}
     </svg>;
   }
