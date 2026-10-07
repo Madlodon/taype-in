@@ -15,7 +15,8 @@ const RACERS = [
 
 export function battleCars(elapsed: number, youName: string): TrackCar[] {
   const lap = elapsed % (LAP_MS + PAUSE_MS);
-  return RACERS.map(racer => ({
+  return RACERS.map((racer, lane) => ({
+    lane,
     id: racer.id,
     name: racer.you ? youName : racer.name,
     progress: Math.min(1, lap / LAP_MS * racer.speed),

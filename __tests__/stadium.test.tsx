@@ -118,6 +118,9 @@ test("Should_RenderTheGarageArtworkForEachDemoCarAndBall", async () => {
   const { container } = render(<Arena cars={cars} />);
   for (const car of cars) {
     const element = container.querySelector(`[data-car-id="${car.id}"]`)!;
+    const pose = fieldPose(0, car.id, car.lane);
+    const at = project(pose.x, pose.y, 0, "diorama");
+    expect(element.querySelector("[clip-path] > g")?.getAttribute("transform")).toBe(`translate(${at.x} ${at.y})`);
     expect(element.querySelector(`[data-body="${car.body}"] path`)).not.toBeNull();
     expect(element.querySelector(`[data-ball="${car.ball}"] circle`)).not.toBeNull();
   }
