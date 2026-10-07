@@ -42,7 +42,7 @@ export function stadiumPosition(progress: number, stadium: Stadium) {
 
 // A stable, individual route per player. Ranking and typing never change the pose.
 // Analytic tangents keep steering continuous, including at the loop seam.
-export function fieldPose(seconds: number, id = "preview") {
+export function fieldPose(seconds: number, id = "preview", lane?: number) {
   let seed = 2166136261;
   for (const character of id) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619);
   const random = () => {
@@ -51,6 +51,16 @@ export function fieldPose(seconds: number, id = "preview") {
   };
   const phase = random() * Math.PI * 2;
   const speed = (.22 + random() * .08) * (random() < .5 ? -1 : 1);
+  // Preview racers use nested loops with five units between lanes so their bodies never cross.
+  if (lane !== undefined) {
+    const radiusX = 14 + lane * 5, radiusY = 6 + lane * 5;
+    const t = seconds * speed + phase;
+    return {
+      x: radiusX * Math.cos(t),
+      y: radiusY * Math.sin(t),
+      heading: Math.atan2(radiusY * Math.cos(t) * speed, -radiusX * Math.sin(t) * speed),
+    };
+  }
   const radiusX = 19 + random() * 7, radiusY = 10 + random() * 4;
   const centerX = (random() - .5) * 8, centerY = (random() - .5) * 4;
   const bendX = 1 + random(), bendY = .5 + random() * .5;

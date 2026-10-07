@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { RacePreview } from "../components/race-preview";
 import { arenaPosition } from "../components/arena";
@@ -14,7 +14,7 @@ function preview(locale: "en" | "fr" = "en") {
   return screen.getByRole("textbox");
 }
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 test.each(STADIUMS)("Should_UseSelectedStadiumThroughoutTypingAndRestart_When_%s", stadium => {
   const { container } = render(<NextIntlClientProvider locale="en" messages={en}>
@@ -77,4 +77,38 @@ test("Should_KeepCarInsideArena_And_FollowFloorWallCeiling", () => {
   expect(arenaPosition(2)).toEqual(arenaPosition(1));
   expect(arenaPosition(0.49).y).toBeLessThan(arenaPosition(0).y);
   expect(arenaPosition(0.78).x).toBeLessThan(arenaPosition(0.59).x);
+});
+
+
+test("Should_BoostOnCorrectTrainingInput_And_ExpireRefreshAndResetTheEffect", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  const clock = vi.spyOn(performance, "now").mockReturnValue(0);
+  const input = preview();
+  const exhaust = () => document.querySelector('[data-car-id="preview"] .car-boost');
+  expect(exhaust()).toBeNull();
+  clock.mockReturnValue(100);
+  fireEvent.change(input, { target: { value: "Y" } });
+  act(() => tick(110));
+  expect(exhaust()).not.toBeNull();
+  clock.mockReturnValue(400);
+  fireEvent.change(input, { target: { value: "Yo" } });
+  act(() => tick(500));
+  expect(exhaust()).not.toBeNull();
+  act(() => tick(751));
+  expect(exhaust()).toBeNull();
+  clock.mockReturnValue(800);
+  fireEvent.change(input, { target: { value: "YoX" } });
+  act(() => tick(810));
+  expect(exhaust()).toBeNull();
+  fireEvent.change(input, { target: { value: "Yo" } });
+  act(() => tick(820));
+  expect(exhaust()).toBeNull();
+  fireEvent.change(input, { target: { value: "You" } });
+  act(() => tick(830));
+  expect(exhaust()).not.toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(en.Race.restart) }));
+  expect(exhaust()).toBeNull();
 });

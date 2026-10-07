@@ -58,7 +58,7 @@ export function Car({ x, y, angle = 0, orange = false, body = "octane", boost = 
 }
 
 // Une voiture par joueur affiché sur la piste (CRS-2) : la tienne en bleu, les autres en orange.
-export type TrackCar = { id: string; name: string; progress: number; you: boolean; body?: Loadout["car"]; ball?: Loadout["ball"]; boost?: Loadout["boost"] };
+export type TrackCar = { lane?: number; id: string; name: string; progress: number; you: boolean; body?: Loadout["car"]; ball?: Loadout["ball"]; boost?: Loadout["boost"] };
 
 type Shot = { sequence: number; scored: boolean; receivedAt: number };
 
@@ -98,7 +98,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
   const id = useId().replaceAll(":", "");
   const position = arenaPosition(progress ?? 0.16);
   if (stadium) {
-    const racers = cars ?? [{ id: "preview", name: "", progress: progress ?? .16, you: true }];
+    const racers: TrackCar[] = cars ?? [{ id: "preview", name: "", progress: progress ?? .16, you: true }];
     return <svg className={`arena ${className}`} viewBox="0 0 1400 900" fill="none" aria-hidden="true" data-stadium={stadium}>
       <defs>
         <clipPath id={`${id}-driving-area`}>
@@ -110,7 +110,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
       </defs>
       <image href={STADIUM_IMAGES[stadium]} width="1400" height="900" />
       {racers.map(car => {
-        const pose = fieldPose(seconds + (offsets[car.id] ?? 0), car.id);
+        const pose = fieldPose(seconds + (offsets[car.id] ?? 0), car.id, car.lane);
         const at = project(pose.x, pose.y, 0, stadium);
         const shot = shots[car.id];
         const elapsed = shot ? Math.max(0, (now - shot.receivedAt) / 1000) : Infinity;

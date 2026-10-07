@@ -8,6 +8,7 @@ import type { Stadium } from "@/lib/garage-items";
 export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
   const t = useTranslations("Race");
   const prompt = t("prompt");
+  const [boosts, setBoosts] = useState<Record<string, number>>({});
   const [typed, setTyped] = useState("");
   const [startedAt, setStartedAt] = useState<number>();
   const [elapsed, setElapsed] = useState(0);
@@ -21,6 +22,7 @@ export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
   const wpm = elapsed > 0 ? Math.round(correctLength / 5 / (elapsed / 60000)) : 0;
 
   function restart() {
+    setBoosts({});
     setTyped(""); setStartedAt(undefined); setElapsed(0); setAttempts({ total: 0, correct: 0 });
     input.current?.focus();
   }
@@ -34,6 +36,7 @@ export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
     while (common < typed.length && common < value.length && typed[common] === value[common]) common++;
     const added = value.slice(common);
     const matches = [...added].filter((character, index) => character === prompt[common + index]).length;
+    if (matches > 0) setBoosts({ preview: performance.now() });
     setAttempts(previous => ({ total: previous.total + added.length, correct: previous.correct + matches }));
     setTyped(value);
   }
@@ -56,7 +59,7 @@ export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
       </div>
     </dl>
     <div className="race-arena">
-      <Arena progress={progress} stadium={stadium} />
+      <Arena progress={progress} stadium={stadium} boosts={boosts} />
       <div className="race-track" role="progressbar" aria-label={t("track")} aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
         <div style={{ width: `${progress * 100}%` }} />
       </div>
