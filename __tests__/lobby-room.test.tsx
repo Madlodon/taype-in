@@ -97,6 +97,46 @@ test("Should_ShowError_When_JoinIsRefused", () => {
   expect(screen.getByRole("alert").textContent).toBe("Course introuvable");
 });
 
+test("Should_RejoinLeavingOtherLobby_When_PlayerConfirms", () => {
+  const confirm = vi.fn(() => true);
+  vi.stubGlobal("confirm", confirm);
+  renderRoom();
+  const ack = socket.emit.mock.calls[0][2] as Handler;
+
+  act(() => ack({ ok: false, error: "inOtherLobby" }));
+
+  expect(confirm).toHaveBeenCalledWith(
+    "Tu es déjà dans un autre lobby. Le quitter pour rejoindre celui-ci ?",
+  );
+  expect(socket.emit).toHaveBeenLastCalledWith(
+    "lobby:join",
+    { code: "K7P3XM", leave: true },
+    expect.any(Function),
+  );
+});
+
+test("Should_GoBackToLobbies_When_PlayerRefusesToLeaveOtherLobby", () => {
+  vi.stubGlobal("confirm", vi.fn(() => false));
+  renderRoom();
+  const ack = socket.emit.mock.calls[0][2] as Handler;
+
+  act(() => ack({ ok: false, error: "inOtherLobby" }));
+
+  expect(router.replace).toHaveBeenCalledWith("/lobbies");
+  expect(socket.emit).toHaveBeenCalledTimes(1);
+});
+
+test("Should_DisconnectAndExplain_When_PlayerJoinedAnotherLobbyInAnotherTab", () => {
+  renderRoom();
+
+  act(() => handlers["lobby:left"]());
+
+  expect(socket.disconnect).toHaveBeenCalled();
+  expect(screen.getByRole("alert").textContent).toBe(
+    "Tu as rejoint un autre lobby. Tu n'es plus dans celui-ci.",
+  );
+});
+
 test("Should_ShowRawMessage_When_ConnectionErrorHasNoTranslation", () => {
   renderRoom();
 

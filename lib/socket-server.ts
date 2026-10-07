@@ -10,6 +10,7 @@ import {
   canEnterLobby,
   closeLobby,
   findOpenLobby,
+  findParticipantLobby,
   listParticipants,
   removeParticipant,
   type Lobby,
@@ -103,6 +104,7 @@ export function createSocketServer(
     {
       "lobby:participants": (message: ParticipantsMessage) => void;
       "lobby:closed": () => void;
+      "lobby:left": () => void;
       "lobby:restarted": () => void;
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
@@ -298,6 +300,29 @@ export function createSocketServer(
     });
   }
 
+  // Un coureur qui part garde sa place ; la course continue sans lui (CRS-6).
+  async function removeFromLobby(lobby: Lobby, userId: string) {
+    const live = liveRaces.get(lobby.id);
+    const player = live?.players.get(userId);
+    if (player?.state === "connected" && live?.state !== "finished") {
+      player.state = nextPlayerState(player.state, "disconnect");
+    }
+
+    await removeParticipant(lobby.id, userId);
+    await sendParticipants(lobby);
+  }
+
+  // La personne part pour un autre lobby : ses onglets encore ouverts dans celui-ci en sortent (SALLE-06).
+  async function leaveLobby(lobby: Lobby, userId: string) {
+    for (const other of await io.in(lobby.code).fetchSockets()) {
+      if (other.data.user.id !== userId) continue;
+      other.data.lobby = undefined;
+      other.leave(lobby.code);
+      other.emit("lobby:left");
+    }
+    await removeFromLobby(lobby, userId);
+  }
+
   // Le cookie de session (httpOnly) accompagne la connexion : seul un utilisateur connecté entre.
   io.use(async (socket, next) => {
     const token = readCookie(socket.handshake.headers.cookie, SESSION_COOKIE);
@@ -344,8 +369,23 @@ export function createSocketServer(
         return;
       }
 
+      // Une personne n'est que dans un lobby à la fois (SALLE-06) : elle accepte d'abord de quitter
+      // l'autre. Un lobby fermé entre-temps est quitté sans demander.
+      const current = await findParticipantLobby(socket.data.user.id);
+      if (current && current.id !== lobby.id) {
+        if (!result.data.leave && !current.closedAt) {
+          ack?.({ ok: false, error: "inOtherLobby" });
+          return;
+        }
+        await leaveLobby(current, socket.data.user.id);
+      }
+      // La contrainte en base tranche si deux onglets rejoignent deux lobbys en même temps.
+      if (!(await addParticipant(lobby.id, socket.data.user.id))) {
+        ack?.({ ok: false, error: "inOtherLobby" });
+        return;
+      }
+
       socket.data.lobby = lobby;
-      await addParticipant(lobby.id, socket.data.user.id);
       await socket.join(lobby.code);
       await sendParticipants(lobby);
 
@@ -683,15 +723,7 @@ export function createSocketServer(
       const others = await io.in(lobby.code).fetchSockets();
       if (others.some((other) => other.data.user.id === user.id)) return;
 
-      // Un coureur qui perd la connexion garde sa place ; la course continue sans lui (CRS-6).
-      const live = liveRaces.get(lobby.id);
-      const player = live?.players.get(user.id);
-      if (player?.state === "connected" && live?.state !== "finished") {
-        player.state = nextPlayerState(player.state, "disconnect");
-      }
-
-      await removeParticipant(lobby.id, user.id);
-      await sendParticipants(lobby);
+      await removeFromLobby(lobby, user.id);
     });
   });
 

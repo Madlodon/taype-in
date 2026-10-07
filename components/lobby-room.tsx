@@ -95,7 +95,9 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
   const [finished, setFinished] = useState(false);
   // Lu par les gestionnaires du socket, branchés une seule fois.
   const botNameRef = useRef<(bot: Bot) => string>(null);
+  const tRef = useRef(t);
   useEffect(() => {
+    tRef.current = t;
     botNameRef.current = (bot) =>
       t("botName", { level: t(`botLevels.${bot.level}`), number: bot.number });
   });
@@ -165,13 +167,26 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
     socket.on("connect_error", (err) => {
       if (!socket.active) setError(err.message);
     });
-    // À chaque connexion, y compris après une coupure, on rentre dans la salle.
-    socket.on("connect", () => {
-      socket.emit("lobby:join", { code }, (ack: Ack) => {
-        if (!ack.ok) setError(ack.error);
-        else if (typingRef.current) socket.emit("race:progress", toProgress(typingRef.current));
-      });
+    // Rejoint un autre lobby depuis un autre onglet : celui-ci n'y est plus (SALLE-06).
+    socket.on("lobby:left", () => {
+      socket.disconnect();
+      setError("leftForOtherLobby");
     });
+    // Déjà dans un autre lobby : on propose de le quitter, sinon on revient à la liste (SALLE-06).
+    const join = (leave?: boolean) =>
+      socket.emit("lobby:join", { code, leave }, (ack: Ack) => {
+        if (ack.ok) {
+          if (typingRef.current) socket.emit("race:progress", toProgress(typingRef.current));
+        } else if (ack.error !== "inOtherLobby") {
+          setError(ack.error);
+        } else if (window.confirm(tRef.current!("confirmLeaveOther"))) {
+          join(true);
+        } else {
+          router.replace("/lobbies");
+        }
+      });
+    // À chaque connexion, y compris après une coupure, on rentre dans la salle.
+    socket.on("connect", () => join());
     return () => {
       socket.disconnect();
     };

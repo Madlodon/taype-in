@@ -312,6 +312,91 @@ describe("lobby:join", () => {
   });
 });
 
+
+// SALLE-06 : une personne n'est que dans un lobby à la fois.
+describe("one lobby at a time", () => {
+  // La personne est dans un premier lobby avec son hôte, un second lobby l'attend.
+  async function inOneLobby() {
+    const host = await newUser();
+    const player = await newUser();
+    const first = await createLobby(host.id, "unlisted");
+    const second = await createLobby((await newUser()).id, "unlisted");
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: first.code });
+    const firstTab = await newClient(player);
+    await join(firstTab, { code: first.code });
+    return { host, player, first, second, hostClient, firstTab };
+  }
+
+  test("Should_AckInOtherLobby_When_PlayerJoinsAnotherLobbyWithoutLeaving", async () => {
+    const { player, first, second } = await inOneLobby();
+
+    const ack = await join(await newClient(player), { code: second.code });
+
+    expect(ack).toEqual({ ok: false, error: "inOtherLobby" });
+    expect((await listParticipants(first.id)).map((p) => p.id)).toContain(player.id);
+    expect(await listParticipants(second.id)).toEqual([]);
+  });
+
+  test("Should_MovePlayer_When_PlayerAcceptsToLeave", async () => {
+    const { host, player, first, second, hostClient } = await inOneLobby();
+    const hostSees = nextParticipants(hostClient);
+
+    const ack = await join(await newClient(player), { code: second.code, leave: true });
+
+    expect(ack).toEqual({ ok: true });
+    expect(await hostSees).toEqual({ participants: [{ id: host.id, username: host.username }] });
+    expect(await listParticipants(first.id)).toEqual([{ id: host.id, username: host.username }]);
+    expect(await listParticipants(second.id)).toEqual([
+      { id: player.id, username: player.username },
+    ]);
+  });
+
+  test("Should_TellOldTab_When_PlayerLeavesForAnotherLobby", async () => {
+    const { player, second, firstTab } = await inOneLobby();
+    const left = next(firstTab, "lobby:left");
+
+    await join(await newClient(player), { code: second.code, leave: true });
+
+    await expect(left).resolves.toBeUndefined();
+  });
+
+  test("Should_StayInNewLobby_When_OldTabCloses", async () => {
+    const { player, second, firstTab } = await inOneLobby();
+    await join(await newClient(player), { code: second.code, leave: true });
+
+    firstTab.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect((await listParticipants(second.id)).map((p) => p.id)).toEqual([player.id]);
+  });
+
+  test("Should_JoinWithoutAsking_When_OtherLobbyIsClosed", async () => {
+    const { player, first, second } = await inOneLobby();
+    await db.update(lobbies).set({ closedAt: new Date() }).where(eq(lobbies.id, first.id));
+
+    expect(await join(await newClient(player), { code: second.code })).toEqual({ ok: true });
+  });
+
+  test("Should_ListPlayerOnce_When_SecondTabJoinsSameLobby", async () => {
+    const { player, first } = await inOneLobby();
+
+    const ack = await join(await newClient(player), { code: first.code });
+
+    expect(ack).toEqual({ ok: true });
+    expect((await listParticipants(first.id)).filter((p) => p.id === player.id)).toHaveLength(1);
+  });
+
+  test("Should_AckInvalidMessage_When_LeaveIsNotABoolean", async () => {
+    const { player, second } = await inOneLobby();
+
+    expect(await join(await newClient(player), { code: second.code, leave: "yes" })).toEqual({
+      ok: false,
+      error: "invalidMessage",
+    });
+  });
+});
+
 function next<T>(client: Socket, event: string): Promise<T> {
   return new Promise((resolve) => client.once(event, resolve));
 }

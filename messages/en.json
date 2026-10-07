@@ -95,6 +95,7 @@
     },
     "giveUp": "Give up",
     "confirmGiveUp": "Give up the race? You'll become a spectator and won't be able to type anymore.",
+    "confirmLeaveOther": "You're already in another lobby. Leave it to join this one?",
     "gaveUp": "You gave up: you're watching the rest of the race.",
     "errors": {
       "notLoggedIn": "Not logged in",
@@ -110,7 +111,8 @@
       "cannotGiveUp": "You can't give up anymore",
       "raceNotFinished": "The race isn't over",
       "botNotFound": "Bot not found",
-      "noHumanRacer": "At least one human player must race"
+      "noHumanRacer": "At least one human player must race",
+      "leftForOtherLobby": "You joined another lobby. You're no longer in this one."
     },
     "startRacing": "Start and race",
     "startWatching": "Start and watch",

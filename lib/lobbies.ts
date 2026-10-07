@@ -1,4 +1,4 @@
-// Création, réglages et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10).
+// Création, réglages et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10, SALLE-06).
 import { randomBytes, randomInt } from "node:crypto";
 import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.ts";
@@ -149,11 +149,24 @@ export async function listPublicLobbies(): Promise<
     .orderBy(desc(lobbies.createdAt));
 }
 
-export async function addParticipant(lobbyId: string, userId: string) {
+// Le lobby où la personne est déjà, s'il y en a un (SALLE-06).
+export async function findParticipantLobby(userId: string): Promise<Lobby | null> {
+  const [row] = await db
+    .select({ lobby: lobbies })
+    .from(lobbyParticipants)
+    .innerJoin(lobbies, eq(lobbyParticipants.lobbyId, lobbies.id))
+    .where(eq(lobbyParticipants.userId, userId));
+  return row?.lobby ?? null;
+}
+
+// Déjà là (autre onglet) : rien ne change. Renvoie false si la personne est
+// dans un autre lobby : la base n'en permet qu'un à la fois (SALLE-06).
+export async function addParticipant(lobbyId: string, userId: string): Promise<boolean> {
   await db
     .insert(lobbyParticipants)
     .values({ lobbyId, userId })
     .onConflictDoNothing();
+  return (await findParticipantLobby(userId))?.id === lobbyId;
 }
 
 export async function removeParticipant(lobbyId: string, userId: string) {

@@ -3,8 +3,10 @@ import type { RemovedWord } from "./race-goals.ts";
 import { z } from "zod";
 import { BOT_LEVELS, type Bot } from "./bots.ts";
 
+// leave : la personne accepte de quitter le lobby où elle est déjà (SALLE-06).
 export const joinLobbySchema = z.object({
   code: z.string().trim().min(1).max(16),
+  leave: z.boolean().optional(),
 });
 
 export type JoinLobbyMessage = z.infer<typeof joinLobbySchema>;
