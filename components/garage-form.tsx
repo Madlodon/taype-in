@@ -6,18 +6,20 @@ import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import type { GarageFormState } from "@/app/actions/garage";
 import { Car } from "@/components/arena";
-import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, type Loadout } from "@/lib/garage-items";
+import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, unlockLevel, type Loadout } from "@/lib/garage-items";
 
 type Props = {
   action: (state: GarageFormState, formData: FormData) => Promise<GarageFormState>;
   initial: Loadout;
   // Un invité voit le garage mais ne peut pas l'enregistrer.
   guest: boolean;
+  // Niveau du joueur : les objets plus hauts sont verrouillés (#35).
+  level: number;
 };
 
 const CATEGORIES = [["car", CARS], ["boost", BOOSTS], ["hat", HATS], ["ball", BALLS]] as const;
 
-export function GarageForm({ action, initial, guest }: Props) {
+export function GarageForm({ action, initial, guest, level }: Props) {
   const t = useTranslations("Garage");
   const [state, formAction, pending] = useActionState(action, undefined);
   const [loadout, setLoadout] = useState(initial);
@@ -29,18 +31,25 @@ export function GarageForm({ action, initial, guest }: Props) {
           <fieldset key={category}>
             <legend className="text-sm font-semibold">{t(`categories.${category}`)}</legend>
             <div className="garage-options">
-              {items.map((item) => (
-                <label key={item} className="radio-option">
-                  <input
-                    type="radio"
-                    name={category}
-                    value={item}
-                    checked={loadout[category] === item}
-                    onChange={() => setLoadout({ ...loadout, [category]: item })}
-                  />
-                  {t(`items.${category}.${item}`)}
-                </label>
-              ))}
+              {items.map((item) => {
+                const required = unlockLevel(category, item);
+                return (
+                  <label key={item} className="radio-option">
+                    <input
+                      type="radio"
+                      name={category}
+                      value={item}
+                      checked={loadout[category] === item}
+                      disabled={required > level}
+                      onChange={() => setLoadout({ ...loadout, [category]: item })}
+                    />
+                    <span>
+                      {t(`items.${category}.${item}`)}
+                      {required > level && <span className="lock-level">{t("lockedAt", { level: required })}</span>}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </fieldset>
         ))}

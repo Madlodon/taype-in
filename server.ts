@@ -11,7 +11,9 @@ const handle = app.getRequestHandler();
 await app.prepare();
 
 const httpServer = createServer((req, res) => handle(req, res));
-createSocketServer(httpServer);
+// GOAL_CHANCE=0 désactive les buts (tests E2E).
+const goalChance = process.env.GOAL_CHANCE;
+createSocketServer(httpServer, goalChance ? { goalChance: Number(goalChance) } : {});
 
 httpServer.listen(port, () => {
   console.log(`> Serveur prêt sur http://localhost:${port}`);

@@ -7,6 +7,7 @@ import {
   createLobbyAction,
   joinInviteAction,
   joinLobbyAction,
+  updateLobbySettingsAction,
 } from "../app/actions/lobbies";
 import * as auth from "../lib/auth";
 import * as lobbies from "../lib/lobbies";
@@ -22,13 +23,16 @@ vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn(), setSessionCoo
 vi.mock("../lib/auth", () => ({ createGuest: vi.fn(), createSession: vi.fn() }));
 vi.mock("../lib/lobbies", () => ({
   MAX_INVITES: 300,
-  DEFAULT_TIMER_MINUTES: 5,
-  MAX_TIMER_MINUTES: 1440,
+  DEFAULT_TIMER_SECONDS: 300,
+  TIMER_OPTIONS: Array.from({ length: 20 }, (_, i) => (i + 1) * 30),
+  CAPACITY_OPTIONS: Array.from({ length: 29 }, (_, i) => i + 2),
+  MAX_CAPACITY: 30,
   canEnterLobby: vi.fn(),
   claimInvite: vi.fn(),
   createInvites: vi.fn(),
   createLobby: vi.fn(),
   findOpenLobby: vi.fn(),
+  updateLobbySettings: vi.fn(),
 }));
 
 const aGuest = {
@@ -42,8 +46,10 @@ const aGuest = {
   ball: "none",
   stadium: "diorama",
   rankLevel: 0,
+  xp: 0,
   createdAt: new Date(),
 };
+const aMember = { ...aGuest, username: "pilote", passwordHash: "hash", isGuest: false };
 const aLobby = {
   id: "lobby-1",
   code: "K7P3XM",
@@ -53,6 +59,7 @@ const aLobby = {
   textLength: 100,
   errorMode: "blocking" as const,
   timeLimitSeconds: 300,
+  capacity: 30,
   createdAt: new Date(),
   closedAt: null,
 };
@@ -66,7 +73,7 @@ function form(fields: Record<string, string>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getCurrentUser).mockResolvedValue(aGuest);
+  vi.mocked(getCurrentUser).mockResolvedValue(aMember);
   vi.mocked(lobbies.createLobby).mockResolvedValue(aLobby);
   vi.mocked(lobbies.canEnterLobby).mockResolvedValue(true);
 });
@@ -82,9 +89,18 @@ test("Should_RedirectHomeWithoutCreating_When_NobodyIsLoggedIn", async () => {
   expect(lobbies.createLobby).not.toHaveBeenCalled();
 });
 
-test("Should_MakeGuestHostAndOpenLobby_When_GuestCreatesLobby", async () => {
+test("Should_SendToSignUpWithoutCreating_When_GuestCreatesLobby", async () => {
   vi.mocked(getCurrentUser).mockResolvedValue(aGuest);
 
+  await expect(createLobbyAction(form({ visibility: "public" }))).rejects.toThrow(
+    "NEXT_REDIRECT",
+  );
+
+  expect(redirect).toHaveBeenCalledWith("/signup?next=/lobbies/new");
+  expect(lobbies.createLobby).not.toHaveBeenCalled();
+});
+
+test("Should_MakeUserHostAndOpenLobby_When_RegisteredUserCreatesLobby", async () => {
   await expect(createLobbyAction(form({ visibility: "public" }))).rejects.toThrow(
     "NEXT_REDIRECT",
   );
@@ -105,8 +121,6 @@ test.each([
   ["missing", {}],
   ["unknown", { visibility: "secret" }],
 ])("Should_CreateUnlistedLobby_When_VisibilityIs_%s", async (_, fields) => {
-  vi.mocked(getCurrentUser).mockResolvedValue(aGuest);
-
   await expect(createLobbyAction(form(fields))).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.anything());
@@ -122,6 +136,7 @@ test("Should_SaveTextSettings_When_HostPicksLanguageAndLength", async () => {
     textLength: 200,
     errorMode: "blocking",
     timeLimitSeconds: 300,
+    capacity: 30,
   });
 });
 
@@ -136,6 +151,7 @@ test.each([
     textLength: 100,
     errorMode: "blocking",
     timeLimitSeconds: 300,
+    capacity: 30,
   });
 });
 
@@ -160,11 +176,11 @@ test("Should_UseBlockingMode_When_ErrorModeIsUnknown", async () => {
 });
 
 test.each([
-  ["1", 60],
-  ["90", 5400],
-  ["1440", 86400],
-])("Should_SaveTimerInSeconds_When_HostPicks_%s_Minutes", async (timerMinutes, seconds) => {
-  await expect(createLobbyAction(form({ timerMinutes }))).rejects.toThrow("NEXT_REDIRECT");
+  ["30", 30],
+  ["90", 90],
+  ["600", 600],
+])("Should_SaveTimer_When_HostPicks_%s_Seconds", async (timerSeconds, seconds) => {
+  await expect(createLobbyAction(form({ timerSeconds }))).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith(
     "user-1",
@@ -173,10 +189,10 @@ test.each([
   );
 });
 
-test.each([["0"], ["1441"], ["-5"], ["2.5"], ["abc"]])(
+test.each([["0"], ["29"], ["601"], ["630"], ["45"], ["-30"], ["abc"]])(
   "Should_UseFiveMinutes_When_TimerIs_%s",
-  async (timerMinutes) => {
-    await expect(createLobbyAction(form({ timerMinutes }))).rejects.toThrow("NEXT_REDIRECT");
+  async (timerSeconds) => {
+    await expect(createLobbyAction(form({ timerSeconds }))).rejects.toThrow("NEXT_REDIRECT");
 
     expect(lobbies.createLobby).toHaveBeenCalledWith(
       "user-1",
@@ -188,7 +204,7 @@ test.each([["0"], ["1441"], ["-5"], ["2.5"], ["abc"]])(
 
 test("Should_SaveNoTimer_When_HostChecksNoTimer", async () => {
   await expect(
-    createLobbyAction(form({ timerMinutes: "10", noTimer: "on" })),
+    createLobbyAction(form({ timerSeconds: "600", noTimer: "on" })),
   ).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith(
@@ -197,6 +213,33 @@ test("Should_SaveNoTimer_When_HostChecksNoTimer", async () => {
     expect.objectContaining({ timeLimitSeconds: null }),
   );
 });
+
+test.each([
+  ["2", 2],
+  ["8", 8],
+  ["30", 30],
+])("Should_SaveCapacity_When_HostPicks_%s", async (capacity, count) => {
+  await expect(createLobbyAction(form({ capacity }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ capacity: count }),
+  );
+});
+
+test.each([["1"], ["31"], ["0"], ["-2"], ["2.5"], ["300"], ["abc"]])(
+  "Should_UseThirty_When_CapacityIs_%s",
+  async (capacity) => {
+    await expect(createLobbyAction(form({ capacity }))).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.createLobby).toHaveBeenCalledWith(
+      "user-1",
+      "unlisted",
+      expect.objectContaining({ capacity: 30 }),
+    );
+  },
+);
 
 test("Should_RedirectToLobby_When_CodeMatchesOpenLobby", async () => {
   vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
@@ -236,14 +279,36 @@ test("Should_ReturnError_When_CodeIsForPrivateLobbyWithoutInvite", async () => {
   expect(redirect).not.toHaveBeenCalled();
 });
 
-test("Should_RedirectHome_When_JoiningByCodeWhileLoggedOut", async () => {
+test("Should_RedirectToLoginThenLobby_When_JoiningByCodeWhileLoggedOut", async () => {
   vi.mocked(getCurrentUser).mockResolvedValue(null);
+  vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
 
-  await expect(joinLobbyAction(undefined, form({ code: "K7P3XM" }))).rejects.toThrow(
+  await expect(joinLobbyAction(undefined, form({ code: "k7p3xm" }))).rejects.toThrow(
     "NEXT_REDIRECT",
   );
 
-  expect(redirect).toHaveBeenCalledWith("/");
+  expect(redirect).toHaveBeenCalledWith("/login?next=/lobbies/K7P3XM");
+});
+
+test("Should_ReturnError_When_LoggedOutCodeMatchesNoOpenLobby", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(null);
+  vi.mocked(lobbies.findOpenLobby).mockResolvedValue(null);
+
+  const state = await joinLobbyAction(undefined, form({ code: "ZZZZZZ" }));
+
+  expect(state).toEqual({ error: "noOpenLobby", code: "ZZZZZZ" });
+  expect(redirect).not.toHaveBeenCalled();
+});
+
+test("Should_ReturnError_When_LoggedOutCodeIsForPrivateLobby", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(null);
+  vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aPrivateLobby);
+
+  const state = await joinLobbyAction(undefined, form({ code: "K7P3XM" }));
+
+  expect(state).toEqual({ error: "noOpenLobby", code: "K7P3XM" });
+  expect(lobbies.canEnterLobby).not.toHaveBeenCalled();
+  expect(redirect).not.toHaveBeenCalled();
 });
 
 describe("createInvitesAction", () => {
@@ -339,5 +404,65 @@ describe("joinInviteAction", () => {
     await expect(joinInviteAction(form({ token: "abc" }))).rejects.toThrow("NEXT_REDIRECT");
 
     expect(redirect).toHaveBeenCalledWith("/invite/abc");
+  });
+});
+
+describe("updateLobbySettingsAction", () => {
+  test("Should_SaveSettingsAndReturnToLobby_When_HostSubmits", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
+
+    await expect(
+      updateLobbySettingsAction(
+        form({
+          code: "K7P3XM",
+          textLanguage: "en",
+          textLength: "50",
+          errorMode: "tolerant",
+          noTimer: "on",
+          capacity: "4",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.updateLobbySettings).toHaveBeenCalledWith("lobby-1", {
+      textLanguage: "en",
+      textLength: 50,
+      errorMode: "tolerant",
+      timeLimitSeconds: null,
+      capacity: 4,
+    });
+    expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
+  });
+
+  test("Should_RedirectWithoutSaving_When_UserIsNotHost", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue({ ...aLobby, hostId: "someone-else" });
+
+    await expect(updateLobbySettingsAction(form({ code: "K7P3XM" }))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(lobbies.updateLobbySettings).not.toHaveBeenCalled();
+    expect(redirect).toHaveBeenCalledWith("/lobbies");
+  });
+
+  test("Should_RedirectWithoutSaving_When_LobbyIsClosedOrUnknown", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue(null);
+
+    await expect(updateLobbySettingsAction(form({ code: "ZZZZZZ" }))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(lobbies.updateLobbySettings).not.toHaveBeenCalled();
+  });
+
+  test("Should_RedirectHomeWithoutSaving_When_NobodyIsLoggedIn", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+    await expect(updateLobbySettingsAction(form({ code: "K7P3XM" }))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+
+    expect(redirect).toHaveBeenCalledWith("/");
+    expect(lobbies.updateLobbySettings).not.toHaveBeenCalled();
   });
 });

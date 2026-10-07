@@ -3,12 +3,14 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createLobbyAction } from "@/app/actions/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
-import { DEFAULT_TIMER_MINUTES, MAX_TIMER_MINUTES } from "@/lib/lobbies";
-import { TEXT_LENGTHS } from "@/lib/texts";
 import { Arena } from "@/components/arena";
+import { LobbySettingsFields } from "@/components/lobby-settings-fields";
 
 export default async function NewLobbyPage() {
-  if (!(await getCurrentUser())) redirect("/login?next=/lobbies/new");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?next=/lobbies/new");
+  // Les invités ne créent pas de course (AUTH-03).
+  if (user.isGuest) redirect("/signup?next=/lobbies/new");
   const locale = await getLocale();
   const t = await getTranslations("NewLobby");
   const d = await getTranslations("Design");
@@ -34,37 +36,7 @@ export default async function NewLobbyPage() {
               <label className="radio-option">
                 <input type="radio" name="visibility" value="private" />{t("private")}</label>
             </fieldset>
-            <fieldset>
-              <legend className="text-sm font-semibold">{t("textLanguage")}</legend>
-              <label className="radio-option">
-                <input type="radio" name="textLanguage" value="fr" defaultChecked={locale === "fr"} />{t("french")}</label>
-              <label className="radio-option">
-                <input type="radio" name="textLanguage" value="en" defaultChecked={locale === "en"} />{t("english")}</label>
-            </fieldset>
-            <fieldset>
-              <legend className="text-sm font-semibold">{t("textLength")}</legend>
-              {TEXT_LENGTHS.map((length) => (
-                <label key={length} className="radio-option">
-                  <input type="radio" name="textLength" value={length} defaultChecked={length === 100} />
-                  {t("words", { count: length })}</label>
-              ))}
-            </fieldset>
-            <fieldset>
-              <legend className="text-sm font-semibold">{t("errorMode")}</legend>
-              <label className="radio-option">
-                <input type="radio" name="errorMode" value="blocking" defaultChecked />{t("blocking")}</label>
-              <label className="radio-option">
-                <input type="radio" name="errorMode" value="tolerant" />{t("tolerant")}</label>
-            </fieldset>
-            <fieldset>
-              <legend className="text-sm font-semibold">{t("timer")}</legend>
-              <label className="field">
-                {t("timerMinutes", { max: MAX_TIMER_MINUTES })}
-                <input name="timerMinutes" type="number" min={1} max={MAX_TIMER_MINUTES} defaultValue={DEFAULT_TIMER_MINUTES} required />
-              </label>
-              <label className="radio-option">
-                <input type="checkbox" name="noTimer" />{t("noTimer")}</label>
-            </fieldset>
+            <LobbySettingsFields locale={locale} />
             <button type="submit" className="btn btn-primary">{t("submit")}<span aria-hidden="true">↗</span>
             </button>
           </form>

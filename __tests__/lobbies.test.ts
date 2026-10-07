@@ -19,6 +19,7 @@ import {
   listPublicLobbies,
   normalizeCode,
   removeParticipant,
+  updateLobbySettings,
 } from "../lib/lobbies";
 
 // Utilisateurs créés par un test, supprimés après (avec leurs lobbys).
@@ -95,6 +96,37 @@ test("Should_UseFiveMinuteTimer_When_CreatingLobbyWithoutTimer", async () => {
   const lobby = await createLobby((await newUser()).id, "public");
 
   expect(lobby.timeLimitSeconds).toBe(300);
+});
+
+test("Should_UseCapacityOf30_When_CreatingLobbyWithoutCapacity", async () => {
+  const lobby = await createLobby((await newUser()).id, "public");
+
+  expect(lobby.capacity).toBe(30);
+});
+
+test("Should_SaveCapacity_When_CreatingLobbyWithCapacity", async () => {
+  const lobby = await createLobby((await newUser()).id, "public", { capacity: 2 });
+
+  expect(lobby.capacity).toBe(2);
+});
+
+test("Should_KeepLobbyAndCodeWithNewSettings_When_HostChangesSettings", async () => {
+  const lobby = await createLobby((await newUser()).id, "public");
+  const settings = {
+    textLanguage: "en" as const,
+    textLength: 200,
+    errorMode: "tolerant" as const,
+    timeLimitSeconds: null,
+    capacity: 8,
+  };
+
+  await updateLobbySettings(lobby.id, settings);
+
+  expect(await findOpenLobby(lobby.code)).toMatchObject({
+    id: lobby.id,
+    visibility: "public",
+    ...settings,
+  });
 });
 
 test("Should_FindLobby_When_CodeIsTypedInLowercase", async () => {

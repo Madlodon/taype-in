@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -39,6 +40,8 @@ export const users = pgTable(
     stadium: text("stadium").notNull().default("diorama"),
     // Rang façon Rocket League (#99) : 0 = Bronze I div. I, voir lib/ranks.ts.
     rankLevel: integer("rank_level").notNull().default(0),
+    // XP cumulée (#35) ; le niveau en découle, voir lib/xp.ts.
+    xp: integer("xp").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -48,6 +51,21 @@ export const users = pgTable(
     uniqueIndex("users_username_lower_idx").on(sql`lower(${table.username})`),
   ],
 );
+
+// postgres-js renvoie un Buffer pour une colonne bytea.
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
+
+// Photo de profil (PROF-1) ; tout l'accès passe par lib/avatars.ts.
+export const avatars = pgTable("avatars", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  data: bytea("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
@@ -82,6 +100,8 @@ export const lobbies = pgTable("lobbies", {
   errorMode: errorModeEnum("error_mode").notNull().default("blocking"),
   // Minuterie de la course, 5 min par défaut ; null = pas de minuterie (CRS-4).
   timeLimitSeconds: integer("time_limit_seconds").default(300),
+  // Capacité maximale choisie par l'hôte, de 2 à 30 (SALLE-05).
+  capacity: integer("capacity").notNull().default(30),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -104,7 +124,11 @@ export const lobbyParticipants = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.lobbyId, table.userId] })],
+  (table) => [
+    primaryKey({ columns: [table.lobbyId, table.userId] }),
+    // SALLE-06 : une personne n'est que dans un lobby à la fois.
+    uniqueIndex("lobby_participants_user_id_idx").on(table.userId),
+  ],
 );
 
 // Liens d'invitation à usage unique d'une course privée (LOB-3).

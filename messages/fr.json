@@ -32,6 +32,7 @@
   "Lobbies": {
     "title": "Courses",
     "create": "Créer une course",
+    "signUpToCreate": "Crée un compte pour créer une course",
     "joinByCode": "Rejoindre avec un code",
     "publicRaces": "Courses publiques",
     "noPublicRaces": "Aucune course publique pour le moment.",
@@ -59,8 +60,11 @@
     "blocking": "Bloquant : il faut taper le bon caractère pour continuer",
     "tolerant": "Tolérant : on continue et on peut corriger avec Retour arrière",
     "timer": "Minuterie",
-    "timerMinutes": "Durée en minutes (jusqu'à {max})",
+    "timerDuration": "Durée",
+    "timerOption": "{minutes, plural, =0 {{seconds} s} other {# min{seconds, plural, =0 {} other { {seconds}}}}}",
     "noTimer": "Pas de minuterie",
+    "capacity": "Capacité maximale",
+    "participants": "{count} participants",
     "submit": "Créer la course"
   },
   "LobbyRoom": {
@@ -72,8 +76,7 @@
     "host": "(hôte)",
     "close": "Fermer la course",
     "confirmClose": "Fermer la course ? Tous les participants seront renvoyés à la liste des courses.",
-    "start": "Lancer la course",
-    "needMore": "Il faut au moins {count} participants pour lancer la course.",
+    "needMore": "Il faut au moins {count} participants pour lancer la course : invite un joueur ou ajoute un bot.",
     "countdown": "Départ dans {seconds}",
     "raceText": "Texte de la course",
     "timeLeft": "Temps restant : {time}",
@@ -86,22 +89,56 @@
     "you": "(toi)",
     "percent": "{value} %",
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
+    "overtake": {
+      "up": "Tu as dépassé {names} · {rank, selectordinal, one {#er} other {#e}}",
+      "down": "{names} {count, plural, one {t'a dépassé} other {t'ont dépassé}} · {rank, selectordinal, one {#er} other {#e}}"
+    },
     "giveUp": "Abandonner",
     "confirmGiveUp": "Abandonner la course ? Tu deviendras spectateur et ne pourras plus taper.",
+    "confirmLeaveOther": "Tu es déjà dans un autre lobby. Le quitter pour rejoindre celui-ci ?",
     "gaveUp": "Tu as abandonné : tu regardes la fin de la course.",
     "errors": {
       "notLoggedIn": "Non connecté",
       "invalidMessage": "Message invalide",
       "lobbyNotFound": "Course introuvable",
       "notHost": "Seul l'hôte peut faire ça",
-      "lobbyFull": "La course est pleine (300 participants)",
+      "lobbyFull": "La course est pleine",
       "notEnoughParticipants": "Il faut au moins 2 participants",
       "raceInProgress": "Une course est déjà en cours",
       "noText": "Aucun texte disponible dans cette langue",
       "raceNotRunning": "Aucune course en cours",
       "notRacer": "Tu ne cours pas dans cette course",
-      "cannotGiveUp": "Tu ne peux plus abandonner"
+      "cannotGiveUp": "Tu ne peux plus abandonner",
+      "raceNotFinished": "La course n'est pas terminée",
+      "botNotFound": "Bot introuvable",
+      "noHumanRacer": "Il faut au moins un joueur humain qui court",
+      "leftForOtherLobby": "Tu as rejoint un autre lobby. Tu n'es plus dans celui-ci."
+    },
+    "startRacing": "Lancer et courir",
+    "startWatching": "Lancer et regarder",
+    "needMoreWatching": "Pour regarder sans courir, il faut au moins {count} autres participants.",
+    "needHumanWatching": "Pour regarder sans courir, il faut au moins un autre joueur humain : les bots ne courent pas seuls.",
+    "watching": "(regarde)",
+    "hostWatching": "Tu regardes la course sans courir.",
+    "relaunch": "Relancer la course",
+    "waitingForHost": "En attente de l'hôte : il choisit les réglages et lance la prochaine course.",
+    "bot": "Bot",
+    "botName": "Bot {level} {number}",
+    "botLevel": "Niveau du bot",
+    "addBot": "Ajouter un bot",
+    "removeBot": "Retirer",
+    "botLevels": {
+      "beginner": "Débutant",
+      "intermediate": "Intermédiaire",
+      "advanced": "Avancé",
+      "expert": "Expert"
     }
+  },
+  "LobbySettings": {
+    "title": "Réglages de la prochaine course",
+    "description": "Change les réglages, puis lance la course depuis la salle d'attente.",
+    "back": "Retour à la salle d'attente",
+    "submit": "Enregistrer et retourner à la salle"
   },
   "RaceResults": {
     "title": "Résultats",
@@ -118,6 +155,11 @@
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
     "notFinished": "Non terminé",
+    "xpGained": "+{value} XP",
+    "levelUp": "Niveau supérieur ! Niveau {level}",
+    "currentLevel": "Niveau {level}",
+    "unlocked": "Débloqué : {items}.",
+    "toGarage": "Voir au garage",
     "you": "(toi)",
     "level": "Niveau",
     "rankName": "{tier} {subRank} · Div. {division}",
@@ -134,6 +176,22 @@
       "grandChampion": "Grand champion",
       "supersonicLegend": "Légende supersonique"
     }
+  },
+  "KeyboardHeatmap": {
+    "title": "Heatmap du clavier",
+    "show": "Afficher",
+    "wholeRace": "Toute la course",
+    "space": "Espace",
+    "errors": "{count, plural, one {# faute} other {# fautes}}",
+    "noErrors": "Aucune faute : une course parfaite !",
+    "extras": "Autres caractères"
+  },
+  "SessionStats": {
+    "title": "{count, plural, one {Cette session : # course} other {Cette session : # courses d’affilée}}",
+    "averageWpm": "Vitesse moyenne (MPM)",
+    "bestWpm": "Meilleure vitesse (MPM)",
+    "averageAccuracy": "Précision moyenne",
+    "percent": "{value} %"
   },
   "RaceTyping": {
     "label": "Tape le texte",
@@ -180,7 +238,7 @@
     "navigation": "Navigation principale",
     "home": "Accueil",
     "play": "Trouver une course",
-    "preview": "L’arène",
+    "preview": "Entraînement",
     "skip": "Aller au contenu",
     "heroTag": "Ton clavier. Ton moteur.",
     "heroTitle": "Tape vite.",
@@ -256,10 +314,16 @@
   "Profile": {
     "eyebrow": "Profil de pilote",
     "you": "Toi",
+    "level": "Niveau {level}",
+    "levelProgress": "Progression vers le niveau suivant",
+    "xpToNext": "{current} / {needed} XP",
     "stats": "Statistiques globales",
     "bestWpm": "Meilleure vitesse (MPM)",
     "averageWpm": "Vitesse moyenne (MPM)",
     "averageAccuracy": "Précision moyenne",
+    "progression": "Progression",
+    "progressionHint": "{count, plural, one {Dernière course} other {# dernières courses}}, sans bonus.",
+    "noProgression": "Termine une course sans bonus pour voir ta progression.",
     "history": "Historique des courses",
     "noRaces": "Aucune course pour l’instant.",
     "date": "Date",
@@ -271,12 +335,25 @@
     "hardestKeys": "Touches les plus difficiles",
     "noHardKeys": "Aucune faute enregistrée.",
     "space": "Espace",
-    "errors": "{count, plural, one {# faute} other {# fautes}}"
+    "errors": "{count, plural, one {# faute} other {# fautes}}",
+    "photo": {
+      "label": "Photo de profil (PNG, JPEG ou WebP, 2 Mo max)",
+      "upload": "Téléverser",
+      "replace": "Remplacer",
+      "remove": "Retirer la photo",
+      "errors": {
+        "tooLarge": "Ce fichier dépasse 2 Mo.",
+        "type": "Choisis une image PNG, JPEG ou WebP.",
+        "missing": "Choisis une image.",
+        "guest": "Crée un compte pour avoir une photo de profil."
+      }
+    }
   },
   "Garage": {
     "tag": "Ton bolide. Ton style.",
     "title": "Garage",
     "description": "Choisis ta voiture, tes accessoires et ton stade. Purement esthétique : ta vitesse ne change jamais.",
+    "lockedAt": "Niveau {level}",
     "categories": {
       "car": "Voiture",
       "boost": "Boost",
@@ -328,7 +405,8 @@
     "signUp": "Créer un compte",
     "errors": {
       "guest": "Crée un compte pour enregistrer ton garage.",
-      "invalid": "Cet objet n'existe pas."
+      "invalid": "Cet objet n'existe pas.",
+      "locked": "Cet objet n'est pas encore débloqué."
     },
     "stadiumPreview": "Aperçu du stade"
   }

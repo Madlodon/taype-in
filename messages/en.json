@@ -32,6 +32,7 @@
   "Lobbies": {
     "title": "Races",
     "create": "Create a race",
+    "signUpToCreate": "Create an account to host a race",
     "joinByCode": "Join with a code",
     "publicRaces": "Public races",
     "noPublicRaces": "No public races right now.",
@@ -59,8 +60,11 @@
     "blocking": "Blocking: you must type the right character to keep going",
     "tolerant": "Tolerant: you keep going and can fix with Backspace",
     "timer": "Timer",
-    "timerMinutes": "Duration in minutes (up to {max})",
+    "timerDuration": "Duration",
+    "timerOption": "{minutes, plural, =0 {{seconds} s} other {# min{seconds, plural, =0 {} other { {seconds}}}}}",
     "noTimer": "No timer",
+    "capacity": "Maximum capacity",
+    "participants": "{count} participants",
     "submit": "Create the race"
   },
   "LobbyRoom": {
@@ -72,8 +76,7 @@
     "host": "(host)",
     "close": "Close the race",
     "confirmClose": "Close the race? Every participant will be sent back to the race list.",
-    "start": "Start the race",
-    "needMore": "At least {count} participants are needed to start the race.",
+    "needMore": "At least {count} participants are needed to start the race: invite a player or add a bot.",
     "countdown": "Starting in {seconds}",
     "raceText": "Race text",
     "timeLeft": "Time left: {time}",
@@ -86,22 +89,56 @@
     "you": "(you)",
     "percent": "{value}%",
     "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
+    "overtake": {
+      "up": "You passed {names} · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+      "down": "{names} passed you · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}"
+    },
     "giveUp": "Give up",
     "confirmGiveUp": "Give up the race? You'll become a spectator and won't be able to type anymore.",
+    "confirmLeaveOther": "You're already in another lobby. Leave it to join this one?",
     "gaveUp": "You gave up: you're watching the rest of the race.",
     "errors": {
       "notLoggedIn": "Not logged in",
       "invalidMessage": "Invalid message",
       "lobbyNotFound": "Race not found",
       "notHost": "Only the host can do this",
-      "lobbyFull": "The race is full (300 participants)",
+      "lobbyFull": "The race is full",
       "notEnoughParticipants": "At least 2 participants are needed",
       "raceInProgress": "A race is already running",
       "noText": "No text available in this language",
       "raceNotRunning": "No race is running",
       "notRacer": "You are not racing in this race",
-      "cannotGiveUp": "You can't give up anymore"
+      "cannotGiveUp": "You can't give up anymore",
+      "raceNotFinished": "The race isn't over",
+      "botNotFound": "Bot not found",
+      "noHumanRacer": "At least one human player must race",
+      "leftForOtherLobby": "You joined another lobby. You're no longer in this one."
+    },
+    "startRacing": "Start and race",
+    "startWatching": "Start and watch",
+    "needMoreWatching": "To watch without racing, you need at least {count} other participants.",
+    "needHumanWatching": "To watch without racing, you need at least one other human player: bots can't race alone.",
+    "watching": "(watching)",
+    "hostWatching": "You're watching this race without racing.",
+    "relaunch": "Relaunch the race",
+    "waitingForHost": "Waiting for the host to choose the settings and start the next race.",
+    "bot": "Bot",
+    "botName": "Bot {level} {number}",
+    "botLevel": "Bot level",
+    "addBot": "Add a bot",
+    "removeBot": "Remove",
+    "botLevels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced",
+      "expert": "Expert"
     }
+  },
+  "LobbySettings": {
+    "title": "Next race settings",
+    "description": "Change the settings, then start the race from the waiting room.",
+    "back": "Back to the waiting room",
+    "submit": "Save and go back to the room"
   },
   "RaceResults": {
     "title": "Results",
@@ -118,6 +155,11 @@
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
     "notFinished": "Not finished",
+    "xpGained": "+{value} XP",
+    "levelUp": "Level up! Level {level}",
+    "currentLevel": "Level {level}",
+    "unlocked": "Unlocked: {items}.",
+    "toGarage": "See in the garage",
     "you": "(you)",
     "level": "Level",
     "rankName": "{tier} {subRank} · Div. {division}",
@@ -134,6 +176,22 @@
       "grandChampion": "Grand Champion",
       "supersonicLegend": "Supersonic Legend"
     }
+  },
+  "KeyboardHeatmap": {
+    "title": "Keyboard heatmap",
+    "show": "Show",
+    "wholeRace": "Whole race",
+    "space": "Space",
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "noErrors": "No errors: a clean race!",
+    "extras": "Other characters"
+  },
+  "SessionStats": {
+    "title": "{count, plural, one {This session: # race} other {This session: # races in a row}}",
+    "averageWpm": "Average speed (WPM)",
+    "bestWpm": "Best speed (WPM)",
+    "averageAccuracy": "Average accuracy",
+    "percent": "{value}%"
   },
   "RaceTyping": {
     "label": "Type the text",
@@ -180,7 +238,7 @@
     "navigation": "Main navigation",
     "home": "Home",
     "play": "Find a race",
-    "preview": "The arena",
+    "preview": "Practice",
     "skip": "Skip to content",
     "heroTag": "Your keyboard. Your horsepower.",
     "heroTitle": "Type fast.",
@@ -256,10 +314,16 @@
   "Profile": {
     "eyebrow": "Driver profile",
     "you": "You",
+    "level": "Level {level}",
+    "levelProgress": "Progress to the next level",
+    "xpToNext": "{current} / {needed} XP",
     "stats": "Overall stats",
     "bestWpm": "Best speed (WPM)",
     "averageWpm": "Average speed (WPM)",
     "averageAccuracy": "Average accuracy",
+    "progression": "Progression",
+    "progressionHint": "{count, plural, one {Last race} other {Last # races}}, without bonuses.",
+    "noProgression": "Finish a race without bonuses to see your progress.",
     "history": "Race history",
     "noRaces": "No races yet.",
     "date": "Date",
@@ -271,12 +335,25 @@
     "hardestKeys": "Hardest keys",
     "noHardKeys": "No errors recorded.",
     "space": "Space",
-    "errors": "{count, plural, one {# error} other {# errors}}"
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "photo": {
+      "label": "Profile photo (PNG, JPEG or WebP, 2 MB max)",
+      "upload": "Upload",
+      "replace": "Replace",
+      "remove": "Remove photo",
+      "errors": {
+        "tooLarge": "This file is larger than 2 MB.",
+        "type": "Choose a PNG, JPEG or WebP image.",
+        "missing": "Choose an image.",
+        "guest": "Create an account to have a profile photo."
+      }
+    }
   },
   "Garage": {
     "tag": "Your ride. Your style.",
     "title": "Garage",
     "description": "Pick your car, accessories, and stadium. Purely cosmetic: it never changes your speed.",
+    "lockedAt": "Level {level}",
     "categories": {
       "car": "Car",
       "boost": "Boost",
@@ -328,7 +405,8 @@
     "signUp": "Create an account",
     "errors": {
       "guest": "Create an account to save your garage.",
-      "invalid": "This item doesn't exist."
+      "invalid": "This item doesn't exist.",
+      "locked": "This item isn't unlocked yet."
     },
     "stadiumPreview": "Stadium preview"
   }

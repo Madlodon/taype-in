@@ -1,4 +1,4 @@
-// Création et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10).
+// Création, réglages et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10, SALLE-06).
 import { randomBytes, randomInt } from "node:crypto";
 import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.ts";
@@ -10,13 +10,14 @@ export type Participant = { id: string; username: string };
 // Sans 0/O, 1/I/L : le code se dicte et se recopie sans confusion.
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const CODE_LENGTH = 6;
-// LOB-6 : 300 participants au maximum.
-export const MAX_PARTICIPANTS = 300;
+// SALLE-05 : capacité choisie par l'hôte, de 2 à 30 participants, 30 par défaut.
+export const CAPACITY_OPTIONS = Array.from({ length: 29 }, (_, i) => i + 2);
+export const MAX_CAPACITY = 30;
 // Un lien par participant possible.
-export const MAX_INVITES = MAX_PARTICIPANTS;
-// CRS-4 : minuterie de 5 min par défaut, 24 h au maximum.
-export const DEFAULT_TIMER_MINUTES = 5;
-export const MAX_TIMER_MINUTES = 24 * 60;
+export const MAX_INVITES = MAX_CAPACITY;
+// CONF-01 : minuterie de 30 s à 10 min par pas de 30 s, 5 min par défaut.
+export const TIMER_OPTIONS = Array.from({ length: 20 }, (_, i) => (i + 1) * 30);
+export const DEFAULT_TIMER_SECONDS = 300;
 
 export function generateLobbyCode(): string {
   let code = "";
@@ -34,9 +35,7 @@ export function normalizeCode(input: string): string {
 export async function createLobby(
   hostId: string,
   visibility: Lobby["visibility"],
-  settings?: Partial<
-    Pick<Lobby, "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds">
-  >,
+  settings?: Partial<LobbySettings>,
 ): Promise<Lobby> {
   // On réessaie en cas de collision avec un code existant.
   for (;;) {
@@ -47,6 +46,16 @@ export async function createLobby(
       .returning();
     if (lobby) return lobby;
   }
+}
+
+export type LobbySettings = Pick<
+  Lobby,
+  "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds" | "capacity"
+>;
+
+// Nouveaux réglages avant de relancer le lobby ; copiés dans la prochaine course (LOB-9).
+export async function updateLobbySettings(lobbyId: string, settings: LobbySettings) {
+  await db.update(lobbies).set(settings).where(eq(lobbies.id, lobbyId));
 }
 
 export async function findOpenLobby(code: string): Promise<Lobby | null> {
@@ -140,11 +149,24 @@ export async function listPublicLobbies(): Promise<
     .orderBy(desc(lobbies.createdAt));
 }
 
-export async function addParticipant(lobbyId: string, userId: string) {
+// Le lobby où la personne est déjà, s'il y en a un (SALLE-06).
+export async function findParticipantLobby(userId: string): Promise<Lobby | null> {
+  const [row] = await db
+    .select({ lobby: lobbies })
+    .from(lobbyParticipants)
+    .innerJoin(lobbies, eq(lobbyParticipants.lobbyId, lobbies.id))
+    .where(eq(lobbyParticipants.userId, userId));
+  return row?.lobby ?? null;
+}
+
+// Déjà là (autre onglet) : rien ne change. Renvoie false si la personne est
+// dans un autre lobby : la base n'en permet qu'un à la fois (SALLE-06).
+export async function addParticipant(lobbyId: string, userId: string): Promise<boolean> {
   await db
     .insert(lobbyParticipants)
     .values({ lobbyId, userId })
     .onConflictDoNothing();
+  return (await findParticipantLobby(userId))?.id === lobbyId;
 }
 
 export async function removeParticipant(lobbyId: string, userId: string) {

@@ -28,3 +28,38 @@ export const loadoutSchema = z.object({
   ball: z.enum(BALLS),
   stadium: z.enum(STADIUMS).default(DEFAULT_LOADOUT.stadium),
 });
+
+export type Category = "car" | "boost" | "hat" | "ball";
+export const CATEGORIES = ["car", "boost", "hat", "ball"] as const satisfies Category[];
+
+// Niveau requis pour chaque objet (#35) ; absent = libre (choix par défaut). Les stades sont libres.
+export const UNLOCK_LEVELS: { [C in Category]: Partial<Record<Loadout[C], number>> } = {
+  car: { merc: 4, dominus: 7, fennec: 12 },
+  boost: { flames: 3, ion: 6, sparkles: 10, alpha: 15 },
+  hat: { cone: 2, wizard: 7, "top-hat": 8, pirate: 12, "alpha-cap": 15 },
+  ball: { beach: 2, emerald: 5, glacier: 8, solar: 14, gold: 15 },
+};
+
+export function unlockLevel<C extends Category>(category: C, item: Loadout[C]): number {
+  return UNLOCK_LEVELS[category][item] ?? 1;
+}
+
+// Objets débloqués en passant du niveau from au niveau to.
+export function unlockedBetween(from: number, to: number): { category: Category; item: string }[] {
+  return CATEGORIES.flatMap((category) =>
+    Object.entries(UNLOCK_LEVELS[category])
+      .filter(([, level]) => level! > from && level! <= to)
+      .map(([item]) => ({ category, item })),
+  );
+}
+
+// Un objet trop haut pour le niveau revient au choix par défaut.
+export function lockLoadout(loadout: Loadout, level: number): Loadout {
+  const locked = { ...loadout };
+  for (const category of CATEGORIES) {
+    if (unlockLevel(category, loadout[category]) > level) {
+      (locked as Record<Category, string>)[category] = DEFAULT_LOADOUT[category];
+    }
+  }
+  return locked;
+}

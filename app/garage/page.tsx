@@ -4,6 +4,7 @@ import { saveLoadoutAction } from "@/app/actions/garage";
 import { GarageForm } from "@/components/garage-form";
 import { getLoadout } from "@/lib/garage";
 import { getCurrentUser } from "@/lib/session-cookie";
+import { levelFromXp } from "@/lib/xp";
 
 export default async function GaragePage() {
   const user = await getCurrentUser();
@@ -18,7 +19,12 @@ export default async function GaragePage() {
           <p className="description">{t("description")}</p>
         </div>
       </div>
-      <GarageForm action={saveLoadoutAction} initial={await getLoadout(user.id)} guest={user.isGuest} />
+      <GarageForm
+        action={saveLoadoutAction}
+        initial={await getLoadout(user.id)}
+        guest={user.isGuest}
+        level={levelFromXp(user.xp)}
+      />
     </main>
   );
 }

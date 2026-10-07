@@ -1,22 +1,31 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { withoutRemoved, restoreRemoved, type RemovedWord } from "@/lib/race-goals";
 import { applyInput, EMPTY_TYPING, type ErrorMode, type Typing } from "@/lib/typing";
 
 // onProgress reçoit la saisie après chaque frappe ; initial = saisie reprise après une reconnexion (CRS-6).
+// children s'affiche entre le texte et le champ, là où les yeux restent pendant la frappe.
 type Props = {
   content: string;
   errorMode: ErrorMode;
   initial?: Typing;
   removed?: RemovedWord[];
   onProgress?: (typing: Typing) => void;
+  children?: ReactNode;
 };
 
 // Zone de frappe pendant la course : seulement le texte, le champ et les fautes (CRS-8).
 // Le caractère fautif est mis en évidence (ERR-2).
-export function RaceTyping({ content, errorMode, initial = EMPTY_TYPING, removed = [], onProgress }: Props) {
+export function RaceTyping({
+  content,
+  errorMode,
+  initial = EMPTY_TYPING,
+  removed = [],
+  onProgress,
+  children,
+}: Props) {
   const t = useTranslations("RaceTyping");
   const [typing, setTyping] = useState(initial);
   // Pendant une composition (accent circonflexe, tréma…), le champ garde la saisie en cours.
@@ -52,6 +61,7 @@ export function RaceTyping({ content, errorMode, initial = EMPTY_TYPING, removed
           </span>
         ))}
       </p>
+      {children}
       <label htmlFor="race-typing" className="field mb-3">
         {t("label")}
       </label>
