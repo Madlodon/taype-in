@@ -175,7 +175,76 @@ Socket.IO auto-hébergé, sur le même serveur HTTP et le même port que Next.js
 - Pendant la course, chaque client envoie sa saisie ; le serveur la valide (Zod), calcule les positions et les diffuse à tous, au plus toutes les 250 ms et seulement si quelqu'un a bougé.
 - La base reçoit les résultats à la fin de la course seulement.
 
+### Flux des messages
+
+La connexion Socket.IO porte le cookie de session : sans session valide, le serveur la refuse (`notLoggedIn`). Chaque message envoyé par le client reçoit un accusé (`ack`) `{ ok: true }` ou `{ ok: false, error }`.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant H as Hôte
+    participant J as Joueur
+    participant S as Serveur (socket-server.ts)
+    participant DB as PostgreSQL
+
+    J->>S: lobby:join { code }
+    S->>DB: ajoute le participant
+    S-->>J: ack { ok }
+    S-->>H: lobby:participants
+    S-->>J: lobby:participants
+
+    H->>S: race:start { watch }
+    S->>DB: crée la course (texte, réglages)
+    S-->>H: race:countdown { seconds: 3 }
+    S-->>J: race:countdown { seconds: 3 }
+    Note over S: 3 secondes
+    S->>DB: course démarrée
+    S-->>H: race:started { content, errorMode, racerIds, secondsLeft }
+    S-->>J: race:started { … }
+
+    loop à chaque frappe
+        J->>S: race:progress { typed, errors, keys, keyErrors }
+        S-->>J: ack
+        Note over S: validation Zod, position mise à jour
+    end
+    loop toutes les 250 ms, si quelqu'un a bougé
+        S-->>H: race:positions
+        S-->>J: race:positions
+    end
+    opt phrase terminée (bonus)
+        S-->>H: race:shot { id, sequence, scored }
+        S-->>J: race:shot { … }
+        S-->>J: race:goal { removed, word } (si but)
+    end
+
+    Note over S: tous finis, minuterie écoulée ou 2 min sans frappe
+    S->>DB: résultats, rangs, XP
+    S-->>H: race:ended { reason, results }
+    S-->>J: race:ended { reason, results }
+```
+
+| Message                             | Sens                      | Rôle                                                                                                   |
+| ----------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `lobby:join`                        | client → serveur          | Entrer dans un lobby par son code. Refus possibles : introuvable, plein, course en cours, autre lobby. |
+| `lobby:participants`                | serveur → lobby           | Liste à jour des participants (joueurs et bots) après chaque arrivée ou départ.                        |
+| `lobby:addBot` / `lobby:removeBot`  | hôte → serveur            | Ajouter ou retirer un bot dans la salle d'attente.                                                     |
+| `lobby:left`                        | serveur → onglet          | La personne a rejoint un autre lobby : ses autres onglets sortent de celui-ci.                         |
+| `race:start`                        | hôte → serveur            | Lancer la course ; `watch` pour regarder sans courir.                                                  |
+| `race:countdown`                    | serveur → lobby           | Début du compte à rebours (3 s).                                                                       |
+| `race:started`                      | serveur → lobby           | Texte, mode d'erreur et coureurs. Un coureur qui revient reçoit aussi sa saisie (`mine`).              |
+| `race:progress`                     | coureur → serveur         | Saisie complète du coureur ; le serveur en déduit la position.                                         |
+| `race:positions`                    | serveur → lobby           | Classement en direct, au plus toutes les 250 ms.                                                       |
+| `race:shot` / `race:goal`           | serveur → lobby / coureur | Tir à la fin d'une phrase ; en cas de but, le mot retiré du texte de ce coureur.                       |
+| `race:giveUp`                       | coureur → serveur         | Abandonner ; la course continue sans lui.                                                              |
+| `race:ended`                        | serveur → lobby           | Raison de la fin et résultats.                                                                         |
+| `lobby:restart` / `lobby:restarted` | hôte → serveur → lobby    | Revenir aux réglages pour une nouvelle course.                                                         |
+| `lobby:close` / `lobby:closed`      | hôte → serveur → lobby    | Fermer le lobby ; tout le monde est renvoyé à la liste.                                                |
+
+**Reconnexion** : un coureur qui recharge la page renvoie `lobby:join`. Le serveur le remet dans la course et lui renvoie `race:started` avec sa saisie, puis `race:positions`. Après la fin, il reçoit directement `race:ended`.
+
 ## Bots
+
+Le choix d'un moteur côté serveur et les options écartées sont dans l'[ADR 0002](adr/0002-bots.md).
 
 ### Aujourd'hui ([#76](https://github.com/Madlodon/taype-in/issues/76))
 
