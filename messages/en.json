@@ -63,6 +63,8 @@
     "timerDuration": "Duration",
     "timerOption": "{minutes, plural, =0 {{seconds} s} other {# min{seconds, plural, =0 {} other { {seconds}}}}}",
     "noTimer": "No timer",
+    "capacity": "Maximum capacity",
+    "participants": "{count} participants",
     "submit": "Create the race"
   },
   "LobbyRoom": {
@@ -99,7 +101,7 @@
       "invalidMessage": "Invalid message",
       "lobbyNotFound": "Race not found",
       "notHost": "Only the host can do this",
-      "lobbyFull": "The race is full (300 participants)",
+      "lobbyFull": "The race is full",
       "notEnoughParticipants": "At least 2 participants are needed",
       "raceInProgress": "A race is already running",
       "noText": "No text available in this language",

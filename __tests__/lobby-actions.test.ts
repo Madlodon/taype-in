@@ -25,6 +25,8 @@ vi.mock("../lib/lobbies", () => ({
   MAX_INVITES: 300,
   DEFAULT_TIMER_SECONDS: 300,
   TIMER_OPTIONS: Array.from({ length: 20 }, (_, i) => (i + 1) * 30),
+  CAPACITY_OPTIONS: Array.from({ length: 29 }, (_, i) => i + 2),
+  MAX_CAPACITY: 30,
   canEnterLobby: vi.fn(),
   claimInvite: vi.fn(),
   createInvites: vi.fn(),
@@ -57,6 +59,7 @@ const aLobby = {
   textLength: 100,
   errorMode: "blocking" as const,
   timeLimitSeconds: 300,
+  capacity: 30,
   createdAt: new Date(),
   closedAt: null,
 };
@@ -133,6 +136,7 @@ test("Should_SaveTextSettings_When_HostPicksLanguageAndLength", async () => {
     textLength: 200,
     errorMode: "blocking",
     timeLimitSeconds: 300,
+    capacity: 30,
   });
 });
 
@@ -147,6 +151,7 @@ test.each([
     textLength: 100,
     errorMode: "blocking",
     timeLimitSeconds: 300,
+    capacity: 30,
   });
 });
 
@@ -208,6 +213,33 @@ test("Should_SaveNoTimer_When_HostChecksNoTimer", async () => {
     expect.objectContaining({ timeLimitSeconds: null }),
   );
 });
+
+test.each([
+  ["2", 2],
+  ["8", 8],
+  ["30", 30],
+])("Should_SaveCapacity_When_HostPicks_%s", async (capacity, count) => {
+  await expect(createLobbyAction(form({ capacity }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ capacity: count }),
+  );
+});
+
+test.each([["1"], ["31"], ["0"], ["-2"], ["2.5"], ["300"], ["abc"]])(
+  "Should_UseThirty_When_CapacityIs_%s",
+  async (capacity) => {
+    await expect(createLobbyAction(form({ capacity }))).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.createLobby).toHaveBeenCalledWith(
+      "user-1",
+      "unlisted",
+      expect.objectContaining({ capacity: 30 }),
+    );
+  },
+);
 
 test("Should_RedirectToLobby_When_CodeMatchesOpenLobby", async () => {
   vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
@@ -381,7 +413,14 @@ describe("updateLobbySettingsAction", () => {
 
     await expect(
       updateLobbySettingsAction(
-        form({ code: "K7P3XM", textLanguage: "en", textLength: "50", errorMode: "tolerant", noTimer: "on" }),
+        form({
+          code: "K7P3XM",
+          textLanguage: "en",
+          textLength: "50",
+          errorMode: "tolerant",
+          noTimer: "on",
+          capacity: "4",
+        }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
 
@@ -390,6 +429,7 @@ describe("updateLobbySettingsAction", () => {
       textLength: 50,
       errorMode: "tolerant",
       timeLimitSeconds: null,
+      capacity: 4,
     });
     expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
   });
