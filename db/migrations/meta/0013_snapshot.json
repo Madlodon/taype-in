@@ -1,6 +1,6 @@
 {
-  "id": "cabbf577-7649-4a5b-8d8d-e19b66ddfa1a",
-  "prevId": "1865445c-a224-4fde-8620-1a0b29ace19a",
+  "id": "81c61cbd-5ba9-4681-8eb4-966928e230a6",
+  "prevId": "cabbf577-7649-4a5b-8d8d-e19b66ddfa1a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -279,7 +279,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "lobby_participants_user_id_idx": {
+          "name": "lobby_participants_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "lobby_participants_lobby_id_lobbies_id_fk": {
           "name": "lobby_participants_lobby_id_lobbies_id_fk",

@@ -89,8 +89,15 @@
     {
       "idx": 12,
       "version": "7",
-      "when": 1791332841694,
-      "tag": "0012_one_lobby_per_user",
+      "when": 1791332885314,
+      "tag": "0012_capacity",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791333701159,
+      "tag": "0013_one_lobby_per_user",
       "breakpoints": true
     }
   ]

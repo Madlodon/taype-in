@@ -16,7 +16,6 @@ import {
   createLobby,
   findOpenLobby,
   listParticipants,
-  MAX_PARTICIPANTS,
   updateLobbySettings,
 } from "../lib/lobbies";
 import { createSocketServer } from "../lib/socket-server";
@@ -198,9 +197,26 @@ describe("lobby:join", () => {
     expect(await join(client, payload)).toEqual({ ok: false, error: "invalidMessage" });
   });
 
-  test("Should_AckLobbyFull_When_LobbyHasMaxParticipants", async () => {
+  test("Should_AckLobbyFull_When_LobbyReachedItsCapacity", async () => {
+    const lobby = await createLobby((await newUser()).id, "unlisted", { capacity: 4 });
+    await fillLobby(lobby.id, 4);
+
+    expect(await join(await newClient(), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "lobbyFull",
+    });
+  });
+
+  test("Should_AckOk_When_LobbyHasOneSeatLeft", async () => {
+    const lobby = await createLobby((await newUser()).id, "unlisted", { capacity: 4 });
+    await fillLobby(lobby.id, 3);
+
+    expect(await join(await newClient(), { code: lobby.code })).toEqual({ ok: true });
+  });
+
+  test("Should_AckLobbyFull_When_DefaultCapacityOf30IsReached", async () => {
     const lobby = await createLobby((await newUser()).id, "unlisted");
-    await fillLobby(lobby.id, MAX_PARTICIPANTS);
+    await fillLobby(lobby.id, 30);
 
     expect(await join(await newClient(), { code: lobby.code })).toEqual({
       ok: false,
@@ -209,10 +225,53 @@ describe("lobby:join", () => {
   });
 
   test("Should_AckOk_When_LobbyIsFullButPlayerIsAlreadyIn", async () => {
-    const lobby = await createLobby((await newUser()).id, "unlisted");
-    const [first] = await fillLobby(lobby.id, MAX_PARTICIPANTS);
+    const lobby = await createLobby((await newUser()).id, "unlisted", { capacity: 2 });
+    const [first] = await fillLobby(lobby.id, 2);
 
     expect(await join(await newClient(first), { code: lobby.code })).toEqual({ ok: true });
+  });
+
+  test("Should_AckLobbyFull_When_HostLoweredCapacityBelowPeopleInRoom", async () => {
+    const { lobby } = await lobbyWithTwo();
+    await updateLobbySettings(lobby.id, {
+      textLanguage: "fr",
+      textLength: 100,
+      errorMode: "blocking",
+      timeLimitSeconds: 300,
+      capacity: 2,
+    });
+
+    expect(await join(await newClient(), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "lobbyFull",
+    });
+  });
+
+  test("Should_KeepEveryone_When_HostLoweredCapacityBelowPeopleInRoom", async () => {
+    const { lobby } = await lobbyWithTwo({ capacity: 3 });
+    await join(await newClient(), { code: lobby.code });
+    await updateLobbySettings(lobby.id, {
+      textLanguage: "fr",
+      textLength: 100,
+      errorMode: "blocking",
+      timeLimitSeconds: 300,
+      capacity: 2,
+    });
+
+    expect(await listParticipants(lobby.id)).toHaveLength(3);
+  });
+
+  test("Should_LeaveWatchingHostOutOfRacers_When_LobbyIsFull", async () => {
+    const { host, hostClient, guestClient, lobby } = await lobbyWithTwo({ capacity: 3 });
+    const third = await newClient();
+    await join(third, { code: lobby.code });
+    const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
+
+    expect(await hostClient.emitWithAck("race:start", { watch: true })).toEqual({ ok: true });
+
+    const { racerIds } = await guestSees;
+    expect(racerIds).toHaveLength(2);
+    expect(racerIds).not.toContain(host.id);
   });
 
   test("Should_SendParticipantListToEveryone_When_PlayerJoins", async () => {
@@ -1212,6 +1271,7 @@ describe("lobby:restart", () => {
       textLength: 50,
       errorMode: "tolerant",
       timeLimitSeconds: null,
+      capacity: 30,
     });
     const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
 
@@ -1522,12 +1582,42 @@ describe("bots", () => {
     expect(await addBot(hostClient, "expert")).toEqual({ ok: false, error: "raceInProgress" });
   });
 
-  test("Should_AckLobbyFull_When_LobbyHasMaxParticipants", async () => {
+  test("Should_AckLobbyFull_When_BotWouldExceedCapacity", async () => {
     const { lobby, hostClient } = await hostAlone();
-    await fillLobby(lobby.id, MAX_PARTICIPANTS - 2);
+    await fillLobby(lobby.id, 28);
 
     expect(await addBot(hostClient, "expert")).toEqual({ ok: true });
     expect(await addBot(hostClient, "expert")).toEqual({ ok: false, error: "lobbyFull" });
+  });
+
+  test("Should_AckLobbyFull_When_HostLoweredCapacityBeforeAddingBot", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo();
+    await updateLobbySettings(lobby.id, {
+      textLanguage: "fr",
+      textLength: 100,
+      errorMode: "blocking",
+      timeLimitSeconds: 300,
+      capacity: 2,
+    });
+
+    expect(await addBot(hostClient, "expert")).toEqual({ ok: false, error: "lobbyFull" });
+  });
+
+  test("Should_RefusePlayer_When_BotsFillTheCapacity", async () => {
+    const { lobby, hostClient } = await hostAlone();
+    await updateLobbySettings(lobby.id, {
+      textLanguage: "fr",
+      textLength: 100,
+      errorMode: "blocking",
+      timeLimitSeconds: 300,
+      capacity: 2,
+    });
+    await addBot(hostClient, "expert");
+
+    expect(await join(await newClient(), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "lobbyFull",
+    });
   });
 
   test("Should_CountBotTowardMinimum_When_HostIsAloneWithABot", async () => {

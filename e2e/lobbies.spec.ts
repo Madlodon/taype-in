@@ -125,6 +125,23 @@ test("Should_ShowError_When_CodeDoesNotExist", async ({ browser }) => {
   );
 });
 
+// SALLE-05 : la salle refuse un participant de plus que la capacité choisie par l'hôte.
+test("Should_RefuseThirdPlayer_When_HostSetCapacityToTwo", async ({ browser }) => {
+  const host = await newHost(browser);
+  const code = await createRace(host.page, /Non répertoriée/, (page) =>
+    page.getByLabel("Capacité maximale").selectOption("2").then(() => undefined),
+  );
+  const second = await newGuest(browser);
+  await second.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+
+  const third = await newGuest(browser);
+  await third.page.goto(`/lobbies/${code}`);
+
+  await expect(third.page.getByText("La course est pleine")).toBeVisible();
+  await expect(participants(host.page)).toHaveCount(2);
+});
+
 test("Should_AskToLogIn_When_NotLoggedIn", async ({ page }) => {
   await page.goto("/lobbies");
 

@@ -5,12 +5,14 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createGuest, createSession } from "@/lib/auth";
 import {
+  CAPACITY_OPTIONS,
   canEnterLobby,
   claimInvite,
   createInvites,
   createLobby,
   DEFAULT_TIMER_SECONDS,
   findOpenLobby,
+  MAX_CAPACITY,
   MAX_INVITES,
   updateLobbySettings,
   TIMER_OPTIONS,
@@ -40,7 +42,13 @@ function parseSettings(formData: FormData): LobbySettings {
     .catch(DEFAULT_TIMER_SECONDS)
     .parse(formData.get("timerSeconds"));
   const timeLimitSeconds = formData.get("noTimer") ? null : timerSeconds;
-  return { textLanguage, textLength, errorMode, timeLimitSeconds };
+  // Capacité de 2 à 30 participants, 30 hors de ces bornes (SALLE-05).
+  const capacity = z.coerce
+    .number()
+    .pipe(z.union(CAPACITY_OPTIONS.map((count) => z.literal(count))))
+    .catch(MAX_CAPACITY)
+    .parse(formData.get("capacity"));
+  return { textLanguage, textLength, errorMode, timeLimitSeconds, capacity };
 }
 
 // Seuls les inscrits créent une course ; l'invité est envoyé à l'inscription (AUTH-03).

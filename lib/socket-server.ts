@@ -12,7 +12,6 @@ import {
   findOpenLobby,
   findParticipantLobby,
   listParticipants,
-  MAX_PARTICIPANTS,
   removeParticipant,
   type Lobby,
 } from "./lobbies.ts";
@@ -349,10 +348,10 @@ export function createSocketServer(
         return;
       }
 
-      // Une place se libère quand quelqu'un part ; déjà présent (autre onglet), on entre (LOB-6).
+      // Une place se libère quand quelqu'un part ; déjà présent (autre onglet), on entre (SALLE-05).
       const participants = await roomParticipants(lobby);
       const present = participants.some((participant) => participant.id === socket.data.user.id);
-      if (participants.length >= MAX_PARTICIPANTS && !present) {
+      if (participants.length >= lobby.capacity && !present) {
         ack?.({ ok: false, error: "lobbyFull" });
         return;
       }
@@ -612,7 +611,9 @@ export function createSocketServer(
         ack?.({ ok: false, error: "raceInProgress" });
         return;
       }
-      if ((await roomParticipants(lobby)).length >= MAX_PARTICIPANTS) {
+      // Relu : l'hôte a pu changer la capacité avant de relancer (LOB-9).
+      const capacity = (await findOpenLobby(lobby.code))?.capacity ?? lobby.capacity;
+      if ((await roomParticipants(lobby)).length >= capacity) {
         ack?.({ ok: false, error: "lobbyFull" });
         return;
       }

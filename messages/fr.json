@@ -63,6 +63,8 @@
     "timerDuration": "Durée",
     "timerOption": "{minutes, plural, =0 {{seconds} s} other {# min{seconds, plural, =0 {} other { {seconds}}}}}",
     "noTimer": "Pas de minuterie",
+    "capacity": "Capacité maximale",
+    "participants": "{count} participants",
     "submit": "Créer la course"
   },
   "LobbyRoom": {
@@ -100,7 +102,7 @@
       "invalidMessage": "Message invalide",
       "lobbyNotFound": "Course introuvable",
       "notHost": "Seul l'hôte peut faire ça",
-      "lobbyFull": "La course est pleine (300 participants)",
+      "lobbyFull": "La course est pleine",
       "notEnoughParticipants": "Il faut au moins 2 participants",
       "raceInProgress": "Une course est déjà en cours",
       "noText": "Aucun texte disponible dans cette langue",
