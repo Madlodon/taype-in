@@ -93,6 +93,7 @@
     },
     "giveUp": "Abandonner",
     "confirmGiveUp": "Abandonner la course ? Tu deviendras spectateur et ne pourras plus taper.",
+    "confirmLeaveOther": "Tu es déjà dans un autre lobby. Le quitter pour rejoindre celui-ci ?",
     "gaveUp": "Tu as abandonné : tu regardes la fin de la course.",
     "errors": {
       "notLoggedIn": "Non connecté",
@@ -108,7 +109,8 @@
       "cannotGiveUp": "Tu ne peux plus abandonner",
       "raceNotFinished": "La course n'est pas terminée",
       "botNotFound": "Bot introuvable",
-      "noHumanRacer": "Il faut au moins un joueur humain qui court"
+      "noHumanRacer": "Il faut au moins un joueur humain qui court",
+      "leftForOtherLobby": "Tu as rejoint un autre lobby. Tu n'es plus dans celui-ci."
     },
     "startRacing": "Lancer et courir",
     "startWatching": "Lancer et regarder",
