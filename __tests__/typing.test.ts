@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { applyInput, EMPTY_TYPING, type ErrorMode, type Typing } from "../lib/typing";
+import { applyInput, hasCorrectInput, EMPTY_TYPING, type ErrorMode, type Typing } from "../lib/typing";
 
 const TEXT = "chat";
 
@@ -91,4 +91,22 @@ describe.each<ErrorMode>(["blocking", "tolerant"])("applyInput keys (%s)", (mode
   test("Should_NotCountKeys_When_TextIsAlreadyFinished", () => {
     expect(type(mode, "chat!").keys).toBe(4);
   });
+});
+
+
+describe.each<ErrorMode>(["blocking", "tolerant"])("correct-input boost (%s)", mode => {
+  test("Should_BoostForCorrectCharactersButNotMistakesOrBackspace", () => {
+    const wrong = applyInput(EMPTY_TYPING, TEXT, mode, "x");
+    expect(hasCorrectInput(EMPTY_TYPING, wrong, TEXT)).toBe(false);
+    const correct = applyInput(EMPTY_TYPING, TEXT, mode, "c");
+    expect(hasCorrectInput(EMPTY_TYPING, correct, TEXT)).toBe(true);
+    expect(hasCorrectInput(correct, applyInput(correct, TEXT, mode, ""), TEXT)).toBe(false);
+    expect(hasCorrectInput(correct, correct, TEXT)).toBe(false);
+  });
+});
+
+test("Should_NotBoostForSkippedRewardLetters", () => {
+  const before = { typed: "a", keys: 1, errors: 0 };
+  expect(hasCorrectInput(before, { ...before, typed: "a skip" }, "a skip", [{ start: 1, end: 6 }])).toBe(false);
+  expect(hasCorrectInput(before, { typed: "a skip", keys: 2, errors: 1 }, "a skip", [{ start: 1, end: 6 }])).toBe(false);
 });

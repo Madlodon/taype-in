@@ -1,3 +1,4 @@
+import { hasCorrectInput } from "./typing.ts";
 import { completedSentences, thirdWordAhead, GOAL_CHANCE, SHOT_MS, type RemovedWord } from "./race-goals.ts";
 // Serveur Socket.IO attaché au serveur HTTP de Next.js (ADR 0001).
 import type { Server as HttpServer } from "node:http";
@@ -31,6 +32,7 @@ import {
   type RaceStartedMessage,
   type RaceShotMessage,
   type RaceGoalMessage,
+  type RaceBoostMessage,
 } from "./socket-messages.ts";
 
 type SocketData = { user: User; lobby?: Lobby };
@@ -86,6 +88,7 @@ export function createSocketServer(
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
       "race:positions": (message: RacePositionsMessage) => void;
+      "race:boost": (message: RaceBoostMessage) => void;
       "race:shot": (message: RaceShotMessage) => void;
       "race:goal": (message: RaceGoalMessage) => void;
       "race:ended": (message: RaceEndedMessage) => void;
@@ -379,6 +382,9 @@ export function createSocketServer(
       resetIdleTimer(lobby, live);
       // Une fois fini, sa saisie ne change plus (ex. renvoyée après une reconnexion).
       if (player.state === "connected") {
+        if (hasCorrectInput(player, result.data, live.content, player.removed)) {
+          socket.to(lobby.code).emit("race:boost", { id: user.id });
+        }
         player.typed = result.data.typed;
         player.errors = result.data.errors;
         player.keys = result.data.keys;

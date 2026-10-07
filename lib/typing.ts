@@ -46,3 +46,17 @@ export function applyInput(state: Typing, text: string, mode: ErrorMode, value: 
   // Modification au milieu du texte (curseur déplacé) : ignorée.
   return state;
 }
+
+// Only newly entered correct characters ignite boost; goal rewards are not input.
+export function hasCorrectInput(
+  before: Pick<Typing, "typed" | "keys" | "errors">,
+  after: Pick<Typing, "typed" | "keys" | "errors">,
+  content: string,
+  removed: { start: number; end: number }[] = [],
+) {
+  if (after.keys - before.keys <= after.errors - before.errors || !after.typed.startsWith(before.typed)) return false;
+  for (let index = before.typed.length; index < after.typed.length; index++) {
+    if (after.typed[index] === content[index] && !removed.some(range => index >= range.start && index < range.end)) return true;
+  }
+  return false;
+}
