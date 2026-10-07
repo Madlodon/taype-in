@@ -10,6 +10,26 @@ Live: https://laniproject.dev
 
 > Fan project inspired by Rocket League. Not affiliated with or endorsed by Epic Games or Psyonix.
 
+### Screenshots
+
+| Home | Home (light theme) |
+| --- | --- |
+| ![Home page](docs/screenshots/home.png) | ![Home page in light theme](docs/screenshots/home-light.png) |
+| **Waiting room with bots** | **Race** |
+| ![Waiting room with bots](docs/screenshots/lobby.png) | ![Race in progress](docs/screenshots/race.png) |
+| **Results** | **Profile** |
+| ![Race results](docs/screenshots/results.png) | ![Player profile](docs/screenshots/profile.png) |
+| **Garage** | |
+| ![Garage](docs/screenshots/garage.png) | |
+
+### Demo account
+
+To come with the seed script ([#135](https://github.com/Madlodon/taype-in/issues/135)).
+
+| Username | Password |
+| --- | --- |
+| _TODO_ | _TODO_ |
+
 ### Local setup
 
 #### Requirements
@@ -142,6 +162,26 @@ Jeu de course de dactylographie multijoueur en temps réel.
 En ligne : https://laniproject.dev
 
 > Projet de fan inspiré de Rocket League. Non affilié à Epic Games ni à Psyonix, ni approuvé par eux.
+
+### Captures d'écran
+
+| Accueil | Accueil (thème clair) |
+| --- | --- |
+| ![Page d'accueil](docs/screenshots/home.png) | ![Page d'accueil en thème clair](docs/screenshots/home-light.png) |
+| **Salle d'attente avec des bots** | **Course** |
+| ![Salle d'attente avec des bots](docs/screenshots/lobby.png) | ![Course en cours](docs/screenshots/race.png) |
+| **Résultats** | **Profil** |
+| ![Résultats de la course](docs/screenshots/results.png) | ![Profil d'un joueur](docs/screenshots/profile.png) |
+| **Garage** | |
+| ![Garage](docs/screenshots/garage.png) | |
+
+### Compte de démonstration
+
+À venir avec le script de seed ([#135](https://github.com/Madlodon/taype-in/issues/135)).
+
+| Nom d'utilisateur | Mot de passe |
+| --- | --- |
+| _À faire_ | _À faire_ |
 
 ### Installation locale
 
