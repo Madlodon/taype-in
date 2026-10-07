@@ -150,6 +150,25 @@ test("Should_RejectParticipant_When_UserAlreadyJoinedTheLobby", async () => {
   });
 });
 
+test("Should_RejectParticipant_When_UserIsAlreadyInAnotherLobby", async () => {
+  await inRolledBackTransaction(async (tx) => {
+    const { host, lobby } = await createLobby(tx);
+    const [other] = await tx
+      .insert(lobbies)
+      .values({ code: "OTHER2", visibility: "public", hostId: host.id })
+      .returning();
+    await tx
+      .insert(lobbyParticipants)
+      .values({ lobbyId: lobby.id, userId: host.id });
+
+    await expect(
+      tx
+        .insert(lobbyParticipants)
+        .values({ lobbyId: other.id, userId: host.id }),
+    ).rejects.toMatchObject({ cause: { code: "23505" } });
+  });
+});
+
 test("Should_ApplyDefaults_When_RaceIsCreatedWithRequiredSettingsOnly", async () => {
   await inRolledBackTransaction(async (tx) => {
     const { lobby } = await createLobby(tx);

@@ -85,6 +85,13 @@
       "when": 1791172839354,
       "tag": "0011_xp",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791332841694,
+      "tag": "0012_one_lobby_per_user",
+      "breakpoints": true
     }
   ]
 }

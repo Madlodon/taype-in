@@ -122,7 +122,11 @@ export const lobbyParticipants = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.lobbyId, table.userId] })],
+  (table) => [
+    primaryKey({ columns: [table.lobbyId, table.userId] }),
+    // SALLE-06 : une personne n'est que dans un lobby à la fois.
+    uniqueIndex("lobby_participants_user_id_idx").on(table.userId),
+  ],
 );
 
 // Liens d'invitation à usage unique d'une course privée (LOB-3).
