@@ -10,10 +10,11 @@ export type Participant = { id: string; username: string };
 // Sans 0/O, 1/I/L : le code se dicte et se recopie sans confusion.
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const CODE_LENGTH = 6;
-// LOB-6 : 300 participants au maximum.
-export const MAX_PARTICIPANTS = 300;
+// SALLE-05 : capacité choisie par l'hôte, de 2 à 30 participants, 30 par défaut.
+export const CAPACITY_OPTIONS = Array.from({ length: 29 }, (_, i) => i + 2);
+export const MAX_CAPACITY = 30;
 // Un lien par participant possible.
-export const MAX_INVITES = MAX_PARTICIPANTS;
+export const MAX_INVITES = MAX_CAPACITY;
 // CONF-01 : minuterie de 30 s à 10 min par pas de 30 s, 5 min par défaut.
 export const TIMER_OPTIONS = Array.from({ length: 20 }, (_, i) => (i + 1) * 30);
 export const DEFAULT_TIMER_SECONDS = 300;
@@ -49,7 +50,7 @@ export async function createLobby(
 
 export type LobbySettings = Pick<
   Lobby,
-  "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds"
+  "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds" | "capacity"
 >;
 
 // Nouveaux réglages avant de relancer le lobby ; copiés dans la prochaine course (LOB-9).

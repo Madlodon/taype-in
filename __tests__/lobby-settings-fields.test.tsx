@@ -17,6 +17,7 @@ const settings: LobbySettings = {
   textLength: 100,
   errorMode: "blocking",
   timeLimitSeconds: 90,
+  capacity: 8,
 };
 
 afterEach(cleanup);
@@ -46,4 +47,26 @@ test("Should_SelectLobbyTimer_When_EditingSettings", () => {
 
 test("Should_SelectFiveMinutes_When_LobbyTimerIsOutOfRange", () => {
   expect(fields({ ...settings, timeLimitSeconds: 86400 }).value).toBe("300");
+});
+
+function capacity(settings?: LobbySettings) {
+  fields(settings);
+  return screen.getByLabelText("Maximum capacity") as HTMLSelectElement;
+}
+
+test("Should_OfferCapacities_From2To30", () => {
+  const options = within(capacity()).getAllByRole("option");
+
+  expect(options.map((option) => option.getAttribute("value"))).toEqual(
+    Array.from({ length: 29 }, (_, i) => String(i + 2)),
+  );
+  expect(options[0].textContent).toBe("2 participants");
+});
+
+test("Should_SelectThirty_When_CreatingLobby", () => {
+  expect(capacity().value).toBe("30");
+});
+
+test("Should_SelectLobbyCapacity_When_EditingSettings", () => {
+  expect(capacity(settings).value).toBe("8");
 });

@@ -1019,7 +1019,7 @@ test("Should_ShowError_When_AddingBotIsRefused", () => {
 
   act(() => ack({ ok: false, error: "lobbyFull" }));
 
-  expect(screen.getByRole("alert").textContent).toBe("La course est pleine (300 participants)");
+  expect(screen.getByRole("alert").textContent).toBe("La course est pleine");
 });
 
 test("Should_NotShowBotControls_When_UserIsNotHost", () => {

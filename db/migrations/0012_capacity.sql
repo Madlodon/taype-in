@@ -1,0 +1,1 @@
+ALTER TABLE "lobbies" ADD COLUMN "capacity" integer DEFAULT 30 NOT NULL;

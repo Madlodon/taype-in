@@ -1,5 +1,11 @@
 import { useTranslations } from "next-intl";
-import { DEFAULT_TIMER_SECONDS, TIMER_OPTIONS, type LobbySettings } from "@/lib/lobbies";
+import {
+  CAPACITY_OPTIONS,
+  DEFAULT_TIMER_SECONDS,
+  MAX_CAPACITY,
+  TIMER_OPTIONS,
+  type LobbySettings,
+} from "@/lib/lobbies";
 import { TEXT_LENGTHS } from "@/lib/texts";
 
 type Props = { settings?: LobbySettings; locale: string };
@@ -15,6 +21,7 @@ export function LobbySettingsFields({ settings, locale }: Props) {
   // Une ancienne durée hors des choix revient à la valeur par défaut.
   const timerSeconds = TIMER_OPTIONS.find((seconds) => seconds === settings?.timeLimitSeconds)
     ?? DEFAULT_TIMER_SECONDS;
+  const capacity = settings?.capacity ?? MAX_CAPACITY;
   return (
     <>
       <fieldset>
@@ -54,6 +61,14 @@ export function LobbySettingsFields({ settings, locale }: Props) {
         <label className="radio-option">
           <input type="checkbox" name="noTimer" defaultChecked={noTimer} />{t("noTimer")}</label>
       </fieldset>
+      <label className="field">
+        {t("capacity")}
+        <select name="capacity" defaultValue={capacity}>
+          {CAPACITY_OPTIONS.map((count) => (
+            <option key={count} value={count}>{t("participants", { count })}</option>
+          ))}
+        </select>
+      </label>
     </>
   );
 }
