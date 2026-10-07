@@ -91,3 +91,5 @@ export type RaceEndedMessage = {
 // The server owns shot outcomes and the removed word offsets.
 export type RaceShotMessage = { id: string; sequence: number; scored: boolean };
 export type RaceGoalMessage = { removed: RemovedWord[]; word?: string };
+
+export type RaceBoostMessage = { id: string };

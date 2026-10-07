@@ -15,6 +15,7 @@ import {
   type RaceStartedMessage,
   type RaceShotMessage,
   type RaceGoalMessage,
+  type RaceBoostMessage,
 } from "@/lib/socket-messages";
 import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
 import { BOT_LEVELS, type Bot } from "@/lib/bots";
@@ -26,7 +27,7 @@ import { RaceTyping } from "@/components/race-typing";
 import type { RemovedWord } from "@/lib/race-goals";
 import { SessionStats } from "@/components/session-stats";
 import type { SessionStats as Stats } from "@/lib/session-stats";
-import type { Typing } from "@/lib/typing";
+import { EMPTY_TYPING, hasCorrectInput, type Typing } from "@/lib/typing";
 import type { Stadium } from "@/lib/garage-items";
 
 type Props = {
@@ -90,6 +91,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
   const typingRef = useRef<Typing>(null);
   const [resumed, setResumed] = useState<Typing>();
   const [removed, setRemoved] = useState<RemovedWord[]>([]);
+  const [boosts, setBoosts] = useState<Record<string, number>>({});
   const [shots, setShots] = useState<Record<string, RaceShotMessage & { receivedAt: number }>>({});
   const [goalWord, setGoalWord] = useState<string>();
   const [finished, setFinished] = useState(false);
@@ -145,6 +147,9 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
         setFinished(message.mine.typed.length === message.content.length);
       }
     });
+    socket.on("race:boost", (message: RaceBoostMessage) => {
+      setBoosts(previous => ({ ...previous, [message.id]: performance.now() }));
+    });
     socket.on("race:shot", (message: RaceShotMessage) => {
       setShots(previous => ({ ...previous, [message.id]: { ...message, receivedAt: performance.now() } }));
     });
@@ -160,6 +165,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
       setPositions(positions);
     });
     socket.on("race:ended", (message: RaceEndedMessage) => {
+      setBoosts({});
       setEndReason(message.reason);
       setResults(named(message.results));
     });
@@ -237,6 +243,9 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
   // Chaque frappe est envoyée : le serveur sait qui a fini et si quelqu'un tape encore (CRS-5),
   // et garde la saisie pour une reprise après une coupure (CRS-6).
   function progress(typing: Typing) {
+    if (race && hasCorrectInput(typingRef.current ?? EMPTY_TYPING, typing, race.content, removed)) {
+      setBoosts(previous => ({ ...previous, [userId]: performance.now() }));
+    }
     typingRef.current = typing;
     setMyPosition(typing.typed.length);
     setFinished(typing.typed.length === race?.content.length);
@@ -285,6 +294,7 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
         <Arena
           stadium={stadium}
           shots={shots}
+          boosts={boosts}
           cars={shown.map((entry) => ({
             id: entry.id,
             name: entry.username,

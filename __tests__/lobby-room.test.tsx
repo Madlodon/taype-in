@@ -893,6 +893,39 @@ test("Should_RestoreRemovedWords_When_RejoiningRace", () => {
   expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Go. O");
 });
 
+test.each(["blocking", "tolerant"])("Should_BoostImmediatelyForCorrectInputOnly_In_%s", mode => {
+  let tick: FrameRequestCallback = () => {};
+  let now = 100;
+  vi.spyOn(performance, "now").mockImplementation(() => now);
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  const { container } = renderRoom("en");
+  startRace(["u1", "u2"], mode);
+  act(() => handlers["race:positions"]({ positions: [
+    { id: "u1", username: "Alex", position: 0 }, { id: "u2", username: "You", position: 0 },
+  ] }));
+  const input = screen.getByRole("textbox");
+  const exhaust = () => container.querySelector('[data-car-id="u2"] .car-boost');
+  fireEvent.change(input, { target: { value: "U" } });
+  act(() => tick(110));
+  expect(exhaust()).not.toBeNull();
+  now = 500;
+  act(() => tick(now));
+  expect(exhaust()).toBeNull();
+  fireEvent.change(input, { target: { value: "Ux" } });
+  act(() => tick(510));
+  expect(exhaust()).toBeNull();
+  fireEvent.change(input, { target: { value: "U" } });
+  act(() => tick(520));
+  expect(exhaust()).toBeNull();
+  act(() => handlers["race:boost"]({ id: "u1" }));
+  act(() => tick(530));
+  expect(container.querySelector('[data-car-id="u1"] .car-boost')).not.toBeNull();
+  expect(exhaust()).toBeNull();
+  vi.restoreAllMocks();
+});
+
 // Classement dans l'ordre donné : u2 s'appelle « moi », les autres portent leur id comme nom.
 function sendOrder(...ids: string[]) {
   const positions = ids.map((id, index) => ({

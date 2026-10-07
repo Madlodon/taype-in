@@ -1701,3 +1701,19 @@ describe("bots", () => {
     expect((await startRace(hostClient)).racerIds).toHaveLength(2);
   });
 });
+
+test("Should_BroadcastBoostOnlyForNewCorrectInput", async () => {
+  const { host, hostClient, guestClient } = await lobbyWithTwo({ errorMode: "tolerant" });
+  const { content } = await startRace(hostClient);
+  const boosts: { id: string }[] = [];
+  guestClient.on("race:boost", value => boosts.push(value));
+  const boost = next<{ id: string }>(guestClient, "race:boost");
+  await progress(hostClient, typing(content.slice(0, 1), 0));
+  expect(await boost).toEqual({ id: host.id });
+  await progress(hostClient, typing("", 0));
+  const wrong = content[0] === "x" ? "z" : "x";
+  await progress(hostClient, typing(wrong, 1));
+  await progress(hostClient, typing(wrong, 1));
+  await new Promise(resolve => setTimeout(resolve, 30));
+  expect(boosts).toEqual([{ id: host.id }]);
+});

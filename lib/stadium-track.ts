@@ -8,7 +8,7 @@ const ROUTE = [
 
 // Match the orthographic cameras in docs/mockups/assets/arena-model.py.
 export function project(x: number, y: number, z: number, stadium: Stadium) {
-  if (stadium === "top-down") return { x: 700 + x * 974 / 106, y: 450 - y * 492 / 70 };
+  if (stadium === "top-down") return { x: 700 + x * 974 / 106, y: 450 - y * 492 / 70, depth: z };
   const [camera, target, scale] = stadium === "diorama"
     ? [[115, -140, 135], [0, 0, 7], 198] as const
     : [[5, -170, 85], [0, 3, 7], 177] as const;
@@ -20,7 +20,7 @@ export function project(x: number, y: number, z: number, stadium: Stadium) {
   const up = [-nz * right[1], nz * right[0], nx * right[1] - ny * right[0]];
   const point = [x - target[0], y - target[1], z - target[2]];
   const dot = (vector: number[]) => point.reduce((sum, value, axis) => sum + value * vector[axis], 0);
-  return { x: 700 + dot(right) * 1400 / scale, y: 450 - dot(up) * 1400 / scale };
+  return { x: 700 + dot(right) * 1400 / scale, y: 450 - dot(up) * 1400 / scale, depth: dot([nx, ny, nz]) };
 }
 
 export function stadiumRoute(stadium: Stadium) {
@@ -40,12 +40,34 @@ export function stadiumPosition(progress: number, stadium: Stadium) {
   };
 }
 
-// Smooth closed patrol. Heading follows the tangent instead of rotating a flat sprite.
-export function fieldPose(seconds: number, phase = 0) {
-  const t = seconds * .42 + phase * Math.PI * 2;
-  return { x: 30 * Math.cos(t), y: 17 * Math.sin(t),
-    heading: Math.atan2(17 * Math.cos(t), -30 * Math.sin(t)) };
+// A stable, individual route per player. Ranking and typing never change the pose.
+// Analytic tangents keep steering continuous, including at the loop seam.
+export function fieldPose(seconds: number, id = "preview") {
+  let seed = 2166136261;
+  for (const character of id) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619);
+  const random = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const phase = random() * Math.PI * 2;
+  const speed = (.22 + random() * .08) * (random() < .5 ? -1 : 1);
+  const radiusX = 19 + random() * 7, radiusY = 10 + random() * 4;
+  const centerX = (random() - .5) * 8, centerY = (random() - .5) * 4;
+  const bendX = 1 + random(), bendY = .5 + random() * .5;
+  const t = seconds * speed + phase;
+  const dx = -radiusX * Math.sin(t) + 2 * bendX * Math.cos(2 * t + phase);
+  const dy = radiusY * Math.cos(t) + 3 * bendY * Math.cos(3 * t + phase);
+  return {
+    x: centerX + radiusX * Math.cos(t) + bendX * Math.sin(2 * t + phase),
+    y: centerY + radiusY * Math.sin(t) + bendY * Math.sin(3 * t + phase),
+    heading: Math.atan2(dy * speed, dx * speed),
+  };
 }
+
+// This rectangle lies entirely inside the grass in all three stadium images.
+// It is also used as a final rendering guard against drawing over the stands.
+export const DRIVING_AREA = { halfLength: 40, halfWidth: 25 };
+export const MAX_CAR_SCALE = .5;
 
 // A shot leaves the dribble position, travels toward the goal, then returns to play.
 export function shotBall(pose: ReturnType<typeof fieldPose>, elapsed: number, scored: boolean) {
