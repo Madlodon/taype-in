@@ -153,3 +153,19 @@ test("Should_ShowExhaustAndGainSpeedThenStopBoostingWithoutJumping", () => {
   const after = project(coasting.x, coasting.y, 0, "diorama");
   expect(at()).toBe(`translate(${after.x} ${after.y})`);
 });
+
+test.each(["octane", "fennec", "dominus", "merc"])("Should_TouchHopAndCatchTheBall_When_Driving_%s", async body => {
+  const { dribbleBall } = await import("../lib/stadium-track");
+  const pose = { x: 0, y: 0, heading: 0 };
+  const touch = dribbleBall(pose, 0, .5, body);
+  expect(touch.x - 1.2).toBeCloseTo((body === "dominus" ? 3.5 : 3) * .5);
+  expect(touch.z).toBe(1.2);
+  expect(touch.impact).toBe(1);
+  const kicked = dribbleBall(pose, .4, .5, body);
+  expect(kicked.x).toBeGreaterThan(touch.x + 2);
+  expect(kicked.z).toBeGreaterThan(touch.z);
+  expect(kicked.spin).toBeGreaterThan(touch.spin);
+  expect(kicked.impact).toBe(0);
+  expect(dribbleBall(pose, 2.39, .5, body).x).toBeCloseTo(touch.x, 2);
+  expect(dribbleBall(pose, 2.4, .5, body)).toMatchObject({ x: touch.x, y: touch.y, z: touch.z, impact: 1 });
+});
