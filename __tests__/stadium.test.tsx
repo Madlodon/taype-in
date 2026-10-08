@@ -169,3 +169,24 @@ test.each(["octane", "fennec", "dominus", "merc"])("Should_TouchHopAndCatchTheBa
   expect(dribbleBall(pose, 2.39, .5, body).x).toBeCloseTo(touch.x, 2);
   expect(dribbleBall(pose, 2.4, .5, body)).toMatchObject({ x: touch.x, y: touch.y, z: touch.z, impact: 1 });
 });
+
+test("Should_ShowImpactOnlyDuringContact_AndKeepReducedMotionStill", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container, unmount } = render(<Arena />);
+  expect(container.querySelector("[data-ball-impact]")).toBeNull();
+  act(() => tick(2450));
+  expect(container.querySelector("[data-ball-impact]")).not.toBeNull();
+  act(() => tick(2800));
+  expect(container.querySelector("[data-ball-impact]")).toBeNull();
+  unmount();
+  const raf = vi.fn();
+  vi.stubGlobal("requestAnimationFrame", raf);
+  vi.stubGlobal("matchMedia", () => ({ matches: true }));
+  const still = render(<Arena />);
+  expect(raf).not.toHaveBeenCalled();
+  expect(still.container.querySelector("[data-ball-impact]")).toBeNull();
+});

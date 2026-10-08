@@ -8,7 +8,7 @@ import { CarBoost } from "@/components/car-boost";
 import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
 import { STADIUM_IMAGES, type Stadium } from "@/lib/garage-items";
-import { DRIVING_AREA, MAX_CAR_SCALE, fieldPose, project, shotBall } from "@/lib/stadium-track";
+import { DRIVING_AREA, MAX_CAR_SCALE, fieldPose, project, shotBall, dribbleBall } from "@/lib/stadium-track";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
 export function arenaPosition(progress: number) {
@@ -114,8 +114,9 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
         const at = project(pose.x, pose.y, 0, stadium);
         const shot = shots[car.id];
         const elapsed = shot ? Math.max(0, (now - shot.receivedAt) / 1000) : Infinity;
-        const dribble = { x: pose.x + 5.7 * Math.cos(pose.heading), y: pose.y + 5.7 * Math.sin(pose.heading), z: 1.2 };
-        let flight = dribble;
+        const dribble = dribbleBall(pose, seconds + (offsets[car.id] ?? 0), Math.max(.1, Math.min(carScale, MAX_CAR_SCALE)), car.body, car.lane);
+        const shooting = Boolean(shot && now > 0 && elapsed <= 2);
+        let flight: { x: number; y: number; z: number } = dribble;
         if (shot && now > 0 && elapsed <= 2) {
           const launch = launches[car.id]?.pose ?? pose;
           flight = shotBall(launch, elapsed, shot.scored);
@@ -127,16 +128,20 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
         }
         const ball = project(flight.x, flight.y, flight.z, stadium);
         const shadow = project(flight.x, flight.y, 0, stadium);
-        return { car, pose, at, ball, shadow };
-      }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow }) => <g key={car.id} data-car-id={car.id}>
+        return { car, pose, at, ball, shadow, spin: dribble.spin, impact: shooting || seconds === 0 ? 0 : dribble.impact };
+      }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow, spin, impact }) => <g key={car.id} data-car-id={car.id}>
         <g clipPath={`url(#${id}-driving-area)`}><g transform={`translate(${at.x} ${at.y})`}>
           <g transform={`translate(${-at.x} ${-at.y})`}><FieldCar pose={pose} stadium={stadium} orange={!car.you} scale={Math.max(.1, Math.min(carScale, MAX_CAR_SCALE))} body={car.body} boost={car.boost}
             boosting={boosts[car.id] !== undefined && now >= boosts[car.id] && now < boosts[car.id] + BOOST_MS} /></g>
         </g></g>
         <ellipse cx={shadow.x} cy={shadow.y} rx="10" ry="4" fill="#071820" opacity=".35" />
         <g data-field-ball={car.ball ?? "none"} transform={`translate(${ball.x} ${ball.y}) scale(.56)`}>
-          <CarBall ball={car.ball ?? "none"} centered />
+          <g transform={`rotate(${spin})`}><CarBall ball={car.ball ?? "none"} centered /></g>
         </g>
+        {impact > 0 && <g data-ball-impact="" transform={`translate(${ball.x} ${ball.y})`} opacity={impact} stroke="#fff4c2" strokeWidth="2" strokeLinecap="round">
+          <circle r={11 + (1 - impact) * 12} />
+          {[0, 60, 120, 180, 240, 300].map(angle => <path key={angle} transform={`rotate(${angle})`} d="M14 0 H21" />)}
+        </g>}
         {car.name && <text x={at.x} y={at.y - 20} textAnchor="middle" className="car-tag" style={{ fontSize: 20 }}>{car.name}</text>}
       </g>)}
     </svg>;
