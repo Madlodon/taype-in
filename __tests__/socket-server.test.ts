@@ -1400,6 +1400,108 @@ describe("lobby:close", () => {
   });
 });
 
+// L'hôte exclut un participant ou un spectateur ; il ne peut plus revenir (SALLE-07).
+describe("lobby:kick", () => {
+  test("Should_RemoveAndNotifyKickedPlayer_When_HostKicks", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const kicked = next(guestClient, "lobby:kicked");
+    const participants = nextParticipants(hostClient);
+
+    expect(await hostClient.emitWithAck("lobby:kick", { id: guest.id })).toEqual({ ok: true });
+
+    await kicked;
+    expect((await participants).participants.map((p) => p.id)).toEqual([host.id]);
+  });
+
+  test("Should_RefuseRejoin_When_PlayerWasKicked", async () => {
+    const { guest, lobby, hostClient } = await lobbyWithTwo();
+    await hostClient.emitWithAck("lobby:kick", { id: guest.id });
+
+    expect(await join(await newClient(guest), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "lobbyNotFound",
+    });
+  });
+
+  test("Should_RefuseRejoinWithInvite_When_InvitedPlayerWasKicked", async () => {
+    const host = await newUser();
+    const lobby = await createLobby(host.id, "private");
+    const [token] = await createInvites(lobby.id, 1);
+    const guest = await newUser();
+    await claimInvite(token, guest.id);
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: lobby.code });
+    await join(await newClient(guest), { code: lobby.code });
+
+    await hostClient.emitWithAck("lobby:kick", { id: guest.id });
+
+    expect(await claimInvite(token, guest.id)).toBeNull();
+    expect(await join(await newClient(guest), { code: lobby.code })).toEqual({
+      ok: false,
+      error: "lobbyNotFound",
+    });
+  });
+
+  test("Should_AckNotHostAndKeepPlayer_When_PlayerIsNotHost", async () => {
+    const { host, lobby, guestClient } = await lobbyWithTwo();
+
+    expect(await guestClient.emitWithAck("lobby:kick", { id: host.id })).toEqual({
+      ok: false,
+      error: "notHost",
+    });
+    expect((await listParticipants(lobby.id)).map((p) => p.id)).toContain(host.id);
+  });
+
+  test("Should_AckError_When_HostKicksThemself", async () => {
+    const { host, hostClient } = await lobbyWithTwo();
+
+    expect(await hostClient.emitWithAck("lobby:kick", { id: host.id })).toEqual({
+      ok: false,
+      error: "cannotKickSelf",
+    });
+  });
+
+  test("Should_AckError_When_TargetIsNotInLobby", async () => {
+    const { hostClient } = await lobbyWithTwo();
+
+    expect(
+      await hostClient.emitWithAck("lobby:kick", { id: (await newUser()).id }),
+    ).toEqual({ ok: false, error: "participantNotFound" });
+  });
+
+  test("Should_AckInvalidMessage_When_PayloadIsMalformed", async () => {
+    const { hostClient } = await lobbyWithTwo();
+
+    expect(await hostClient.emitWithAck("lobby:kick", { id: 42 })).toEqual({
+      ok: false,
+      error: "invalidMessage",
+    });
+  });
+
+  test("Should_KickSpectator_When_HostWatchesRace", async () => {
+    const { other, hostClient, otherClient } = await lobbyWithThree();
+    await startWatching(hostClient);
+    await giveUp(otherClient);
+    const kicked = next(otherClient, "lobby:kicked");
+
+    expect(await hostClient.emitWithAck("lobby:kick", { id: other.id })).toEqual({ ok: true });
+    await kicked;
+  });
+
+  test("Should_EndRace_When_LastRacerStillTypingIsKicked", async () => {
+    const { guest, hostClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    await progress(hostClient, typing(content, 0));
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await hostClient.emitWithAck("lobby:kick", { id: guest.id });
+
+    const { reason, results } = await ended;
+    expect(reason).toBe("allFinished");
+    expect(results.find((result) => result.id === guest.id)?.finished).toBe(false);
+  });
+});
+
 describe("disconnect", () => {
   test("Should_RemovePlayerAndNotifyOthers_When_PlayerDisconnects", async () => {
     const host = await newUser();
