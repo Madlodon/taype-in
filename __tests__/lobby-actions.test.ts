@@ -11,6 +11,8 @@ import {
 } from "../app/actions/lobbies";
 import * as auth from "../lib/auth";
 import * as lobbies from "../lib/lobbies";
+import { getClientIp } from "../lib/client-ip";
+import { CODE_ATTEMPT_LIMIT } from "../lib/rate-limit";
 import { getCurrentUser, setSessionCookie } from "../lib/session-cookie";
 
 vi.mock("next/navigation", () => ({
@@ -75,6 +77,7 @@ function form(fields: Record<string, string>) {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getCurrentUser).mockResolvedValue(aMember);
+  vi.mocked(getClientIp).mockResolvedValue("203.0.113.1");
   vi.mocked(lobbies.createLobby).mockResolvedValue(aLobby);
   vi.mocked(lobbies.canEnterLobby).mockResolvedValue(true);
 });
@@ -278,6 +281,20 @@ test("Should_ReturnError_When_CodeIsForPrivateLobbyWithoutInvite", async () => {
   expect(state).toEqual({ error: "noOpenLobby", code: "K7P3XM" });
   expect(lobbies.canEnterLobby).toHaveBeenCalledWith(aPrivateLobby, "user-1");
   expect(redirect).not.toHaveBeenCalled();
+});
+
+test("Should_ReturnTooManyAttemptsWithoutLookup_When_IpFailedTooOften", async () => {
+  vi.mocked(getClientIp).mockResolvedValue("198.51.100.7");
+  vi.mocked(lobbies.findOpenLobby).mockResolvedValue(null);
+  for (let i = 0; i < CODE_ATTEMPT_LIMIT; i++) {
+    await joinLobbyAction(undefined, form({ code: "ZZZZZZ" }));
+  }
+  vi.mocked(lobbies.findOpenLobby).mockClear().mockResolvedValue(aLobby);
+
+  const state = await joinLobbyAction(undefined, form({ code: "K7P3XM" }));
+
+  expect(state).toEqual({ error: "tooManyAttempts", code: "K7P3XM" });
+  expect(lobbies.findOpenLobby).not.toHaveBeenCalled();
 });
 
 test("Should_RedirectToLoginThenLobby_When_JoiningByCodeWhileLoggedOut", async () => {
