@@ -209,22 +209,6 @@ test("Should_ShowExhaustAndGainSpeedThenStopBoostingWithoutJumping", () => {
 
 });
 
-test.each(["octane", "fennec", "dominus", "merc"])("Should_TouchHopAndCatchTheBall_When_Driving_%s", async body => {
-  const { dribbleBall } = await import("../lib/stadium-track");
-  const pose = { x: 0, y: 0, heading: 0 };
-  const touch = dribbleBall(pose, 0, .5, body);
-  expect(touch.x - 1.2).toBeCloseTo((body === "dominus" ? 3.5 : 3) * .5);
-  expect(touch.z).toBe(1.2);
-  expect(touch.impact).toBe(1);
-  const kicked = dribbleBall(pose, .4, .5, body);
-  expect(kicked.x).toBeGreaterThan(touch.x + 2);
-  expect(kicked.z).toBeGreaterThan(touch.z);
-  expect(kicked.spin).toBeGreaterThan(touch.spin);
-  expect(kicked.impact).toBe(0);
-  expect(dribbleBall(pose, 2.39, .5, body).x).toBeCloseTo(touch.x, 2);
-  expect(dribbleBall(pose, 2.4, .5, body)).toMatchObject({ x: touch.x, y: touch.y, z: touch.z, impact: 1 });
-});
-
 test("Should_ShowImpactOnlyDuringContact_AndKeepReducedMotionStill", () => {
   let tick: FrameRequestCallback = () => {};
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
@@ -233,9 +217,9 @@ test("Should_ShowImpactOnlyDuringContact_AndKeepReducedMotionStill", () => {
   vi.spyOn(performance, "now").mockReturnValue(0);
   const { container, unmount } = render(<Arena />);
   expect(container.querySelector("[data-ball-impact]")).toBeNull();
-  act(() => tick(2450));
+  act(() => tick(16));
   expect(container.querySelector("[data-ball-impact]")).not.toBeNull();
-  act(() => tick(2800));
+  act(() => tick(250));
   expect(container.querySelector("[data-ball-impact]")).toBeNull();
   unmount();
   const raf = vi.fn();

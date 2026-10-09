@@ -48,27 +48,15 @@ export const DRIVING_AREA = { halfLength: 40, halfWidth: 25 };
 export const MAX_CAR_SCALE = .5;
 
 // A shot leaves the dribble position, travels toward the goal, then returns to play.
-export function shotBall(pose: FieldPose, elapsed: number, scored: boolean) {
-  const start = { x: pose.x + 5.7 * Math.cos(pose.heading), y: pose.y + 5.7 * Math.sin(pose.heading) };
+export function shotBall(pose: FieldPose, elapsed: number, scored: boolean, contact = 5.7) {
+  const start = { x: pose.x + contact * Math.cos(pose.heading), y: pose.y + contact * Math.sin(pose.heading) };
   const fraction = Math.max(0, Math.min(1, elapsed / 1.2));
   const end = scored ? { x: 56, y: 0 } : { x: 48, y: 15 };
   return { x: start.x + (end.x - start.x) * fraction,
     y: start.y + (end.y - start.y) * fraction, z: 1.2 + Math.sin(fraction * Math.PI) * 5 };
 }
 
-// A quick tap sends the ball ahead; it slows down until the bumper catches it.
-export function dribbleBall(pose: FieldPose, seconds: number, scale: number, body = "octane", lane = 0) {
-  const time = ((seconds + lane * .53) % 2.4 + 2.4) % 2.4;
-  const contact = (body === "dominus" ? 3.5 : 3) * scale + 1.2;
-  const release = Math.min(1, time / .4);
-  const catchup = Math.max(0, (time - .4) / 2);
-  const gap = time < .4 ? 1 - (1 - release) ** 2 : 1 - catchup * catchup * (3 - 2 * catchup);
-  const distance = contact + 3 * gap;
-  return {
-    x: pose.x + distance * Math.cos(pose.heading),
-    y: pose.y + distance * Math.sin(pose.heading),
-    z: 1.2 + (time < .8 ? Math.sin(time / .8 * Math.PI) * 1.1 : 0),
-    impact: Math.max(0, 1 - time / .18),
-    spin: (seconds + lane * .53) * 150 + gap * 100,
-  };
+// Match the front of the rendered body plus the ball radius.
+export function ballContactDistance(scale: number, body = "octane") {
+  return (body === "dominus" ? 3.5 : 3) * Math.max(.1, Math.min(scale, MAX_CAR_SCALE)) + 1.2;
 }

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
-import { createFieldCars, stepFieldCars } from "../lib/field-motion";
-import { DRIVING_AREA, dribbleBall } from "../lib/stadium-track";
+import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls, launchFieldShot } from "../lib/field-motion";
+import { DRIVING_AREA, ballContactDistance } from "../lib/stadium-track";
 
 test("Should_PreserveExistingPoses_When_RankingChangesAndCarsJoin", () => {
   const cars = stepFieldCars(createFieldCars(["you", "rival"]), 1 / 60);
@@ -58,13 +58,15 @@ test("Should_ResumeNormalSpeed_When_ThePathClears", () => {
 test("Should_KeepCarsAndDribbledBallsInsideTheGrass_DuringLongBoostedWandering", () => {
   const ids = ["you", "nova", "echo", "blitz", ...Array.from({ length: 10 }, (_, i) => `player-${i}`)];
   let cars = createFieldCars(ids);
+  let balls = createFieldBalls(cars);
   let maxX = 0, maxY = 0, maxTurn = 0, maxDistance = 0;
   const visited = new Set<string>();
   for (let step = 0; step < 60 * 180; step++) {
     const next = stepFieldCars(cars, 1 / 60, new Set(ids));
+    balls = stepFieldBalls(balls, next, 1 / 60, new Set(ids));
     for (let index = 0; index < cars.length; index++) {
       const car = next[index], previous = cars[index];
-      const ball = dribbleBall(car, step / 60, .5, "dominus");
+      const ball = balls[index];
       maxX = Math.max(maxX, Math.abs(car.x) + 2.1, Math.abs(ball.x) + 1.3);
       maxY = Math.max(maxY, Math.abs(car.y) + 2.1, Math.abs(ball.y) + 1.3);
       maxTurn = Math.max(maxTurn, Math.abs(car.heading - previous.heading));
@@ -98,4 +100,89 @@ test("Should_KeepWanderingPreviewCarsApart_OverSeveralMinutes", () => {
     }
   }
   expect(minimumDistance).toBeGreaterThan(4.2);
+});
+
+
+test.each([false, true])("Should_KickTravelAndCatchRepeatedly_WithBoost_%s", boosted => {
+  let cars = createFieldCars(["you"]).map(car => ({ ...car, x: 0, y: 0, heading: 0, targetHeading: 0 }));
+  let balls = createFieldBalls(cars);
+  const boosting = new Set(boosted ? ["you"] : []);
+  let maxGap = 0, increasing = false, decreasing = false, gap = 0;
+  for (let step = 0; step < 60 * 60; step++) {
+    cars = stepFieldCars(cars, 1 / 60, boosting, new Map(balls.map(ball => [ball.id, ball])));
+    const previous = balls[0];
+    balls = stepFieldBalls(balls, cars, 1 / 60, boosting);
+    const nextGap = Math.hypot(balls[0].x - cars[0].x, balls[0].y - cars[0].y);
+    increasing ||= nextGap > gap + .01; decreasing ||= nextGap < gap - .01;
+    maxGap = Math.max(maxGap, nextGap); gap = nextGap;
+    expect(Math.hypot(balls[0].x - previous.x, balls[0].y - previous.y)).toBeLessThan(.5);
+    expect(Math.abs(balls[0].x) + 1.2).toBeLessThan(DRIVING_AREA.halfLength);
+    expect(Math.abs(balls[0].y) + 1.2).toBeLessThan(DRIVING_AREA.halfWidth);
+  }
+  expect(increasing && decreasing).toBe(true);
+  expect(maxGap).toBeGreaterThan(ballContactDistance(.45) + 1);
+  expect(balls[0].contacts).toBeGreaterThan(5);
+});
+
+test("Should_KeepBallVelocityIndependent_When_TheCarTurnsAfterContact", () => {
+  const cars = createFieldCars(["you"]).map(car => ({ ...car, x: 0, y: 0, heading: 0 }));
+  const kicked = stepFieldBalls(createFieldBalls(cars), cars, 1 / 60);
+  const turned = [{ ...cars[0], heading: Math.PI / 2 }];
+  const next = stepFieldBalls(kicked, turned, .1)[0];
+  expect(next.x).toBeGreaterThan(kicked[0].x);
+  expect(next.y).toBe(kicked[0].y);
+  expect(next.vx).toBeLessThan(kicked[0].vx);
+  expect(next.contacts).toBe(1);
+});
+
+test.each(["octane", "fennec", "dominus", "merc"])("Should_StartAtTheBumper_For_%s", body => {
+  const cars = createFieldCars(["you"]).map(car => ({ ...car, x: 0, y: 0, heading: 0 }));
+  const [ball] = createFieldBalls(cars, [], .5, new Map([["you", body]]));
+  expect(ball.x - 1.2).toBeCloseTo((body === "dominus" ? 3.5 : 3) * .5);
+  expect(ball.contacts).toBe(0);
+});
+
+test.each([false, true])("Should_ReturnSmoothlyAndResumePursuit_AfterShot_%s", scored => {
+  let cars = createFieldCars(["you"]);
+  let balls = createFieldBalls(cars).map(ball => launchFieldShot(ball, 1, scored));
+  for (let step = 0; step < 60 * 30; step++) {
+    cars = stepFieldCars(cars, 1 / 60, new Set(), new Map(balls.map(ball => [ball.id, ball])));
+    const previous = balls[0];
+    balls = stepFieldBalls(balls, cars, 1 / 60);
+    expect(Math.hypot(balls[0].x - previous.x, balls[0].y - previous.y)).toBeLessThan(2);
+    if (step === 71) expect(balls[0].x).toBeCloseTo(scored ? 56 : 48);
+  }
+  expect(balls[0].shot).toBeUndefined();
+  expect(balls[0].contacts).toBeGreaterThan(2);
+  expect(launchFieldShot(balls[0], 1, scored)).toBe(balls[0]);
+});
+
+
+test("Should_KeepEachBallActiveAndOwned_DuringFiveCarBoostedPursuit", () => {
+  const ids = ["you", "nova", "echo", "blitz", "rival"];
+  let cars = createFieldCars(ids), balls = createFieldBalls(cars);
+  for (let step = 0; step < 60 * 120; step++) {
+    const boosting = new Set(step % 180 < 21 ? ids : []);
+    cars = stepFieldCars(cars, 1 / 60, boosting, new Map(balls.map(ball => [ball.id, ball])));
+    balls = stepFieldBalls(balls, cars, 1 / 60, boosting);
+  }
+  expect(balls.map(ball => ball.id)).toEqual(cars.map(car => car.id));
+  for (const ball of balls) expect(ball.contacts).toBeGreaterThan(5);
+  const changed = createFieldCars(["new", ...ids.reverse()], cars);
+  const retained = createFieldBalls(changed, balls);
+  for (const ball of balls) expect(retained.find(other => other.id === ball.id)).toBe(ball);
+});
+
+test("Should_ReturnInsideTheField_When_ASecondShotInterruptsFlight", () => {
+  const cars = createFieldCars(["you"]);
+  let balls = createFieldBalls(cars).map(ball => launchFieldShot(ball, 1, true));
+  for (let step = 0; step < 72; step++) balls = stepFieldBalls(balls, cars, 1 / 60);
+  balls = balls.map(ball => launchFieldShot(ball, 2, false));
+  for (let step = 0; step < 121; step++) {
+    const before = balls[0];
+    balls = stepFieldBalls(balls, cars, 1 / 60);
+    expect(Math.hypot(balls[0].x - before.x, balls[0].y - before.y)).toBeLessThan(2);
+  }
+  expect(Math.abs(balls[0].x)).toBeLessThan(DRIVING_AREA.halfLength - 1.2);
+  expect(balls[0].shot).toBeUndefined();
 });

@@ -1,4 +1,4 @@
-import { DRIVING_AREA } from "./stadium-track";
+import { ballContactDistance, shotBall, DRIVING_AREA } from "./stadium-track";
 
 export type FieldMotion = {
   id: string;
@@ -46,8 +46,9 @@ export function createFieldCars(ids: readonly string[], previous: readonly Field
   return cars;
 }
 
+// Optional pursuit targets leave spawn placement and car spacing independent (#182).
 // Call with short time steps so avoidance also works at low rendering frame rates.
-export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boosting: ReadonlySet<string> = new Set()): FieldMotion[] {
+export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boosting: ReadonlySet<string> = new Set(), pursuit: ReadonlyMap<string, FieldBall> = new Map()): FieldMotion[] {
   return cars.map(car => {
     const next = { ...car, decisionIn: car.decisionIn - seconds };
     if (next.decisionIn <= 0) {
@@ -58,7 +59,15 @@ export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boo
       next.decisionIn += 2 + random(next) * 2;
     }
 
-    const forwardX = Math.cos(car.heading), forwardY = Math.sin(car.heading);
+    const ball = pursuit.get(car.id);
+    if (ball && !ball.shot) {
+      next.targetHeading = Math.atan2(ball.y - car.y, ball.x - car.x);
+      next.edgeTurn = false;
+    }
+
+    // Avoid obstacles along the pursuit path, even while turning back to a ball.
+    const travelHeading = ball && !ball.shot ? next.targetHeading : car.heading;
+    const forwardX = Math.cos(travelHeading), forwardY = Math.sin(travelHeading);
     let speed = car.speed * (boosting.has(car.id) ? 2 : 1);
     let nearest = Infinity;
     for (const other of cars) {
@@ -71,12 +80,13 @@ export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boo
       if (distance < nearest) {
         nearest = distance;
         // Both drivers bear right in a head-on encounter.
-        if (!car.edgeTurn) next.targetHeading = car.heading + (side > .1 ? -1 : side < -.1 ? 1 : -1) * 1.2;
+        if (!next.edgeTurn) next.targetHeading = travelHeading + (side > .1 ? -1 : side < -.1 ? 1 : -1) * 1.2;
       }
       speed = Math.min(speed, car.speed * Math.max(.08, Math.min(1, (distance - 4.5) / 6)));
     }
 
-    if (!car.edgeTurn && (Math.abs(car.x + forwardX * speed * 1.4) > LIMIT_X - 2 ||
+    // Pursuit targets are already inside the inset bounds; wandering needs an edge turn.
+    if ((!ball || ball.shot) && !car.edgeTurn && (Math.abs(car.x + forwardX * speed * 1.4) > LIMIT_X - 2 ||
         Math.abs(car.y + forwardY * speed * 1.4) > LIMIT_Y - 2)) {
       next.targetHeading = Math.atan2(-car.y, -car.x);
       next.edgeTurn = true;
@@ -97,8 +107,82 @@ export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boo
         speed = Math.min(speed, Math.max(0, (Math.hypot(dx, dy) - 4.3) * 2));
       }
     }
+    if (ball && !ball.shot) {
+      // Turn toward a missed ball before advancing, instead of orbiting it forever.
+      const bearing = next.targetHeading - next.heading;
+      speed *= Math.max(0, Math.cos(bearing)) ** 4;
+    }
     next.x += vx * speed * seconds;
     next.y += vy * speed * seconds;
+    return next;
+  });
+}
+
+
+export type FieldBall = {
+  id: string; x: number; y: number; z: number;
+  vx: number; vy: number; spin: number; sinceContact: number; contacts: number;
+  shot?: { sequence: number; scored: boolean; elapsed: number; x: number; y: number; z: number; returnX: number; returnY: number };
+  shotSequence?: number;
+};
+
+export function createFieldBalls(cars: readonly FieldMotion[], previous: readonly FieldBall[] = [],
+  scale = .45, bodies: ReadonlyMap<string, string> = new Map()): FieldBall[] {
+  return cars.map(car => previous.find(ball => ball.id === car.id) ?? {
+    id: car.id, x: car.x + ballContactDistance(scale, bodies.get(car.id)) * Math.cos(car.heading),
+    y: car.y + ballContactDistance(scale, bodies.get(car.id)) * Math.sin(car.heading),
+    z: 1.2, vx: 0, vy: 0, spin: 0, sinceContact: Infinity, contacts: 0,
+  });
+}
+
+export function launchFieldShot(ball: FieldBall, sequence: number, scored: boolean): FieldBall {
+  if (ball.shotSequence === sequence) return ball;
+  return { ...ball, vx: 0, vy: 0, sinceContact: Infinity, shotSequence: sequence,
+    shot: { sequence, scored, elapsed: 0, x: ball.x, y: ball.y, z: ball.z,
+      returnX: ball.shot?.returnX ?? ball.x, returnY: ball.shot?.returnY ?? ball.y } };
+}
+
+// Ball integration never uses the car heading except at a real bumper contact.
+export function stepFieldBalls(balls: readonly FieldBall[], cars: readonly FieldMotion[], seconds: number,
+  boosting: ReadonlySet<string> = new Set(), scale = .45, bodies: ReadonlyMap<string, string> = new Map()): FieldBall[] {
+  return balls.map(ball => {
+    const next = { ...ball, sinceContact: ball.sinceContact + seconds };
+    if (ball.shot) {
+      const elapsed = Math.min(2, ball.shot.elapsed + seconds);
+      const shot = { ...ball.shot, elapsed };
+      const flight = shotBall({ x: shot.x, y: shot.y, heading: 0 }, Math.min(elapsed, 1.2), shot.scored, 0);
+      const recovery = Math.max(0, (elapsed - 1.2) / .8);
+      // Return to a fixed ground position, then let the driver find the ball again.
+      return { ...next, x: flight.x + (shot.returnX - flight.x) * recovery,
+        y: flight.y + (shot.returnY - flight.y) * recovery, z: elapsed > 1.2 ? 1.2 : flight.z + (shot.z - 1.2) * (1 - elapsed / 1.2),
+        shot: elapsed < 2 ? shot : undefined };
+    }
+    const decay = Math.exp(-1.5 * seconds);
+    next.x += ball.vx * (1 - decay) / 1.5;
+    next.y += ball.vy * (1 - decay) / 1.5;
+    next.vx *= decay; next.vy *= decay;
+    // Reflect at an inset boundary: the ball remains reachable from the driving area.
+    for (const [axis, velocity, limit] of [["x", "vx", LIMIT_X - 1], ["y", "vy", LIMIT_Y - 1]] as const) {
+      if (Math.abs(next[axis]) > limit) {
+        next[axis] = Math.sign(next[axis]) * (2 * limit - Math.abs(next[axis]));
+        next[velocity] *= -.65;
+      }
+    }
+    const car = cars.find(car => car.id === ball.id)!;
+    const dx = next.x - car.x, dy = next.y - car.y;
+    const distance = Math.hypot(dx, dy);
+    const ahead = dx * Math.cos(car.heading) + dy * Math.sin(car.heading);
+    const side = -dx * Math.sin(car.heading) + dy * Math.cos(car.heading);
+    const contact = ballContactDistance(scale, bodies.get(car.id));
+    if (next.sinceContact > .25 && ahead > 0 && Math.abs(side) < .7 && distance <= contact + .25) {
+      const speed = car.speed * (boosting.has(car.id) ? 2 : 1) + 9;
+      next.vx = Math.cos(car.heading) * speed;
+      next.vy = Math.sin(car.heading) * speed;
+      next.sinceContact = 0;
+      next.contacts++;
+    }
+    next.z = 1.2 + (next.sinceContact < .6 ? Math.sin(next.sinceContact / .6 * Math.PI) * .8 : 0);
+    next.spin += Math.hypot(next.x - ball.x, next.y - ball.y) * 180 / (Math.PI * 1.2);
     return next;
   });
 }
