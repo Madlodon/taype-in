@@ -20,7 +20,7 @@ const socket = {
 
 vi.mock("socket.io-client", () => ({ io: () => socket }));
 
-const router = { replace: vi.fn(), push: vi.fn() };
+const router = { replace: vi.fn(), push: vi.fn(), refresh: vi.fn() };
 const loadSessionStats = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
@@ -29,7 +29,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 function renderRoom(locale: "fr" | "en" = "fr", isHost = false, stadium?: Stadium) {
   const result = render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <LobbyRoom code="K7P3XM" hostId="u1" isHost={isHost} userId={isHost ? "u1" : "u2"} stadium={stadium}
+      <LobbyRoom code="K7P3XM" hostId="u1" userId={isHost ? "u1" : "u2"} stadium={stadium}
         loadSessionStats={loadSessionStats} />
     </NextIntlClientProvider>,
   );
@@ -39,7 +39,7 @@ function renderRoom(locale: "fr" | "en" = "fr", isHost = false, stadium?: Stadiu
 
 function sendParticipants() {
   act(() =>
-    handlers["lobby:participants"]({
+    handlers["lobby:participants"]({ hostId: "u1",
       participants: [
         { id: "u1", username: "alex" },
         { id: "u2", username: "Invité-123456" },
@@ -86,6 +86,37 @@ test("Should_MarkHostInEnglish_When_LocaleIsEnglish", () => {
   sendParticipants();
 
   expect(listedNames()).toEqual(["alex (host)", "Invité-123456"]);
+});
+
+// SALLE-08 : u1 est parti, u2 (l'utilisateur courant) devient hôte.
+function sendNewHost() {
+  act(() =>
+    handlers["lobby:participants"]({
+      hostId: "u2",
+      participants: [{ id: "u2", username: "Invité-123456" }],
+    }),
+  );
+}
+
+test("Should_ShowHostControls_When_PlayerBecomesHost", () => {
+  renderRoom();
+  sendParticipants();
+  expect(screen.queryByRole("button", { name: "Fermer la course" })).toBeNull();
+
+  sendNewHost();
+
+  expect(listedNames()).toEqual(["Invité-123456 (hôte)"]);
+  expect(screen.getByRole("button", { name: "Fermer la course" })).toBeTruthy();
+});
+
+test("Should_RefreshPage_When_HostChanges", () => {
+  renderRoom();
+  sendParticipants();
+  expect(router.refresh).not.toHaveBeenCalled();
+
+  sendNewHost();
+
+  expect(router.refresh).toHaveBeenCalledOnce();
 });
 
 test("Should_ShowError_When_JoinIsRefused", () => {
@@ -218,7 +249,7 @@ test("Should_NotShowStartButton_When_UserIsNotHost", () => {
 test("Should_DisableStartAndExplain_When_HostIsAlone", () => {
   renderRoom("fr", true);
 
-  act(() => handlers["lobby:participants"]({ participants: [{ id: "u1", username: "alex" }] }));
+  act(() => handlers["lobby:participants"]({ hostId: "u1", participants: [{ id: "u1", username: "alex" }] }));
 
   expect(startButton()!.hasAttribute("disabled")).toBe(true);
   expect(
@@ -240,7 +271,7 @@ test("Should_AskServerToStart_When_HostClicksStart", () => {
 test("Should_AskServerToStartWithHostWatching_When_HostClicksWatch", () => {
   renderRoom("fr", true);
   act(() =>
-    handlers["lobby:participants"]({
+    handlers["lobby:participants"]({ hostId: "u1",
       participants: [
         { id: "u1", username: "alex" },
         { id: "u2", username: "Invité-123456" },
@@ -270,7 +301,7 @@ test("Should_DisableWatchOnlyAndExplain_When_OtherParticipantsAreBots", () => {
   renderRoom("fr", true);
 
   act(() =>
-    handlers["lobby:participants"]({
+    handlers["lobby:participants"]({ hostId: "u1",
       participants: [
         { id: "u1", username: "alex" },
         { id: "b1", username: "Bot beginner 1", bot: { level: "beginner", number: 1 } },
@@ -292,7 +323,7 @@ test("Should_EnableWatch_When_AnotherHumanRacesWithABot", () => {
   renderRoom("fr", true);
 
   act(() =>
-    handlers["lobby:participants"]({
+    handlers["lobby:participants"]({ hostId: "u1",
       participants: [
         { id: "u1", username: "alex" },
         { id: "u2", username: "sam" },
@@ -556,7 +587,7 @@ test("Should_ReturnToWaitingRoom_When_LobbyIsRestarted", () => {
 test("Should_MarkHostWatchingAndNotCountHim_When_HostWatchesRace", () => {
   renderRoom("fr", true);
   act(() =>
-    handlers["lobby:participants"]({
+    handlers["lobby:participants"]({ hostId: "u1",
       participants: [
         { id: "u1", username: "alex" },
         { id: "u2", username: "Invité-123456" },
@@ -1027,7 +1058,7 @@ test("Should_ShowNoOvertake_When_NextRaceStartsAfterRelaunch", () => {
 // L'hôte u1 et un bot débutant : assez pour lancer une course d'entraînement (BOT-1).
 function sendHostAndBot() {
   act(() =>
-    handlers["lobby:participants"]({
+    handlers["lobby:participants"]({ hostId: "u1",
       participants: [
         { id: "u1", username: "alex" },
         { id: "b1", username: "Bot beginner 1", bot: { level: "beginner", number: 1 } },
