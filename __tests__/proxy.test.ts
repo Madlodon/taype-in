@@ -26,3 +26,7 @@ test("Should_SkipProxy_When_BrowserPrefetches", () => {
 test("Should_SkipProxy_When_AvatarIsRequested", () => {
   expect(matches("/avatars/8f14e45f-ceea-467f-a0e6-1d1b2c3d4e5f")).toBe(false);
 });
+
+test("Should_SkipProxy_When_OAuthProviderRedirectsBack", () => {
+  expect(matches("/auth/github/callback?code=abc&state=xyz")).toBe(false);
+});
