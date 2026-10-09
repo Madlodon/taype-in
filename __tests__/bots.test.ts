@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { BOT_LEVELS, BOT_PROFILES, botKey, xpMultiplier, type BotLevel } from "../lib/bots";
-import { countCorrect, wordsPerMinute } from "../lib/results";
-import { EMPTY_TYPING, type ErrorMode } from "../lib/typing";
+import { countCorrect, EMPTY_TYPING, wordsPerMinute, type ErrorMode } from "../lib/typing";
 
 const TEXT = "le chat dort sur le canapé pendant que la pluie tombe. ".repeat(60);
 

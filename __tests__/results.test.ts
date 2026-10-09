@@ -7,15 +7,8 @@ import { lobbies, results, users } from "../db/schema";
 import { createLobby } from "../lib/lobbies";
 import { createRace } from "../lib/races";
 import { xpForLevel } from "../lib/xp";
-import {
-  accuracy,
-  countCorrect,
-  awardXp,
-  rankRacers,
-  saveResults,
-  wordsPerMinute,
-  type Racer,
-} from "../lib/results";
+import { awardXp, rankRacers, saveResults, type Racer } from "../lib/results";
+import { accuracy, countCorrect, wordsPerMinute } from "../lib/typing";
 
 const TEXT = "chat";
 
