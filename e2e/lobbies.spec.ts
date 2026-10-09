@@ -1,8 +1,10 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 // Chaque joueur a son propre contexte, donc sa propre session invité.
-async function newGuest(browser: Browser): Promise<{ page: Page; name: string }> {
-  const page = await (await browser.newContext()).newPage();
+// ip simule une autre adresse : Next.js garde le x-forwarded-for reçu.
+async function newGuest(browser: Browser, ip?: string): Promise<{ page: Page; name: string }> {
+  const context = await browser.newContext(ip ? { extraHTTPHeaders: { "x-forwarded-for": ip } } : {});
+  const page = await context.newPage();
   await page.goto("/");
   await page.getByRole("button", { name: "Jouer en invité" }).click();
   const name = (await page.locator("strong", { hasText: /^Invité-\d{6}$/ }).textContent())!;
@@ -203,7 +205,7 @@ test("Should_JoinPrivateRaceOnlyByInviteLink_When_HostGeneratesLinks", async ({
   await expect(host.page.getByText("0 sur 3 liens utilisés")).toBeVisible();
 
   // Ni dans la liste, ni par le code, ni par l'adresse directe.
-  const outsider = await newGuest(browser);
+  const outsider = await newGuest(browser, "203.0.113.7");
   await outsider.page.goto("/lobbies");
   await expect(outsider.page.getByText(`Course de ${host.name}`)).toHaveCount(0);
   await outsider.page.getByLabel("Code de la course").fill(code);
@@ -221,7 +223,7 @@ test("Should_JoinPrivateRaceOnlyByInviteLink_When_HostGeneratesLinks", async ({
   await expect(participants(student.page)).toHaveText(expected);
   await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, `${student.name}Exclure`]);
 
-  // Le lien sert une seule fois : un autre élève ne peut plus l'utiliser.
+  // Le lien est lié à l'IP de l'élève : depuis une autre IP, il est refusé.
   await outsider.page.goto(links[0]);
   await expect(outsider.page.getByRole("heading", { name: "Lien non disponible" })).toBeVisible();
 

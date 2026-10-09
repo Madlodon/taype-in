@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createGuest, createSession } from "@/lib/auth";
+import { getClientIp } from "@/lib/client-ip";
 import {
   CAPACITY_OPTIONS,
   canEnterLobby,
@@ -120,7 +121,7 @@ export async function joinInviteAction(formData: FormData) {
     await setSessionCookie(session.token, session.expiresAt);
   }
 
-  const lobby = await claimInvite(token, user.id);
+  const lobby = await claimInvite(token, user.id, await getClientIp());
   // Lien pris entre-temps : la page d'invitation affiche qu'il n'est plus valide.
   redirect(lobby ? `/lobbies/${lobby.code}` : `/invite/${encodeURIComponent(token)}`);
 }

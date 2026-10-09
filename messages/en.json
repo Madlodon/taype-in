@@ -207,7 +207,7 @@
   },
   "Invites": {
     "title": "Invite links",
-    "description": "Each link lets one person in. Links stop working when the race closes.",
+    "description": "Each link lets one person in and stays bound to their IP address. Links stop working when the race closes or the person is kicked.",
     "count": "Number of links",
     "generate": "Generate links",
     "usage": "{used} of {total} links used",

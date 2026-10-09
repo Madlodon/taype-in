@@ -207,7 +207,7 @@
   },
   "Invites": {
     "title": "Liens d'invitation",
-    "description": "Chaque lien fait entrer une seule personne. Les liens ne marchent plus quand la course est fermée.",
+    "description": "Chaque lien fait entrer une seule personne et reste lié à son adresse IP. Les liens ne marchent plus quand la course est fermée ou la personne exclue.",
     "count": "Nombre de liens",
     "generate": "Générer les liens",
     "usage": "{used} sur {total} liens utilisés",

@@ -1,6 +1,6 @@
 // Création, réglages et fermeture des lobbys, invitations, participants connectés et exclusions (LOB-1 à LOB-5, LOB-7, LOB-10, SALLE-06 à SALLE-08).
 import { randomBytes, randomInt } from "node:crypto";
-import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNull, or } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { lobbies, lobbyBans, lobbyInvites, lobbyParticipants, users } from "../db/schema.ts";
 
@@ -84,10 +84,14 @@ export async function setLobbyHost(lobbyId: string, hostId: string) {
 export async function canEnterLobby(lobby: Lobby, userId: string): Promise<boolean> {
   if (await isBanned(lobby.id, userId)) return false;
   if (lobby.visibility !== "private" || lobby.hostId === userId) return true;
+  return hasInvite(lobby.id, userId);
+}
+
+async function hasInvite(lobbyId: string, userId: string): Promise<boolean> {
   const [invite] = await db
     .select({ token: lobbyInvites.token })
     .from(lobbyInvites)
-    .where(and(eq(lobbyInvites.lobbyId, lobby.id), eq(lobbyInvites.usedBy, userId)));
+    .where(and(eq(lobbyInvites.lobbyId, lobbyId), eq(lobbyInvites.usedBy, userId)));
   return Boolean(invite);
 }
 
@@ -111,30 +115,39 @@ export async function listInvites(
   return rows.map((row) => ({ token: row.token, used: row.usedBy !== null }));
 }
 
-// Lien valide pour cet utilisateur : lobby ouvert, et lien libre ou déjà à lui.
-export async function findInviteLobby(token: string, userId?: string): Promise<Lobby | null> {
+// Lien valide depuis cette IP : lobby ouvert, et lien libre ou déjà lié à cette IP (SALLE-04).
+export async function findInviteLobby(token: string, ip: string): Promise<Lobby | null> {
   const [row] = await db
-    .select({ lobby: lobbies, usedBy: lobbyInvites.usedBy })
+    .select({ lobby: lobbies })
     .from(lobbyInvites)
     .innerJoin(lobbies, eq(lobbyInvites.lobbyId, lobbies.id))
-    .where(and(eq(lobbyInvites.token, token), isNull(lobbies.closedAt)));
-  if (!row || (row.usedBy !== null && row.usedBy !== userId)) return null;
-  return row.lobby;
+    .where(and(eq(lobbyInvites.token, token), isNull(lobbies.closedAt), usableFrom(ip)));
+  return row?.lobby ?? null;
 }
 
-// Réserve le lien pour l'utilisateur et renvoie le lobby, ou null si le lien n'est plus valide.
-export async function claimInvite(token: string, userId: string): Promise<Lobby | null> {
-  const lobby = await findInviteLobby(token, userId);
+function usableFrom(ip: string) {
+  return or(isNull(lobbyInvites.usedBy), eq(lobbyInvites.usedIp, ip));
+}
+
+// Lie le lien à l'utilisateur et à son IP, puis renvoie le lobby, ou null si le lien n'est
+// plus valide. Depuis la même IP, le lien resert, même avec un autre compte (invité qui a
+// perdu sa session) : il passe alors à ce compte.
+export async function claimInvite(
+  token: string,
+  userId: string,
+  ip: string,
+): Promise<Lobby | null> {
+  const lobby = await findInviteLobby(token, ip);
   // Une personne exclue ne prend pas un autre lien libre (SALLE-07).
   if (!lobby || (await isBanned(lobby.id, userId))) return null;
   // Déjà admis (hôte ou autre lien) : on ne gaspille pas ce lien.
-  if (await canEnterLobby(lobby, userId)) return lobby;
+  if (lobby.hostId === userId || (await hasInvite(lobby.id, userId))) return lobby;
 
-  // La condition sur used_by empêche deux personnes de prendre le même lien en même temps.
+  // La condition empêche deux IP de prendre le même lien en même temps.
   const [taken] = await db
     .update(lobbyInvites)
-    .set({ usedBy: userId })
-    .where(and(eq(lobbyInvites.token, token), isNull(lobbyInvites.usedBy)))
+    .set({ usedBy: userId, usedIp: ip })
+    .where(and(eq(lobbyInvites.token, token), usableFrom(ip)))
     .returning();
   return taken ? lobby : null;
 }
