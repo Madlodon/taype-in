@@ -3,9 +3,10 @@ import { getTranslations } from "next-intl/server";
 import { guestAction, logInAction } from "@/app/actions/auth";
 import { Arena } from "@/components/arena";
 import { AuthForm } from "@/components/auth-form";
+import { OAuthButtons } from "@/components/oauth-buttons";
 
-export default async function LogInPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
+export default async function LogInPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
+  const { next, error } = await searchParams;
   const t = await getTranslations("Auth");
   const d = await getTranslations("Design");
   const home = await getTranslations("Home");
@@ -23,7 +24,9 @@ export default async function LogInPage({ searchParams }: { searchParams: Promis
         <h1 className="page-title">{t("logInTitle")}</h1>
         <p className="description">{d("logInDescription")}</p>
         {next && <p role="status" className="panel panel-accent mb-6">{t("signInToContinue")}</p>}
+        {error === "oauthFailed" && <p role="alert" className="form-error mb-6">{t("errors.oauthFailed")}</p>}
         <AuthForm action={logInAction} submitLabel={t("logInSubmit")} passwordAutoComplete="current-password" next={next} />
+        <OAuthButtons next={next} />
 
         {next && <form action={guestAction} className="mt-3">
           <input type="hidden" name="next" value={next} />
