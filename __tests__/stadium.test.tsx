@@ -4,7 +4,7 @@ import { Arena } from "../components/arena";
 import { STADIUMS, STADIUM_IMAGES } from "../lib/garage-items";
 import { DRIVING_AREA, MAX_CAR_SCALE, project, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
 
-import { createFieldCars, stepFieldCars } from "../lib/field-motion";
+import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls } from "../lib/field-motion";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -209,22 +209,6 @@ test("Should_ShowExhaustAndGainSpeedThenStopBoostingWithoutJumping", () => {
 
 });
 
-test.each(["octane", "fennec", "dominus", "merc"])("Should_TouchHopAndCatchTheBall_When_Driving_%s", async body => {
-  const { dribbleBall } = await import("../lib/stadium-track");
-  const pose = { x: 0, y: 0, heading: 0 };
-  const touch = dribbleBall(pose, 0, .5, body);
-  expect(touch.x - 1.2).toBeCloseTo((body === "dominus" ? 3.5 : 3) * .5);
-  expect(touch.z).toBe(1.2);
-  expect(touch.impact).toBe(1);
-  const kicked = dribbleBall(pose, .4, .5, body);
-  expect(kicked.x).toBeGreaterThan(touch.x + 2);
-  expect(kicked.z).toBeGreaterThan(touch.z);
-  expect(kicked.spin).toBeGreaterThan(touch.spin);
-  expect(kicked.impact).toBe(0);
-  expect(dribbleBall(pose, 2.39, .5, body).x).toBeCloseTo(touch.x, 2);
-  expect(dribbleBall(pose, 2.4, .5, body)).toMatchObject({ x: touch.x, y: touch.y, z: touch.z, impact: 1 });
-});
-
 test("Should_ShowImpactOnlyDuringContact_AndKeepReducedMotionStill", () => {
   let tick: FrameRequestCallback = () => {};
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
@@ -233,9 +217,9 @@ test("Should_ShowImpactOnlyDuringContact_AndKeepReducedMotionStill", () => {
   vi.spyOn(performance, "now").mockReturnValue(0);
   const { container, unmount } = render(<Arena />);
   expect(container.querySelector("[data-ball-impact]")).toBeNull();
-  act(() => tick(2450));
+  act(() => tick(16));
   expect(container.querySelector("[data-ball-impact]")).not.toBeNull();
-  act(() => tick(2800));
+  act(() => tick(250));
   expect(container.querySelector("[data-ball-impact]")).toBeNull();
   unmount();
   const raf = vi.fn();
@@ -244,4 +228,66 @@ test("Should_ShowImpactOnlyDuringContact_AndKeepReducedMotionStill", () => {
   const still = render(<Arena />);
   expect(raf).not.toHaveBeenCalled();
   expect(still.container.querySelector("[data-ball-impact]")).toBeNull();
+});
+
+
+test("Should_RenderIndependentBallPositionsAndActualContacts_OverRepeatedCycles", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container } = render(<Arena stadium="top-down" />);
+  let cars = createFieldCars(["preview"]), balls = createFieldBalls(cars);
+  for (let time = 16; time <= 6000; time += 16) {
+    cars = stepFieldCars(cars, .016, new Set(), new Map(balls.map(ball => [ball.id, ball])));
+    balls = stepFieldBalls(balls, cars, .016);
+    act(() => tick(time));
+    const ball = balls[0], expected = project(ball.x, ball.y, ball.z, "top-down");
+    const transform = container.querySelector("[data-field-ball]")!.getAttribute("transform")!;
+    const [x, y] = transform.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    expect(x).toBeCloseTo(expected.x);
+    expect(y).toBeCloseTo(expected.y);
+    const impact = container.querySelector("[data-ball-impact]");
+    expect(Boolean(impact)).toBe(ball.sinceContact < .18);
+  }
+  expect(balls[0].contacts).toBeGreaterThan(2);
+});
+
+test.each([false, true])("Should_ResumeBallContinuouslyAfterHiddenTab_WithShot_%s", shooting => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container } = render(<Arena stadium="top-down"
+    shots={shooting ? { preview: { sequence: 1, scored: true, receivedAt: 0 } } : {}} />);
+  const position = () => container.querySelector("[data-field-ball]")!.getAttribute("transform")!
+    .match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  act(() => tick(100));
+  const [x, y] = position();
+  act(() => tick(60000));
+  const [nextX, nextY] = position();
+  // The paused simulation advances at most 250 ms, including an active shot.
+  const distance = Math.hypot((x - nextX) * 106 / 974, (y - nextY) * 70 / 492);
+  expect(distance).toBeGreaterThan(0);
+  expect(distance).toBeLessThan(shooting ? 15 : 5);
+  expect(container.querySelector("[data-ball-impact]")).toBeNull();
+});
+
+
+test("Should_UseRenderedScaleForSpawnSpacing_When_HomepageRequestsLargerCars", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true }));
+  const cars = Array.from({ length: 5 }, (_, i) => ({ id: `36-player-${i}`, name: "", progress: 0, you: i === 0 }));
+  const { container, rerender } = render(<Arena stadium="top-down" carScale={1.4} cars={cars} />);
+  const positions = () => [...container.querySelectorAll('[data-car-id] > [clip-path] > g')].map(element => {
+    const [x, y] = element.getAttribute("transform")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    return { x: (x - 700) * 106 / 974, y: (450 - y) * 70 / 492 };
+  });
+  const initial = positions();
+  for (const [i, car] of initial.entries()) for (const other of initial.slice(i + 1)) {
+    expect(Math.hypot(car.x - other.x, car.y - other.y)).toBeGreaterThanOrEqual(14);
+  }
+  rerender(<Arena stadium="top-down" carScale={1.4} cars={[...cars].reverse()} />);
+  expect(positions()).toEqual(initial);
 });
