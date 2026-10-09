@@ -19,6 +19,11 @@
     "username": "Nom d'utilisateur",
     "signInToContinue": "Connecte-toi ou joue en invité pour continuer.",
     "password": "Mot de passe",
+    "continueWith": "Continuer avec {provider}",
+    "orDivider": "ou",
+    "oauthTitle": "Choisis ton nom",
+    "oauthDescription": "Ton compte {provider} est relié. Choisis le nom que les autres verront en course.",
+    "oauthSubmit": "Créer le compte",
     "errors": {
       "usernameTooShort": "Le nom d'utilisateur doit avoir au moins 3 caractères.",
       "usernameTooLong": "Le nom d'utilisateur doit avoir au plus 20 caractères.",
@@ -26,7 +31,8 @@
       "passwordTooShort": "Le mot de passe doit avoir au moins 12 caractères.",
       "passwordTooLong": "Le mot de passe doit avoir au plus 128 caractères.",
       "usernameTaken": "Ce nom d'utilisateur est déjà pris.",
-      "wrongCredentials": "Nom d'utilisateur ou mot de passe incorrect."
+      "wrongCredentials": "Nom d'utilisateur ou mot de passe incorrect.",
+      "oauthFailed": "La connexion avec Discord ou GitHub a échoué. Réessaie."
     }
   },
   "Lobbies": {

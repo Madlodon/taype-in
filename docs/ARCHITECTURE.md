@@ -9,6 +9,7 @@ Schéma PostgreSQL défini avec Drizzle dans [`db/schema.ts`](../db/schema.ts).
 ```mermaid
 erDiagram
     users ||--o{ sessions : "possède"
+    users ||--o{ oauth_accounts : "se connecte avec"
     users ||--o{ lobbies : "héberge"
     users ||--o{ lobby_participants : "rejoint"
     lobbies ||--o{ lobby_participants : "contient"
@@ -29,6 +30,12 @@ erDiagram
         text hat "garage : none par défaut"
         text ball "garage : none par défaut"
         timestamptz created_at
+    }
+
+    oauth_accounts {
+        oauth_provider provider PK "discord | github"
+        text provider_user_id PK "identifiant chez le fournisseur"
+        uuid user_id FK
     }
 
     sessions {

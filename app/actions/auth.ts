@@ -9,8 +9,10 @@ import {
   credentialsSchema,
   invalidateSession,
   logIn,
+  safeNextPath,
   signUp,
 } from "@/lib/auth";
+import { decodePending, findOAuthUser, PENDING_COOKIE, signUpWithOAuth } from "@/lib/oauth";
 import {
   deleteSessionCookie,
   getCurrentUser,
@@ -24,10 +26,8 @@ export type AuthFormState = {
   username?: string;
 } | undefined;
 
-// Page où revenir après la connexion (ex. un lien d'invitation) ; seulement un chemin du site.
 function nextPath(formData: FormData): string {
-  const next = String(formData.get("next") ?? "");
-  return /^\/(?![/\\])/.test(next) ? next : "/";
+  return safeNextPath(String(formData.get("next") ?? ""));
 }
 
 async function startSession(userId: string) {
@@ -59,6 +59,42 @@ export async function signUpAction(
   if (guestId) await invalidateSession((await cookies()).get(SESSION_COOKIE)!.value);
   await startSession(user.id);
   redirect(nextPath(formData));
+}
+
+// Dernière étape d'une connexion Discord ou GitHub pour un nouveau compte : le nom choisi.
+export async function oauthSignUpAction(
+  _state: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const store = await cookies();
+  const pending = decodePending(store.get(PENDING_COOKIE)?.value);
+  if (!pending) redirect("/login?error=oauthFailed");
+
+  // Formulaire envoyé deux fois : le compte existe déjà.
+  const linked = await findOAuthUser(pending.provider, pending.id);
+  if (linked) {
+    store.delete(PENDING_COOKIE);
+    await startSession(linked.id);
+    redirect(pending.next);
+  }
+
+  const username = String(formData.get("username") ?? "");
+  const parsed = credentialsSchema.shape.username.safeParse(username);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message, username };
+  }
+
+  const current = await getCurrentUser();
+  const guestId = current?.isGuest ? current.id : undefined;
+  const user = await signUpWithOAuth(pending, parsed.data, guestId);
+  if (user === "taken") {
+    return { error: "usernameTaken", username };
+  }
+
+  if (guestId) await invalidateSession(store.get(SESSION_COOKIE)!.value);
+  store.delete(PENDING_COOKIE);
+  await startSession(user.id);
+  redirect(pending.next);
 }
 
 export async function logInAction(

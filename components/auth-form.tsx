@@ -7,12 +7,14 @@ import type { AuthFormState } from "@/app/actions/auth";
 type Props = {
   action: (state: AuthFormState, formData: FormData) => Promise<AuthFormState>;
   submitLabel: string;
-  passwordAutoComplete: "current-password" | "new-password";
+  // Sans mot de passe pour un compte Discord ou GitHub : seulement le nom.
+  passwordAutoComplete?: "current-password" | "new-password";
   // Page où revenir après la connexion (ex. un lien d'invitation).
   next?: string;
+  defaultUsername?: string;
 };
 
-export function AuthForm({ action, submitLabel, passwordAutoComplete, next }: Props) {
+export function AuthForm({ action, submitLabel, passwordAutoComplete, next, defaultUsername }: Props) {
   const t = useTranslations("Auth");
   const [state, formAction, pending] = useActionState(action, undefined);
 
@@ -25,11 +27,11 @@ export function AuthForm({ action, submitLabel, passwordAutoComplete, next }: Pr
           name="username"
           required
           autoComplete="username"
-          defaultValue={state?.username}
+          defaultValue={state?.username ?? defaultUsername}
 
         />
       </label>
-      <label className="field">
+      {passwordAutoComplete && <label className="field">
         {t("password")}
         <input
           name="password"
@@ -38,7 +40,7 @@ export function AuthForm({ action, submitLabel, passwordAutoComplete, next }: Pr
           autoComplete={passwordAutoComplete}
 
         />
-      </label>
+      </label>}
       {state?.error && (
         <p role="alert" className="form-error">
           {t(`errors.${state.error}`)}

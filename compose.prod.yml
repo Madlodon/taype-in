@@ -5,6 +5,12 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       PASSWORD_PEPPER: ${PASSWORD_PEPPER:?PASSWORD_PEPPER doit être défini dans .env}
+      # Derrière Caddy, l'URL de rappel OAuth doit porter l'adresse publique.
+      APP_URL: https://${DOMAIN}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy

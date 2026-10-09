@@ -17,11 +17,11 @@ export function proxy(request: NextRequest) {
 
 // Les photos de profil et les préchargements de liens n'ont pas besoin de la
 // session : une réponse encore en route remettrait sinon le cookie après une
-// déconnexion.
+// déconnexion. Le retour OAuth pose lui-même un nouveau cookie de session.
 export const config = {
   matcher: [
     {
-      source: "/((?!_next/static|_next/image|favicon.ico|avatars/).*)",
+      source: "/((?!_next/static|_next/image|favicon.ico|avatars/|auth/).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },
