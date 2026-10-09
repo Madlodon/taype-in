@@ -14,6 +14,7 @@ import {
   findParticipantLobby,
   listParticipants,
   removeParticipant,
+  setLobbyHost,
   type Lobby,
 } from "./lobbies.ts";
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
@@ -99,6 +100,8 @@ export function createSocketServer(
     shotRandom = Math.random,
     // goalChance = 0 : aucun but, pour les tests E2E qui tapent tout le texte.
     goalChance = GOAL_CHANCE,
+    // SALLE-08 : délai laissé à l'hôte parti pour revenir (ex. rechargement de la page).
+    hostGraceMs = 10_000,
   } = {},
 ): Server {
   const io = new Server<
@@ -223,9 +226,15 @@ export function createSocketServer(
     live.idleTimer = setTimeout(() => endRace(lobby, live, "idle"), idleMs);
   }
 
+  // Remplacements d'hôte en attente ; annulés à l'arrêt du serveur.
+  const hostTimers = new Set<NodeJS.Timeout>();
+  let stopped = false;
+
   // Serveur arrêté : les minuteries des courses en cours ne doivent plus se déclencher.
   httpServer.on("close", () => {
+    stopped = true;
     for (const live of liveRaces.values()) stopTimers(live);
+    hostTimers.forEach((timer) => clearTimeout(timer));
   });
 
   // La course finit quand plus personne ne court : un absent compte encore, il peut revenir (CRS-6).
@@ -299,12 +308,36 @@ export function createSocketServer(
 
   async function sendParticipants(lobby: Lobby) {
     io.to(lobby.code).emit("lobby:participants", {
+      hostId: lobby.hostId,
       participants: await roomParticipants(lobby),
     });
   }
 
+  // L'hôte n'est pas revenu : le plus ancien humain encore là devient hôte, participant
+  // ou spectateur (les bots ne sont pas en base). S'il n'en reste aucun, le lobby ferme (SALLE-08).
+  async function replaceHost(code: string, hostId: string) {
+    const lobby = await findOpenLobby(code);
+    if (!lobby || lobby.hostId !== hostId) return;
+    const participants = await listParticipants(lobby.id);
+    if (participants.some((participant) => participant.id === hostId)) return;
+
+    if (participants.length === 0) {
+      const live = liveRaces.get(lobby.id);
+      if (live) stopTimers(live);
+      liveRaces.delete(lobby.id);
+      lobbyBots.delete(lobby.id);
+      await closeLobby(lobby.id);
+      return;
+    }
+    const updated = { ...lobby, hostId: participants[0].id };
+    await setLobbyHost(lobby.id, updated.hostId);
+    // Les sockets gardent leur lobby : on leur donne le nouvel hôte pour les vérifications.
+    for (const other of await io.in(lobby.code).fetchSockets()) other.data.lobby = updated;
+    await sendParticipants(updated);
+  }
+
   // Un coureur qui part garde sa place ; la course continue sans lui (CRS-6).
-  async function removeFromLobby(lobby: Lobby, userId: string) {
+  async function removeFromLobby(lobby: Lobby, userId: string, graceMs = hostGraceMs) {
     const live = liveRaces.get(lobby.id);
     const player = live?.players.get(userId);
     if (player?.state === "connected" && live?.state !== "finished") {
@@ -313,6 +346,13 @@ export function createSocketServer(
 
     await removeParticipant(lobby.id, userId);
     await sendParticipants(lobby);
+
+    if (lobby.hostId !== userId || stopped) return;
+    const timer = setTimeout(() => {
+      hostTimers.delete(timer);
+      replaceHost(lobby.code, userId);
+    }, graceMs);
+    hostTimers.add(timer);
   }
 
   // La personne part pour un autre lobby : ses onglets encore ouverts dans celui-ci en sortent (SALLE-06).
@@ -323,7 +363,8 @@ export function createSocketServer(
       other.leave(lobby.code);
       other.emit("lobby:left");
     }
-    await removeFromLobby(lobby, userId);
+    // Il est parti ailleurs : pas besoin d'attendre qu'il revienne.
+    await removeFromLobby(lobby, userId, 0);
   }
 
   // Le cookie de session (httpOnly) accompagne la connexion : seul un utilisateur connecté entre.

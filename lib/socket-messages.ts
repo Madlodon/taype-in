@@ -38,7 +38,9 @@ export type Ack = { ok: true } | { ok: false; error: string };
 
 // Envoyé à toute la salle quand quelqu'un arrive ou part, ou qu'un bot est ajouté ou retiré.
 // bot : présent seulement pour un bot, pour l'afficher comme tel (BOT-3).
+// hostId suit les transferts d'hôte (SALLE-08).
 export type ParticipantsMessage = {
+  hostId: string;
   participants: { id: string; username: string; bot?: Bot }[];
 };
 

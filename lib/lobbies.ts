@@ -1,4 +1,4 @@
-// Création, réglages et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10, SALLE-06).
+// Création, réglages et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10, SALLE-06, SALLE-08).
 import { randomBytes, randomInt } from "node:crypto";
 import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.ts";
@@ -72,6 +72,11 @@ export async function closeLobby(lobbyId: string) {
     .update(lobbies)
     .set({ closedAt: new Date() })
     .where(and(eq(lobbies.id, lobbyId), isNull(lobbies.closedAt)));
+}
+
+// SALLE-08 : le rôle d'hôte passe à quelqu'un d'autre.
+export async function setLobbyHost(lobbyId: string, hostId: string) {
+  await db.update(lobbies).set({ hostId }).where(eq(lobbies.id, lobbyId));
 }
 
 // Une course privée n'est accessible qu'à l'hôte et à ceux qui ont utilisé un lien.

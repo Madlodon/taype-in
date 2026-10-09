@@ -48,6 +48,7 @@ async function startServer(
     shotMs?: number;
     shotRandom?: () => number;
     goalChance?: number;
+    hostGraceMs?: number;
   } = {},
 ) {
   const httpServer = createServer();
@@ -287,6 +288,7 @@ describe("lobby:join", () => {
     await join(guestClient, { code: lobby.code });
 
     const expected = {
+      hostId: host.id,
       participants: [
         { id: host.id, username: host.username },
         { id: guest.id, username: guest.username },
@@ -345,7 +347,10 @@ describe("one lobby at a time", () => {
     const ack = await join(await newClient(player), { code: second.code, leave: true });
 
     expect(ack).toEqual({ ok: true });
-    expect(await hostSees).toEqual({ participants: [{ id: host.id, username: host.username }] });
+    expect(await hostSees).toEqual({
+      hostId: host.id,
+      participants: [{ id: host.id, username: host.username }],
+    });
     expect(await listParticipants(first.id)).toEqual([{ id: host.id, username: host.username }]);
     expect(await listParticipants(second.id)).toEqual([
       { id: player.id, username: player.username },
@@ -1413,6 +1418,7 @@ describe("disconnect", () => {
     guestClient.disconnect();
 
     expect(await hostSees).toEqual({
+      hostId: host.id,
       participants: [{ id: host.id, username: host.username }],
     });
   });
@@ -1430,6 +1436,146 @@ describe("disconnect", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(await listParticipants(lobby.id)).toEqual([{ id: guest.id, username: guest.username }]);
+  });
+});
+
+// SALLE-08 : l'hôte parti est remplacé par le plus ancien humain, sinon le lobby ferme.
+describe("host transfer", () => {
+  beforeEach(async () => {
+    await io.close();
+    await startServer({ hostGraceMs: 50 });
+  });
+
+  function hostChanged(client: Socket, hostId: string): Promise<ParticipantsMessage> {
+    return new Promise((resolve) => {
+      const listener = (message: ParticipantsMessage) => {
+        if (message.hostId !== hostId) return;
+        client.off("lobby:participants", listener);
+        resolve(message);
+      };
+      client.on("lobby:participants", listener);
+    });
+  }
+
+  // L'hôte et deux autres, arrivés dans l'ordre.
+  async function lobbyWithThree() {
+    const { host, guest: first, lobby, hostClient, guestClient: firstClient } = await lobbyWithTwo();
+    const second = await newUser();
+    const secondClient = await newClient(second);
+    await join(secondClient, { code: lobby.code });
+    return { host, first, second, lobby, hostClient, firstClient, secondClient };
+  }
+
+  test("Should_MakeOldestHumanHost_When_HostLeaves", async () => {
+    const { first, second, lobby, hostClient, secondClient } = await lobbyWithThree();
+    const secondSees = hostChanged(secondClient, first.id);
+
+    hostClient.disconnect();
+
+    expect(await secondSees).toEqual({
+      hostId: first.id,
+      participants: [
+        { id: first.id, username: first.username },
+        { id: second.id, username: second.username },
+      ],
+    });
+    expect((await findOpenLobby(lobby.code))?.hostId).toBe(first.id);
+  });
+
+  test("Should_PassHostAgain_When_NewHostLeavesToo", async () => {
+    const { first, second, hostClient, firstClient, secondClient } = await lobbyWithThree();
+    const firstTransfer = hostChanged(secondClient, first.id);
+    hostClient.disconnect();
+    await firstTransfer;
+    const secondSees = hostChanged(secondClient, second.id);
+
+    firstClient.disconnect();
+
+    expect((await secondSees).participants).toEqual([{ id: second.id, username: second.username }]);
+  });
+
+  test("Should_LetNewHostUseHostActions_When_HostWasTransferred", async () => {
+    const { guest, hostClient, guestClient } = await lobbyWithTwo();
+    const transferred = hostChanged(guestClient, guest.id);
+    hostClient.disconnect();
+    await transferred;
+
+    expect(await guestClient.emitWithAck("lobby:addBot", { level: "expert" })).toEqual({ ok: true });
+  });
+
+  test("Should_TransferHost_When_HostLeavesDuringRace", async () => {
+    const { guest, hostClient, guestClient } = await lobbyWithTwo();
+    const started = next(guestClient, "race:started");
+    await hostClient.emitWithAck("race:start", { watch: false });
+    await started;
+    const guestSees = hostChanged(guestClient, guest.id);
+
+    hostClient.disconnect();
+
+    expect((await guestSees).hostId).toBe(guest.id);
+  });
+
+  test("Should_SkipBots_When_PickingNewHost", async () => {
+    const host = await newUser();
+    const guest = await newUser();
+    const lobby = await createLobby(host.id, "unlisted");
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: lobby.code });
+    await hostClient.emitWithAck("lobby:addBot", { level: "expert" });
+    const guestClient = await newClient(guest);
+    await join(guestClient, { code: lobby.code });
+    const guestSees = hostChanged(guestClient, guest.id);
+
+    hostClient.disconnect();
+
+    expect((await guestSees).hostId).toBe(guest.id);
+  });
+
+  test("Should_CloseLobby_When_NoHumanIsLeft", async () => {
+    const host = await newUser();
+    const lobby = await createLobby(host.id, "unlisted");
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: lobby.code });
+    await hostClient.emitWithAck("lobby:addBot", { level: "expert" });
+
+    hostClient.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    expect(await findOpenLobby(lobby.code)).toBeNull();
+  });
+
+  test("Should_KeepHost_When_HostComesBackInTime", async () => {
+    await io.close();
+    await startServer({ hostGraceMs: 300 });
+    const { host, lobby, hostClient } = await lobbyWithTwo();
+
+    hostClient.disconnect();
+    await join(await newClient(host), { code: lobby.code });
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect((await findOpenLobby(lobby.code))?.hostId).toBe(host.id);
+  });
+
+  test("Should_KeepHost_When_AnotherHostTabIsStillOpen", async () => {
+    const { host, lobby, hostClient } = await lobbyWithTwo();
+    await join(await newClient(host), { code: lobby.code });
+
+    hostClient.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    expect((await findOpenLobby(lobby.code))?.hostId).toBe(host.id);
+  });
+
+  test("Should_TransferAtOnce_When_HostLeavesForAnotherLobby", async () => {
+    await io.close();
+    await startServer({ hostGraceMs: 60_000 });
+    const { host, guest, guestClient } = await lobbyWithTwo();
+    const other = await createLobby(guest.id, "unlisted");
+    const guestSees = hostChanged(guestClient, guest.id);
+
+    await join(await newClient(host), { code: other.code, leave: true });
+
+    expect((await guestSees).hostId).toBe(guest.id);
   });
 });
 
