@@ -32,7 +32,7 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
       </div>
       <div className="split-layout">
         <div className="side-stack">
-          <LobbyRoom code={lobby.code} hostId={lobby.hostId} isHost={isHost} userId={user.id}
+          <LobbyRoom code={lobby.code} hostId={lobby.hostId} userId={user.id}
             stadium={loadoutSchema.shape.stadium.catch(DEFAULT_LOADOUT.stadium).parse(user.stadium)}
             loadSessionStats={sessionStatsAction} />
         </div>

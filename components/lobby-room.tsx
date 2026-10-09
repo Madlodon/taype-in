@@ -33,7 +33,6 @@ import type { Stadium } from "@/lib/garage-items";
 type Props = {
   code: string;
   hostId: string;
-  isHost: boolean;
   userId: string;
   stadium?: Stadium;
   loadSessionStats: () => Promise<Stats | null>;
@@ -67,12 +66,15 @@ function formatTime(totalSeconds: number): string {
 // Salle d'attente : la liste des participants suit les arrivées et départs ;
 // l'hôte lance la course, tous voient le même compte à rebours puis le même texte (CRS-1).
 // Les coureurs tapent le texte ; ceux arrivés en cours de route le regardent.
-export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionStats }: Props) {
+export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessionStats }: Props) {
   const t = useTranslations("LobbyRoom");
   const format = useFormatter();
   const router = useRouter();
   const socketRef = useRef<Socket>(null);
   const [participants, setParticipants] = useState<ParticipantsMessage["participants"]>([]);
+  // L'hôte peut changer en cours de route (SALLE-08).
+  const [hostId, setHostId] = useState(pageHostId);
+  const isHost = hostId === userId;
   const [error, setError] = useState<string>();
   const [countdown, setCountdown] = useState<number>();
   const [race, setRace] = useState<RaceStartedMessage>();
@@ -109,9 +111,10 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
     socketRef.current = socket;
     const named = <T extends { username: string; bot?: Bot }>(entries: T[]) =>
       withBotNames(entries, botNameRef.current!);
-    socket.on("lobby:participants", (message: ParticipantsMessage) =>
-      setParticipants(named(message.participants)),
-    );
+    socket.on("lobby:participants", (message: ParticipantsMessage) => {
+      setHostId(message.hostId);
+      setParticipants(named(message.participants));
+    });
     // Lobby fermé par l'hôte : tout le monde retourne à la liste avec un message (LOB-10).
     socket.on("lobby:closed", () => router.replace("/lobbies?closed=1"));
     // Exclu par l'hôte : retour à la liste avec un message (SALLE-07).
@@ -202,6 +205,11 @@ export function LobbyRoom({ code, hostId, isHost, userId, stadium, loadSessionSt
       socket.disconnect();
     };
   }, [code, router, userId]);
+
+  // Nouvel hôte : la page se recharge côté serveur pour lui montrer le code ou les liens d'invitation.
+  useEffect(() => {
+    if (hostId !== pageHostId) router.refresh();
+  }, [hostId, pageHostId, router]);
 
   // Décompte local ; le serveur envoie le « Go » au bon moment, on s'arrête donc à 1.
   useEffect(() => {
