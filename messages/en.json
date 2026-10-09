@@ -37,7 +37,19 @@
     "publicRaces": "Public races",
     "noPublicRaces": "No public races right now.",
     "raceOf": "{host}'s race",
-    "participantCount": "{count, plural, one {# participant} other {# participants}}",
+    "textLanguage": "Text language",
+    "allLanguages": "All",
+    "languages": {
+      "fr": "French",
+      "en": "English"
+    },
+    "loading": "Loading races…",
+    "lobbyInfo": "{count}/{capacity} · {language} · {state}",
+    "states": {
+      "waiting": "Waiting",
+      "racing": "Racing",
+      "finished": "Results"
+    },
     "code": "Race code",
     "join": "Join",
     "closed": "This race was closed by the host.",

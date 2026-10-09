@@ -2,15 +2,16 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { JoinLobbyForm } from "@/components/join-lobby-form";
-import { listPublicLobbies } from "@/lib/lobbies";
+import { LobbyExplorer } from "@/components/lobby-explorer";
 import { getCurrentUser } from "@/lib/session-cookie";
 
-export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string; kicked?: string }> }) {
+export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string; kicked?: string; lang?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/lobbies");
   // Renvoyé ici quand l'hôte ferme sa course (LOB-10) ou nous exclut (SALLE-07).
-  const { closed, kicked } = await searchParams;
-  const publicLobbies = await listPublicLobbies();
+  const { closed, kicked, lang } = await searchParams;
+  // Filtre de langue de l'explorateur (JOIN-02) ; une autre valeur montre toutes les langues.
+  const language = lang === "fr" || lang === "en" ? lang : undefined;
   const t = await getTranslations("Lobbies");
   const d = await getTranslations("Design");
   return (
@@ -29,21 +30,7 @@ export default async function LobbiesPage({ searchParams }: { searchParams: Prom
       {closed && <p role="status" className="panel panel-accent mb-6">{t("closed")}</p>}
       {kicked && <p role="status" className="panel panel-accent mb-6">{t("kicked")}</p>}
       <div className="split-layout">
-        <section className="panel">
-          <div className="panel-top">
-            <h2>{t("publicRaces")}</h2>
-            <span className="badge">{d("openRooms", { count: publicLobbies.length })}</span>
-          </div>
-          {publicLobbies.length === 0 ? <div className="empty-state">
-            <span className="empty-ball" aria-hidden="true">⬡</span>
-            <p>{t("noPublicRaces")}</p>
-            {!user.isGuest && <Link href="/lobbies/new" className="text-link">{d("firstRace")} →</Link>}
-          </div> :
-            <ul className="lobby-list">{publicLobbies.map(lobby => <li key={lobby.code}>
-              <Link href={`/lobbies/${lobby.code}`}>{t("raceOf", { host: lobby.hostName })}</Link>
-              <span>{t("participantCount", { count: lobby.participantCount })}</span>
-            </li>)}</ul>}
-        </section>
+        <LobbyExplorer language={language} canCreate={!user.isGuest} />
         <aside className="side-stack">
           <section className="panel panel-accent">
             <h2>{t("joinByCode")}</h2>

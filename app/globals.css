@@ -1093,7 +1093,7 @@ a, button, input {
 
 /* Heatmap du clavier en fin de course (FIN-3) : plus une touche a de fautes, plus elle est rouge.
    Le clavier défile de côté sur un petit écran sans élargir la page. */
-.heatmap-select {
+.heatmap-select, .explorer-filter {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1102,7 +1102,7 @@ a, button, input {
   font-weight: 600;
 }
 
-.heatmap-select select {
+.heatmap-select select, .explorer-filter select {
   min-height: 40px;
   padding: 8px 12px;
   border: 1px solid var(--border);
@@ -1110,6 +1110,11 @@ a, button, input {
   background: var(--background);
   color: var(--foreground);
   font-size: 14px;
+}
+
+/* Filtre de langue au-dessus de la liste des courses publiques (JOIN-02). */
+.explorer-filter {
+  margin: 0 0 18px;
 }
 
 /* Rangées centrées avec margin: auto, pas align-items: center, pour que le début du clavier reste

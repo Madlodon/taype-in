@@ -37,7 +37,19 @@
     "publicRaces": "Courses publiques",
     "noPublicRaces": "Aucune course publique pour le moment.",
     "raceOf": "Course de {host}",
-    "participantCount": "{count, plural, one {# participant} other {# participants}}",
+    "textLanguage": "Langue du texte",
+    "allLanguages": "Toutes",
+    "languages": {
+      "fr": "Français",
+      "en": "Anglais"
+    },
+    "loading": "Chargement des courses…",
+    "lobbyInfo": "{count}/{capacity} · {language} · {state}",
+    "states": {
+      "waiting": "En attente",
+      "racing": "En course",
+      "finished": "Résultats"
+    },
     "code": "Code de la course",
     "join": "Rejoindre",
     "closed": "Cette course a été fermée par l'hôte.",
