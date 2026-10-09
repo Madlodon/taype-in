@@ -9,6 +9,7 @@ import {
   credentialsSchema,
   invalidateSession,
   logIn,
+  safeNextPath,
   signUp,
 } from "@/lib/auth";
 import {
@@ -24,10 +25,8 @@ export type AuthFormState = {
   username?: string;
 } | undefined;
 
-// Page où revenir après la connexion (ex. un lien d'invitation) ; seulement un chemin du site.
 function nextPath(formData: FormData): string {
-  const next = String(formData.get("next") ?? "");
-  return /^\/(?![/\\])/.test(next) ? next : "/";
+  return safeNextPath(String(formData.get("next") ?? ""));
 }
 
 async function startSession(userId: string) {
