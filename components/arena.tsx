@@ -75,7 +75,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
   const inputs = useRef({ boosts, shots, ids, scale, bodies });
   useEffect(() => { inputs.current = { boosts, shots, ids, scale, bodies }; });
   const [motion, setMotion] = useState(() => {
-    const drivers = createFieldCars(ids);
+    const drivers = createFieldCars(ids, [], scale);
     return { now: 0, drivers, balls: createFieldBalls(drivers, [], scale, bodies) };
   });
   useEffect(() => {
@@ -84,7 +84,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
     let frame = requestAnimationFrame(function tick(now) {
       const { boosts, shots, ids, scale, bodies } = inputs.current;
       setMotion(previous => {
-        let drivers = createFieldCars(ids, previous.drivers);
+        let drivers = createFieldCars(ids, previous.drivers, scale);
         let balls = createFieldBalls(drivers, previous.balls, scale, bodies);
         // Resume gently after a hidden tab instead of replaying minutes of movement.
         let cursor = Math.max(previous.now || start, now - 250);
@@ -100,7 +100,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
           }
           for (const shot of Object.values(shots)) if (shot.receivedAt > cursor) end = Math.min(end, shot.receivedAt);
           const boosting = new Set(Object.keys(boosts).filter(id => cursor >= boosts[id] && cursor < boosts[id] + BOOST_MS));
-          drivers = stepFieldCars(drivers, (end - cursor) / 1000, boosting, new Map(balls.map(ball => [ball.id, ball])));
+          drivers = stepFieldCars(drivers, (end - cursor) / 1000, boosting, new Map(balls.map(ball => [ball.id, ball])), scale);
           balls = stepFieldBalls(balls, drivers, (end - cursor) / 1000, boosting, scale, bodies);
           cursor = end;
         }
@@ -114,7 +114,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
   const id = useId().replaceAll(":", "");
   const position = arenaPosition(progress ?? 0.16);
   if (stadium) {
-    const poses = createFieldCars(ids, motion.drivers);
+    const poses = createFieldCars(ids, motion.drivers, scale);
     const balls = createFieldBalls(poses, motion.balls, scale, bodies);
     return <svg className={`arena ${className}`} viewBox="0 0 1400 900" fill="none" aria-hidden="true" data-stadium={stadium}>
       <defs>

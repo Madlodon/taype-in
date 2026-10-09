@@ -274,3 +274,20 @@ test.each([false, true])("Should_ResumeBallContinuouslyAfterHiddenTab_WithShot_%
   expect(distance).toBeLessThan(shooting ? 15 : 5);
   expect(container.querySelector("[data-ball-impact]")).toBeNull();
 });
+
+
+test("Should_UseRenderedScaleForSpawnSpacing_When_HomepageRequestsLargerCars", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true }));
+  const cars = Array.from({ length: 5 }, (_, i) => ({ id: `36-player-${i}`, name: "", progress: 0, you: i === 0 }));
+  const { container, rerender } = render(<Arena stadium="top-down" carScale={1.4} cars={cars} />);
+  const positions = () => [...container.querySelectorAll('[data-car-id] > [clip-path] > g')].map(element => {
+    const [x, y] = element.getAttribute("transform")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    return { x: (x - 700) * 106 / 974, y: (450 - y) * 70 / 492 };
+  });
+  const initial = positions();
+  for (const [i, car] of initial.entries()) for (const other of initial.slice(i + 1)) {
+    expect(Math.hypot(car.x - other.x, car.y - other.y)).toBeGreaterThanOrEqual(14);
+  }
+  rerender(<Arena stadium="top-down" carScale={1.4} cars={[...cars].reverse()} />);
+  expect(positions()).toEqual(initial);
+});
