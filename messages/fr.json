@@ -55,7 +55,8 @@
     "closed": "Cette course a été fermée par l'hôte.",
     "kicked": "L'hôte vous a retiré de cette course.",
     "errors": {
-      "noOpenLobby": "Aucune course ouverte avec ce code."
+      "noOpenLobby": "Aucune course ouverte avec ce code.",
+      "tooManyAttempts": "Trop d'essais. Réessayez dans une minute."
     }
   },
   "NewLobby": {
@@ -114,6 +115,7 @@
       "notLoggedIn": "Non connecté",
       "invalidMessage": "Message invalide",
       "lobbyNotFound": "Course introuvable",
+      "tooManyAttempts": "Trop d'essais. Réessayez dans une minute.",
       "notHost": "Seul l'hôte peut faire ça",
       "lobbyFull": "La course est pleine",
       "notEnoughParticipants": "Il faut au moins 2 participants",

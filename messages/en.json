@@ -55,7 +55,8 @@
     "closed": "This race was closed by the host.",
     "kicked": "The host removed you from this race.",
     "errors": {
-      "noOpenLobby": "No open race with this code."
+      "noOpenLobby": "No open race with this code.",
+      "tooManyAttempts": "Too many attempts. Try again in a minute."
     }
   },
   "NewLobby": {
@@ -114,6 +115,7 @@
       "notLoggedIn": "Not logged in",
       "invalidMessage": "Invalid message",
       "lobbyNotFound": "Race not found",
+      "tooManyAttempts": "Too many attempts. Try again in a minute.",
       "notHost": "Only the host can do this",
       "lobbyFull": "The race is full",
       "notEnoughParticipants": "At least 2 participants are needed",
