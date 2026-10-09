@@ -6,6 +6,7 @@ import { db } from "../db";
 import { lobbies, users } from "../db/schema";
 import {
   addParticipant,
+  banParticipant,
   canEnterLobby,
   claimInvite,
   closeLobby,
@@ -296,6 +297,47 @@ test("Should_AcceptLinkAgain_When_SameUserReopensIt", async () => {
   await claimInvite(token, student.id);
 
   expect((await claimInvite(token, student.id))?.id).toBe(lobby.id);
+});
+
+test("Should_RefuseEntry_When_UserWasKickedFromPublicLobby", async () => {
+  const lobby = await createLobby((await newUser()).id, "public");
+  const kicked = await newUser();
+
+  await banParticipant(lobby.id, kicked.id);
+
+  expect(await canEnterLobby(lobby, kicked.id)).toBe(false);
+  expect(await canEnterLobby(lobby, (await newUser()).id)).toBe(true);
+});
+
+test("Should_RevokeInviteLink_When_InvitedUserIsKicked", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token, other] = await createInvites(lobby.id, 2);
+  const kicked = await newUser();
+  await claimInvite(token, kicked.id);
+
+  await banParticipant(lobby.id, kicked.id);
+
+  expect(await findInviteLobby(token, kicked.id)).toBeNull();
+  expect(await canEnterLobby(lobby, kicked.id)).toBe(false);
+  expect(await listInvites(lobby.id)).toEqual([{ token: other, used: false }]);
+});
+
+test("Should_KeepFreeLinkUnused_When_KickedUserTriesIt", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+  const kicked = await newUser();
+  await banParticipant(lobby.id, kicked.id);
+
+  expect(await claimInvite(token, kicked.id)).toBeNull();
+  expect(await listInvites(lobby.id)).toEqual([{ token, used: false }]);
+});
+
+test("Should_KeepOneBan_When_UserIsKickedTwice", async () => {
+  const lobby = await createLobby((await newUser()).id, "public");
+  const kicked = await newUser();
+
+  await banParticipant(lobby.id, kicked.id);
+  await expect(banParticipant(lobby.id, kicked.id)).resolves.toBeUndefined();
 });
 
 test("Should_GiveLinkToOnlyOneUser_When_TwoUsersClaimItAtOnce", async () => {

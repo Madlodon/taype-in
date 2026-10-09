@@ -236,6 +236,53 @@ test("Should_ReturnToLobbyListWithMessage_When_LobbyIsClosed", () => {
   expect(router.replace).toHaveBeenCalledWith("/lobbies?closed=1");
 });
 
+test("Should_ReturnToLobbyListWithMessage_When_PlayerIsKicked", () => {
+  renderRoom();
+
+  act(() => handlers["lobby:kicked"]());
+
+  expect(socket.disconnect).toHaveBeenCalled();
+  expect(router.replace).toHaveBeenCalledWith("/lobbies?kicked=1");
+});
+
+test("Should_AskServerToKick_When_HostConfirms", () => {
+  const confirm = vi.fn(() => true);
+  vi.stubGlobal("confirm", confirm);
+  renderRoom("fr", true);
+  sendParticipants();
+
+  fireEvent.click(screen.getByRole("button", { name: "Exclure Invité-123456" }));
+
+  expect(confirm).toHaveBeenCalledWith(
+    "Exclure Invité-123456 ? Cette personne ne pourra plus revenir dans cette course.",
+  );
+  expect(socket.emit).toHaveBeenCalledWith("lobby:kick", { id: "u2" }, expect.any(Function));
+});
+
+test("Should_NotKick_When_HostCancels", () => {
+  vi.stubGlobal("confirm", vi.fn(() => false));
+  renderRoom("fr", true);
+  sendParticipants();
+
+  fireEvent.click(screen.getByRole("button", { name: "Exclure Invité-123456" }));
+
+  expect(socket.emit).not.toHaveBeenCalledWith("lobby:kick", expect.anything(), expect.any(Function));
+});
+
+test("Should_ShowKickOnlyForOthers_When_UserIsHost", () => {
+  renderRoom("fr", true);
+  sendParticipants();
+
+  expect(screen.queryByRole("button", { name: "Exclure alex" })).toBeNull();
+});
+
+test("Should_NotShowKick_When_UserIsNotHost", () => {
+  renderRoom();
+  sendParticipants();
+
+  expect(screen.queryByRole("button", { name: /Exclure/ })).toBeNull();
+});
+
 const startButton = () => screen.queryByRole("button", { name: "Lancer et courir" });
 const watchButton = () => screen.queryByRole("button", { name: "Lancer et regarder" });
 
@@ -598,7 +645,7 @@ test("Should_MarkHostWatchingAndNotCountHim_When_HostWatchesRace", () => {
 
   startRace(["u2", "u3"]);
 
-  expect(listedNames()).toEqual(["alex (hôte) (regarde)", "Invité-123456", "sam"]);
+  expect(listedNames()).toEqual(["alex (hôte) (regarde)", "Invité-123456Exclure", "samExclure"]);
   expect(screen.getByRole("heading", { name: "Participants (2)" })).toBeTruthy();
   expect(screen.getByText("Tu regardes la course sans courir.")).toBeTruthy();
   expect(screen.queryByRole("textbox")).toBeNull();

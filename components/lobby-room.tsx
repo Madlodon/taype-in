@@ -117,6 +117,11 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     });
     // Lobby fermé par l'hôte : tout le monde retourne à la liste avec un message (LOB-10).
     socket.on("lobby:closed", () => router.replace("/lobbies?closed=1"));
+    // Exclu par l'hôte : retour à la liste avec un message (SALLE-07).
+    socket.on("lobby:kicked", () => {
+      socket.disconnect();
+      router.replace("/lobbies?kicked=1");
+    });
     // L'hôte relance le lobby : tout le monde revient à la salle d'attente (LOB-9).
     socket.on("lobby:restarted", () => {
       setCountdown(undefined);
@@ -244,6 +249,14 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
 
   function removeBot(id: string) {
     socketRef.current?.emit("lobby:removeBot", { id }, (ack: Ack) => {
+      if (!ack.ok) setError(ack.error);
+    });
+  }
+
+  // L'hôte exclut un participant ou un spectateur, à tout moment (SALLE-07).
+  function kick(id: string, username: string) {
+    if (!window.confirm(t("confirmKick", { username }))) return;
+    socketRef.current?.emit("lobby:kick", { id }, (ack: Ack) => {
       if (!ack.ok) setError(ack.error);
     });
   }
@@ -413,6 +426,16 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
                   onClick={() => removeBot(participant.id)}
                 >
                   {t("removeBot")}
+                </button>
+              )}
+              {!participant.bot && isHost && participant.id !== userId && (
+                <button
+                  type="button"
+                  className="participant-remove"
+                  aria-label={`${t("kick")} ${participant.username}`}
+                  onClick={() => kick(participant.id, participant.username)}
+                >
+                  {t("kick")}
                 </button>
               )}
             </li>
