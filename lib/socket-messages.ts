@@ -47,6 +47,19 @@ export type ParticipantsMessage = {
   participants: { id: string; username: string; bot?: Bot }[];
 };
 
+// Explorateur des courses publiques (JOIN-02) : envoyé à chaque changement.
+// participantCount compte les bots, comme la capacité (SALLE-05). Le compte à rebours compte comme « racing ».
+export type ExplorerLobby = {
+  code: string;
+  hostName: string;
+  participantCount: number;
+  capacity: number;
+  textLanguage: "fr" | "en";
+  state: "waiting" | "racing" | "finished";
+};
+
+export type LobbiesMessage = { lobbies: ExplorerLobby[] };
+
 // Envoyé à toute la salle quand l'hôte lance la course ; le texte reste caché jusqu'au « Go ».
 export type CountdownMessage = { seconds: number };
 

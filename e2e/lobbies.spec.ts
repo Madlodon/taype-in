@@ -103,6 +103,24 @@ test("Should_JoinFromList_When_RaceIsPublic", async ({ browser }) => {
   await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, `${player.name}Exclure`]);
 });
 
+// JOIN-02 : la liste se met à jour sans recharger, et le filtre de langue cache les autres courses.
+test("Should_ShowNewRaceLiveAndFilterByLanguage_When_WatchingList", async ({ browser }) => {
+  const player = await newGuest(browser);
+  await player.page.getByRole("link", { name: "Démarrer une course" }).click();
+  await expect(player.page.getByRole("heading", { name: "Courses publiques" })).toBeVisible();
+
+  const host = await newHost(browser);
+  await createRace(host.page, /Publique/, (page) => page.getByLabel("Anglais").check());
+
+  const listed = player.page.getByRole("listitem").filter({ hasText: `Course de ${host.name}` });
+  await expect(listed).toContainText("1/30 · Anglais · En attente");
+  await player.page.getByLabel("Langue du texte").selectOption("fr");
+  await expect(player.page).toHaveURL(/\/lobbies\?lang=fr$/);
+  await expect(listed).toHaveCount(0);
+  await player.page.getByLabel("Langue du texte").selectOption("en");
+  await expect(listed).toBeVisible();
+});
+
 test("Should_OfferSignUpInsteadOfCreate_When_PlayingAsGuest", async ({ browser }) => {
   const { page } = await newGuest(browser);
   await page.goto("/lobbies");

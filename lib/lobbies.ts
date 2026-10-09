@@ -139,13 +139,19 @@ export async function claimInvite(token: string, userId: string): Promise<Lobby 
   return taken ? lobby : null;
 }
 
-// Courses publiques ouvertes où quelqu'un est connecté, les plus récentes d'abord.
-export async function listPublicLobbies(): Promise<
-  { code: string; hostName: string; participantCount: number }[]
-> {
+export type PublicLobby = Pick<Lobby, "id" | "code" | "capacity" | "textLanguage"> & {
+  hostName: string;
+  participantCount: number;
+};
+
+// Courses publiques ouvertes où quelqu'un est connecté, les plus récentes d'abord (JOIN-02).
+export async function listPublicLobbies(): Promise<PublicLobby[]> {
   return db
     .select({
+      id: lobbies.id,
       code: lobbies.code,
+      capacity: lobbies.capacity,
+      textLanguage: lobbies.textLanguage,
       hostName: users.username,
       participantCount: count(lobbyParticipants.userId),
     })
