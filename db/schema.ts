@@ -67,6 +67,22 @@ export const avatars = pgTable("avatars", {
     .defaultNow(),
 });
 
+export const oauthProviderEnum = pgEnum("oauth_provider", ["discord", "github"]);
+
+// Compte Discord ou GitHub relié à un joueur (AUTH-2) ; tout l'accès passe par lib/oauth.ts.
+export const oauthAccounts = pgTable(
+  "oauth_accounts",
+  {
+    provider: oauthProviderEnum("provider").notNull(),
+    // Identifiant stable chez le fournisseur (le nom, lui, peut changer).
+    providerUserId: text("provider_user_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.provider, table.providerUserId] })],
+);
+
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
   userId: uuid("user_id")
