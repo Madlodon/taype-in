@@ -5,11 +5,11 @@ import { JoinLobbyForm } from "@/components/join-lobby-form";
 import { listPublicLobbies } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 
-export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string }> }) {
+export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string; kicked?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/lobbies");
-  // Renvoyé ici quand l'hôte ferme sa course (LOB-10).
-  const { closed } = await searchParams;
+  // Renvoyé ici quand l'hôte ferme sa course (LOB-10) ou nous exclut (SALLE-07).
+  const { closed, kicked } = await searchParams;
   const publicLobbies = await listPublicLobbies();
   const t = await getTranslations("Lobbies");
   const d = await getTranslations("Design");
@@ -27,6 +27,7 @@ export default async function LobbiesPage({ searchParams }: { searchParams: Prom
             <span aria-hidden="true">＋</span>{t("create")}</Link>}
       </div>
       {closed && <p role="status" className="panel panel-accent mb-6">{t("closed")}</p>}
+      {kicked && <p role="status" className="panel panel-accent mb-6">{t("kicked")}</p>}
       <div className="split-layout">
         <section className="panel">
           <div className="panel-top">

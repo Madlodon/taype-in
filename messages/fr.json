@@ -41,6 +41,7 @@
     "code": "Code de la course",
     "join": "Rejoindre",
     "closed": "Cette course a été fermée par l'hôte.",
+    "kicked": "L'hôte vous a retiré de cette course.",
     "errors": {
       "noOpenLobby": "Aucune course ouverte avec ce code."
     }
@@ -111,6 +112,8 @@
       "cannotGiveUp": "Tu ne peux plus abandonner",
       "raceNotFinished": "La course n'est pas terminée",
       "botNotFound": "Bot introuvable",
+      "cannotKickSelf": "Vous ne pouvez pas vous exclure",
+      "participantNotFound": "Cette personne n'est plus dans la course",
       "noHumanRacer": "Il faut au moins un joueur humain qui court",
       "leftForOtherLobby": "Tu as rejoint un autre lobby. Tu n'es plus dans celui-ci."
     },
@@ -127,6 +130,8 @@
     "botLevel": "Niveau du bot",
     "addBot": "Ajouter un bot",
     "removeBot": "Retirer",
+    "kick": "Exclure",
+    "confirmKick": "Exclure {username} ? Cette personne ne pourra plus revenir dans cette course.",
     "botLevels": {
       "beginner": "Débutant",
       "intermediate": "Intermédiaire",
