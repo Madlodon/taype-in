@@ -52,6 +52,16 @@ export function isEnabledProvider(value: string): value is OAuthProvider {
   return (enabledProviders() as string[]).includes(value);
 }
 
+// Doit être identique au départ et au retour, et inscrite chez le fournisseur.
+// APP_URL en production : derrière Caddy, l'origine vue par Next n'est pas l'adresse publique.
+export function callbackUrl(origin: string, provider: OAuthProvider): string {
+  return `${process.env.APP_URL || origin}/auth/${provider}/callback`;
+}
+
+// Jeton aléatoire gardé en cookie au départ et comparé au retour (protection CSRF).
+export const STATE_COOKIE = "oauth_state";
+export const STATE_DURATION_MS = 10 * 60 * 1000;
+
 export function authorizeUrl(provider: OAuthProvider, redirectUri: string, state: string): string {
   const url = new URL(PROVIDERS[provider].authorizeUrl);
   url.search = new URLSearchParams({
