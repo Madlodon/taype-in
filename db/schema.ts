@@ -148,6 +148,23 @@ export const lobbyInvites = pgTable(
   (table) => [index("lobby_invites_lobby_id_idx").on(table.lobbyId)],
 );
 
+// Personnes exclues par l'hôte : elles ne peuvent plus revenir dans ce lobby (SALLE-07).
+export const lobbyBans = pgTable(
+  "lobby_bans",
+  {
+    lobbyId: uuid("lobby_id")
+      .notNull()
+      .references(() => lobbies.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.lobbyId, table.userId] })],
+);
+
 // Une ligne par course ; porte les paramètres choisis par l'hôte (LOB-9).
 export const races = pgTable("races", {
   id: uuid("id").primaryKey().defaultRandom(),

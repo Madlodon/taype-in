@@ -57,7 +57,8 @@ test("Should_SeeEachOtherInRealTime_When_GuestJoinsUnlistedRaceByCode", async ({
 
   const expected = [`${host.name} (hôte)`, player.name];
   await expect(participants(player.page)).toHaveText(expected);
-  await expect(participants(host.page)).toHaveText(expected);
+  // L'hôte voit aussi le bouton pour exclure les autres (SALLE-07).
+  await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, `${player.name}Exclure`]);
 
   await player.page.close();
   await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`]);
@@ -99,7 +100,7 @@ test("Should_JoinFromList_When_RaceIsPublic", async ({ browser }) => {
   await player.page.getByRole("link", { name: "Démarrer une course" }).click();
   await player.page.getByRole("link", { name: `Course de ${host.name}` }).click();
 
-  await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, player.name]);
+  await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, `${player.name}Exclure`]);
 });
 
 test("Should_OfferSignUpInsteadOfCreate_When_PlayingAsGuest", async ({ browser }) => {
@@ -218,7 +219,7 @@ test("Should_JoinPrivateRaceOnlyByInviteLink_When_HostGeneratesLinks", async ({
   await expect(student.page).toHaveURL(`/lobbies/${code}`);
   const expected = [`${host.name} (hôte)`, student.name];
   await expect(participants(student.page)).toHaveText(expected);
-  await expect(participants(host.page)).toHaveText(expected);
+  await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, `${student.name}Exclure`]);
 
   // Le lien sert une seule fois : un autre élève ne peut plus l'utiliser.
   await outsider.page.goto(links[0]);

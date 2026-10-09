@@ -8,6 +8,7 @@ import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
 import { botKey, xpMultiplier, type Bot } from "./bots.ts";
 import {
   addParticipant,
+  banParticipant,
   canEnterLobby,
   closeLobby,
   findOpenLobby,
@@ -23,6 +24,7 @@ import { awardXp, rankRacers, saveResults, updateRanks } from "./results.ts";
 import {
   addBotSchema,
   joinLobbySchema,
+  kickSchema,
   MIN_RACERS,
   progressSchema,
   removeBotSchema,
@@ -107,6 +109,7 @@ export function createSocketServer(
       "lobby:participants": (message: ParticipantsMessage) => void;
       "lobby:closed": () => void;
       "lobby:left": () => void;
+      "lobby:kicked": () => void;
       "lobby:restarted": () => void;
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
@@ -672,6 +675,52 @@ export function createSocketServer(
         bots.filter((bot) => bot.id !== message.data.id),
       );
       await sendParticipants(lobby);
+      ack?.({ ok: true });
+    });
+
+    // L'hôte exclut un participant ou un spectateur, à tout moment : il ne peut plus revenir (SALLE-07).
+    socket.on("lobby:kick", async (payload: unknown, ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      const message = kickSchema.safeParse(payload);
+      if (!message.success) {
+        ack?.({ ok: false, error: "invalidMessage" });
+        return;
+      }
+      if (!lobby) {
+        ack?.({ ok: false, error: "lobbyNotFound" });
+        return;
+      }
+      if (lobby.hostId !== user.id) {
+        ack?.({ ok: false, error: "notHost" });
+        return;
+      }
+      const { id } = message.data;
+      if (id === user.id) {
+        ack?.({ ok: false, error: "cannotKickSelf" });
+        return;
+      }
+      const participants = await listParticipants(lobby.id);
+      if (!participants.some((participant) => participant.id === id)) {
+        ack?.({ ok: false, error: "participantNotFound" });
+        return;
+      }
+
+      await banParticipant(lobby.id, id);
+      // Un coureur exclu compte comme ayant abandonné : la course peut encore finir sans lui.
+      const live = liveRaces.get(lobby.id);
+      const player = live?.players.get(id);
+      if (player?.state === "connected" && live?.state !== "finished") {
+        player.state = nextPlayerState(player.state, "abandon");
+        player.doneAt = Date.now();
+      }
+      for (const other of await io.in(lobby.code).fetchSockets()) {
+        if (other.data.user.id !== id) continue;
+        other.data.lobby = undefined;
+        other.leave(lobby.code);
+        other.emit("lobby:kicked");
+      }
+      await removeFromLobby(lobby, id);
+      if (live?.state === "racing") await endIfNobodyRacing(lobby, live);
       ack?.({ ok: true });
     });
 

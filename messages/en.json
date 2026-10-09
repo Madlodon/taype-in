@@ -41,6 +41,7 @@
     "code": "Race code",
     "join": "Join",
     "closed": "This race was closed by the host.",
+    "kicked": "The host removed you from this race.",
     "errors": {
       "noOpenLobby": "No open race with this code."
     }
@@ -111,6 +112,8 @@
       "cannotGiveUp": "You can't give up anymore",
       "raceNotFinished": "The race isn't over",
       "botNotFound": "Bot not found",
+      "cannotKickSelf": "You can't kick yourself",
+      "participantNotFound": "This person is no longer in the race",
       "noHumanRacer": "At least one human player must race",
       "leftForOtherLobby": "You joined another lobby. You're no longer in this one."
     },
@@ -127,6 +130,8 @@
     "botLevel": "Bot level",
     "addBot": "Add a bot",
     "removeBot": "Remove",
+    "kick": "Kick",
+    "confirmKick": "Kick {username}? They won't be able to come back to this race.",
     "botLevels": {
       "beginner": "Beginner",
       "intermediate": "Intermediate",

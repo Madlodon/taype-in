@@ -30,6 +30,9 @@ export const startRaceSchema = z.object({ watch: z.boolean() });
 export const addBotSchema = z.object({ level: z.enum(BOT_LEVELS) });
 export const removeBotSchema = z.object({ id: z.string() });
 
+// L'hôte exclut un participant ou un spectateur (SALLE-07).
+export const kickSchema = z.object({ id: z.string() });
+
 // LOB-6 : au moins 2 coureurs pour démarrer ; un hôte qui regarde ne compte pas (LOB-8), un bot compte (BOT-1).
 export const MIN_RACERS = 2;
 
