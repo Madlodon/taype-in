@@ -4,7 +4,7 @@ import { Arena } from "../components/arena";
 import { STADIUMS, STADIUM_IMAGES } from "../lib/garage-items";
 import { DRIVING_AREA, MAX_CAR_SCALE, project, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
 
-import { createFieldCars, stepFieldCars } from "../lib/field-motion";
+import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls } from "../lib/field-motion";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -228,4 +228,49 @@ test("Should_ShowImpactOnlyDuringContact_AndKeepReducedMotionStill", () => {
   const still = render(<Arena />);
   expect(raf).not.toHaveBeenCalled();
   expect(still.container.querySelector("[data-ball-impact]")).toBeNull();
+});
+
+
+test("Should_RenderIndependentBallPositionsAndActualContacts_OverRepeatedCycles", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container } = render(<Arena stadium="top-down" />);
+  let cars = createFieldCars(["preview"]), balls = createFieldBalls(cars);
+  for (let time = 16; time <= 6000; time += 16) {
+    cars = stepFieldCars(cars, .016, new Set(), new Map(balls.map(ball => [ball.id, ball])));
+    balls = stepFieldBalls(balls, cars, .016);
+    act(() => tick(time));
+    const ball = balls[0], expected = project(ball.x, ball.y, ball.z, "top-down");
+    const transform = container.querySelector("[data-field-ball]")!.getAttribute("transform")!;
+    const [x, y] = transform.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    expect(x).toBeCloseTo(expected.x);
+    expect(y).toBeCloseTo(expected.y);
+    const impact = container.querySelector("[data-ball-impact]");
+    expect(Boolean(impact)).toBe(ball.sinceContact < .18);
+  }
+  expect(balls[0].contacts).toBeGreaterThan(2);
+});
+
+test.each([false, true])("Should_ResumeBallContinuouslyAfterHiddenTab_WithShot_%s", shooting => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container } = render(<Arena stadium="top-down"
+    shots={shooting ? { preview: { sequence: 1, scored: true, receivedAt: 0 } } : {}} />);
+  const position = () => container.querySelector("[data-field-ball]")!.getAttribute("transform")!
+    .match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  act(() => tick(100));
+  const [x, y] = position();
+  act(() => tick(60000));
+  const [nextX, nextY] = position();
+  // The paused simulation advances at most 250 ms, including an active shot.
+  const distance = Math.hypot((x - nextX) * 106 / 974, (y - nextY) * 70 / 492);
+  expect(distance).toBeGreaterThan(0);
+  expect(distance).toBeLessThan(shooting ? 15 : 5);
+  expect(container.querySelector("[data-ball-impact]")).toBeNull();
 });
