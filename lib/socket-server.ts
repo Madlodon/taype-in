@@ -75,6 +75,8 @@ type LiveRace = {
   shotTimers: Set<NodeJS.Timeout>;
   // Prochaine touche de chaque bot.
   botTimers: Map<string, NodeJS.Timeout>;
+  // Abandon prévu de chaque coureur déconnecté (COURSE-08).
+  giveUpTimers: Map<string, NodeJS.Timeout>;
   endTimer?: NodeJS.Timeout;
   idleTimer?: NodeJS.Timeout;
   positionsTimer?: NodeJS.Timeout;
@@ -117,6 +119,8 @@ export function createSocketServer(
     goalChance = GOAL_CHANCE,
     // SALLE-08 : délai laissé à l'hôte parti pour revenir (ex. rechargement de la page).
     hostGraceMs = 10_000,
+    // COURSE-08 : un coureur déconnecté depuis 30 s abandonne.
+    giveUpMs = 30_000,
   } = {},
 ): Server {
   const io = new Server<
@@ -211,6 +215,7 @@ export function createSocketServer(
     clearTimeout(live.idleTimer);
     clearInterval(live.positionsTimer);
     live.botTimers.forEach((timer) => clearTimeout(timer));
+    live.giveUpTimers.forEach((timer) => clearTimeout(timer));
     live.shotTimers.forEach((timer) => clearTimeout(timer));
     live.shotTimers.clear();
   }
@@ -381,8 +386,19 @@ export function createSocketServer(
   async function removeFromLobby(lobby: Lobby, userId: string, graceMs = hostGraceMs) {
     const live = liveRaces.get(lobby.id);
     const player = live?.players.get(userId);
-    if (player?.state === "connected" && live?.state !== "finished") {
+    if (live && player?.state === "connected" && live.state !== "finished") {
       player.state = nextPlayerState(player.state, "disconnect");
+      // Pas revenu à temps : il abandonne, la course peut finir sans lui (COURSE-08).
+      live.giveUpTimers.set(
+        userId,
+        setTimeout(async () => {
+          live.giveUpTimers.delete(userId);
+          if (player.state !== "disconnected" || live.state === "finished") return;
+          player.state = nextPlayerState(player.state, "abandon");
+          player.doneAt = Date.now();
+          if (live.state === "racing") await endIfNobodyRacing(lobby, live);
+        }, giveUpMs),
+      );
     }
 
     await removeParticipant(lobby.id, userId);
@@ -490,8 +506,10 @@ export function createSocketServer(
 
       // Un coureur qui revient reprend la course (CRS-6) ; l'hôte qui regarde la suit sans courir.
       const player = race?.players.get(socket.data.user.id);
-      if (player?.state === "disconnected" && race?.state !== "finished") {
+      if (race && player?.state === "disconnected" && race.state !== "finished") {
         player.state = nextPlayerState(player.state, "reconnect");
+        clearTimeout(race.giveUpTimers.get(socket.data.user.id));
+        race.giveUpTimers.delete(socket.data.user.id);
       }
       if (race?.state === "countdown") {
         socket.emit("race:countdown", {
@@ -587,6 +605,7 @@ export function createSocketServer(
         positionsChanged: false,
         shotTimers: new Set(),
         botTimers: new Map(),
+        giveUpTimers: new Map(),
       };
       liveRaces.set(lobby.id, live);
 
