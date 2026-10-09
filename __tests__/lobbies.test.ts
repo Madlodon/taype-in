@@ -217,16 +217,23 @@ test("Should_ListOnlyOpenPublicLobbiesWithParticipants_When_ListingPublicLobbies
   expect(codes).not.toContain(closed.code);
 });
 
-test("Should_ShowHostNameAndCount_When_ListingPublicLobbies", async () => {
+test("Should_ShowHostCountCapacityAndLanguage_When_ListingPublicLobbies", async () => {
   const host = await newUser();
   const guest = await newUser();
-  const lobby = await createLobby(host.id, "public");
+  const lobby = await createLobby(host.id, "public", { capacity: 8, textLanguage: "en" });
   await addParticipant(lobby.id, host.id);
   await addParticipant(lobby.id, guest.id);
 
   const listed = (await listPublicLobbies()).find((l) => l.code === lobby.code);
 
-  expect(listed).toEqual({ code: lobby.code, hostName: host.username, participantCount: 2 });
+  expect(listed).toEqual({
+    id: lobby.id,
+    code: lobby.code,
+    capacity: 8,
+    textLanguage: "en",
+    hostName: host.username,
+    participantCount: 2,
+  });
 });
 
 test("Should_NotListLobby_When_LobbyIsPrivate", async () => {
