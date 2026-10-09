@@ -14,6 +14,7 @@ import {
   findOpenLobby,
   findParticipantLobby,
   listParticipants,
+  listPublicLobbies,
   removeParticipant,
   setLobbyHost,
   type Lobby,
@@ -32,6 +33,7 @@ import {
   startRaceSchema,
   type Ack,
   type CountdownMessage,
+  type LobbiesMessage,
   type ParticipantsMessage,
   type ProgressMessage,
   type RaceEndedMessage,
@@ -79,6 +81,9 @@ type LiveRace = {
   results?: RaceResult[];
 };
 
+// Salle Socket.IO de ceux qui regardent l'explorateur ; jamais un code de lobby (6 caractères).
+const EXPLORER_ROOM = "lobbies:explorer";
+
 function readCookie(header: string | undefined, name: string): string | undefined {
   for (const part of header?.split(";") ?? []) {
     const [key, ...value] = part.trim().split("=");
@@ -114,6 +119,7 @@ export function createSocketServer(
       "lobby:left": () => void;
       "lobby:kicked": () => void;
       "lobby:restarted": () => void;
+      "lobbies:list": (message: LobbiesMessage) => void;
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
       "race:positions": (message: RacePositionsMessage) => void;
@@ -144,6 +150,27 @@ export function createSocketServer(
     } catch {
       return false;
     }
+  }
+
+  // Courses publiques avec leurs bots et leur état, pour l'explorateur (JOIN-02).
+  async function explorerLobbies(): Promise<LobbiesMessage> {
+    const lobbies = await listPublicLobbies();
+    return {
+      lobbies: lobbies.map(({ id, participantCount, ...lobby }) => {
+        const state = liveRaces.get(id)?.state;
+        return {
+          ...lobby,
+          participantCount: participantCount + (lobbyBots.get(id)?.length ?? 0),
+          state: state === "finished" ? "finished" : state ? "racing" : "waiting",
+        };
+      }),
+    };
+  }
+
+  // La liste change : ceux qui regardent l'explorateur la reçoivent sans recharger.
+  async function updateExplorer() {
+    if ((await io.in(EXPLORER_ROOM).fetchSockets()).length === 0) return;
+    io.to(EXPLORER_ROOM).emit("lobbies:list", await explorerLobbies());
   }
 
   function secondsLeft(live: LiveRace): number | null {
@@ -221,6 +248,7 @@ export function createSocketServer(
       ...(xp.get(placement.id) ?? { xp: null, xpGained: 0 }),
     }));
     io.to(lobby.code).emit("race:ended", { reason, results: live.results });
+    await updateExplorer();
   }
 
   // Chaque frappe repousse la fin pour inactivité.
@@ -314,6 +342,7 @@ export function createSocketServer(
       hostId: lobby.hostId,
       participants: await roomParticipants(lobby),
     });
+    await updateExplorer();
   }
 
   // L'hôte n'est pas revenu : le plus ancien humain encore là devient hôte, participant
@@ -330,6 +359,7 @@ export function createSocketServer(
       liveRaces.delete(lobby.id);
       lobbyBots.delete(lobby.id);
       await closeLobby(lobby.id);
+      await updateExplorer();
       return;
     }
     const updated = { ...lobby, hostId: participants[0].id };
@@ -380,6 +410,12 @@ export function createSocketServer(
   });
 
   io.on("connection", (socket) => {
+    // La page des courses suit la liste publique en direct (JOIN-02).
+    socket.on("lobbies:watch", async () => {
+      await socket.join(EXPLORER_ROOM);
+      socket.emit("lobbies:list", await explorerLobbies());
+    });
+
     // Un lobby = une salle Socket.IO nommée par son code.
     socket.on("lobby:join", async (payload: unknown, ack?: (response: Ack) => void) => {
       const result = joinLobbySchema.safeParse(payload);
@@ -552,6 +588,7 @@ export function createSocketServer(
         seconds: Math.ceil(countdownMs / 1000),
       });
       ack?.({ ok: true });
+      await updateExplorer();
 
       setTimeout(async () => {
         live.state = nextLobbyState(live.state, "countdownEnd");
@@ -785,6 +822,7 @@ export function createSocketServer(
       liveRaces.delete(lobby.id);
       io.to(lobby.code).emit("lobby:restarted");
       ack?.({ ok: true });
+      await updateExplorer();
     });
 
     // Seul l'hôte ferme le lobby ; tous les participants sont renvoyés à la liste (LOB-10).
@@ -809,6 +847,7 @@ export function createSocketServer(
       await closeLobby(lobby.id);
       io.to(lobby.code).emit("lobby:closed");
       ack?.({ ok: true });
+      await updateExplorer();
     });
 
     socket.on("disconnect", async () => {

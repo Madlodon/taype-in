@@ -22,6 +22,8 @@ import { createSocketServer } from "../lib/socket-server";
 import type {
   Ack,
   CountdownMessage,
+  ExplorerLobby,
+  LobbiesMessage,
   ParticipantsMessage,
   RaceEndedMessage,
   RacePositionsMessage,
@@ -1964,4 +1966,109 @@ test("Should_BroadcastBoostOnlyForNewCorrectInput", async () => {
   await progress(hostClient, typing(wrong, 1));
   await new Promise(resolve => setTimeout(resolve, 30));
   expect(boosts).toEqual([{ id: host.id }]);
+});
+
+// Attend la liste de l'explorateur où ce lobby est comme attendu (absent = undefined).
+function listedWhere(
+  client: Socket,
+  code: string,
+  check: (lobby: ExplorerLobby | undefined) => boolean,
+): Promise<ExplorerLobby | undefined> {
+  return new Promise((resolve) => {
+    const handler = (message: LobbiesMessage) => {
+      const lobby = message.lobbies.find((listed) => listed.code === code);
+      if (!check(lobby)) return;
+      client.off("lobbies:list", handler);
+      resolve(lobby);
+    };
+    client.on("lobbies:list", handler);
+  });
+}
+
+// Un hôte seul dans un lobby public, et quelqu'un qui regarde l'explorateur.
+async function watchedLobby() {
+  const host = await newUser();
+  const lobby = await createLobby(host.id, "public", { capacity: 4, textLanguage: "en" });
+  const hostClient = await newClient(host);
+  await join(hostClient, { code: lobby.code });
+  const watcher = await newClient();
+  const first = listedWhere(watcher, lobby.code, (listed) => listed !== undefined);
+  watcher.emit("lobbies:watch");
+  return { host, lobby, hostClient, watcher, first: await first };
+}
+
+describe("lobbies explorer", () => {
+  test("Should_SendLobbyInfo_When_Watching", async () => {
+    const { host, lobby, first } = await watchedLobby();
+
+    expect(first).toEqual({
+      code: lobby.code,
+      hostName: host.username,
+      participantCount: 1,
+      capacity: 4,
+      textLanguage: "en",
+      state: "waiting",
+    });
+  });
+
+  test("Should_NotListLobby_When_LobbyIsUnlisted", async () => {
+    const host = await newUser();
+    const lobby = await createLobby(host.id, "unlisted");
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: lobby.code });
+    const watcher = await newClient();
+    const list = next<LobbiesMessage>(watcher, "lobbies:list");
+    watcher.emit("lobbies:watch");
+
+    expect((await list).lobbies.map((listed) => listed.code)).not.toContain(lobby.code);
+  });
+
+  test("Should_PushNewCount_When_SomeoneJoinsOrLeaves", async () => {
+    const { lobby, watcher } = await watchedLobby();
+    const guestClient = await newClient();
+
+    const joined = listedWhere(watcher, lobby.code, (listed) => listed?.participantCount === 2);
+    await join(guestClient, { code: lobby.code });
+    await joined;
+    const left = listedWhere(watcher, lobby.code, (listed) => listed?.participantCount === 1);
+    guestClient.disconnect();
+
+    expect(await left).toMatchObject({ participantCount: 1 });
+  });
+
+  test("Should_CountBot_When_HostAddsBot", async () => {
+    const { lobby, hostClient, watcher } = await watchedLobby();
+
+    const updated = listedWhere(watcher, lobby.code, (listed) => listed?.participantCount === 2);
+    await hostClient.emitWithAck("lobby:addBot", { level: "expert" });
+
+    expect(await updated).toMatchObject({ participantCount: 2 });
+  });
+
+  test("Should_PushState_When_RaceStartsEndsAndRestarts", async () => {
+    const { lobby, hostClient, watcher } = await watchedLobby();
+    const guestClient = await newClient();
+    await join(guestClient, { code: lobby.code });
+
+    const racing = listedWhere(watcher, lobby.code, (listed) => listed?.state === "racing");
+    await startRace(hostClient);
+    await racing;
+    const finished = listedWhere(watcher, lobby.code, (listed) => listed?.state === "finished");
+    await giveUp(hostClient);
+    await giveUp(guestClient);
+    await finished;
+    const waiting = listedWhere(watcher, lobby.code, (listed) => listed?.state === "waiting");
+    await hostClient.emitWithAck("lobby:restart");
+
+    expect(await waiting).toMatchObject({ state: "waiting" });
+  });
+
+  test("Should_RemoveLobby_When_HostCloses", async () => {
+    const { lobby, hostClient, watcher } = await watchedLobby();
+
+    const removed = listedWhere(watcher, lobby.code, (listed) => listed === undefined);
+    await hostClient.emitWithAck("lobby:close");
+
+    expect(await removed).toBeUndefined();
+  });
 });
