@@ -332,8 +332,16 @@ describe("createInvitesAction", () => {
     expect(lobbies.createInvites).not.toHaveBeenCalled();
   });
 
-  test("Should_CreateNoLink_When_LobbyIsNotPrivate", async () => {
+  test("Should_CreateLinks_When_LobbyIsJoinedByCode", async () => {
     vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
+
+    await createInvitesAction(form({ code: "K7P3XM", count: "30" }));
+
+    expect(lobbies.createInvites).toHaveBeenCalledWith("lobby-1", 30);
+  });
+
+  test("Should_CreateNoLink_When_LobbyIsPublic", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue({ ...aLobby, visibility: "public" });
 
     await createInvitesAction(form({ code: "K7P3XM", count: "30" }));
 

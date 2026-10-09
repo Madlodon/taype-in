@@ -216,7 +216,7 @@
   },
   "InvitePage": {
     "title": "Invitation à une course",
-    "description": "Tu es invité à une course privée.",
+    "description": "Tu es invité à une course.",
     "join": "Rejoindre la course",
     "joinAsGuest": "Rejoindre en invité",
     "haveAccount": "Tu as un compte ? Connecte-toi d'abord.",

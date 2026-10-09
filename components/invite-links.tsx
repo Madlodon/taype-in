@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { createInvitesAction } from "@/app/actions/lobbies";
 import { listInvites, MAX_INVITES, type Lobby } from "@/lib/lobbies";
 
-// Panneau de l'hôte d'une course privée : générer et copier les liens (LOB-3).
+// Panneau de l'hôte d'une course privée ou sur code : générer et copier les liens (LOB-3, SALLE-03).
 export async function InviteLinks({ lobby }: { lobby: Lobby }) {
   const t = await getTranslations("Invites");
   const invites = await listInvites(lobby.id);

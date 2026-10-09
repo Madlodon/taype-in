@@ -37,12 +37,14 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
             loadSessionStats={sessionStatsAction} />
         </div>
         <aside className="side-stack">
-          {isHost && (lobby.visibility === "private" ? <InviteLinks lobby={lobby} /> :
+          {isHost && lobby.visibility !== "private" &&
             <section className="panel panel-accent">
               <p className="room-code">{t("code")}<strong>{lobby.code}</strong>
               </p>
               <p className="description">{d("shareCode")}</p>
-            </section>)}
+            </section>}
+          {/* Une course sur code accepte aussi les liens (SALLE-03). */}
+          {isHost && lobby.visibility !== "public" && <InviteLinks lobby={lobby} />}
           <section className="panel">
             <h2>{d("nextUp")}</h2>
             <p className="description">{d("raceComing")}</p>

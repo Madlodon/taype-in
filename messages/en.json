@@ -216,7 +216,7 @@
   },
   "InvitePage": {
     "title": "Race invitation",
-    "description": "You are invited to a private race.",
+    "description": "You are invited to a race.",
     "join": "Join the race",
     "joinAsGuest": "Join as guest",
     "haveAccount": "Have an account? Log in first.",

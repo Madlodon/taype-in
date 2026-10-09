@@ -172,16 +172,18 @@ test("Should_ReturnToLobbies_When_LoggingInFromRedirect", async ({ page }) => {
   await expect(page).toHaveURL("/lobbies");
 });
 
-test("Should_ShowCodeOnlyToHost_When_RaceIsUnlisted", async ({ browser }) => {
+test("Should_ShowCodeAndInviteLinksOnlyToHost_When_RaceIsUnlisted", async ({ browser }) => {
   const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
   await expect(host.page.getByText("Code de la course :")).toBeVisible();
+  await expect(host.page.getByRole("heading", { name: "Liens d'invitation" })).toBeVisible();
 
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);
 
   await expect(participants(player.page)).toHaveCount(2);
   await expect(player.page.getByText("Code de la course :")).toHaveCount(0);
+  await expect(player.page.getByRole("heading", { name: "Liens d'invitation" })).toHaveCount(0);
 });
 
 async function generateInvites(page: Page, count: number): Promise<string[]> {
