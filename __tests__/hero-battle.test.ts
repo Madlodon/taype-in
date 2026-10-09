@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { DRIVING_AREA, MAX_CAR_SCALE, fieldPose } from "../lib/stadium-track";
+import { DRIVING_AREA, MAX_CAR_SCALE } from "../lib/stadium-track";
+import { createFieldCars, stepFieldCars } from "../lib/field-motion";
 import { battleCars } from "../components/hero-battle";
 
 test("Should_StartEveryCarAtTheKickoff_When_TheLapBegins", () => {
@@ -37,12 +38,13 @@ test("Should_UseTheFourGarageCarsAndExistingBallDesigns", () => {
 });
 
 
-test("Should_KeepPreviewCarsOnSeparateLoopsThroughoutTheBattle", () => {
+test("Should_KeepPreviewCarsApartWhileWanderingThroughoutTheBattle", () => {
   const cars = battleCars(0, "You");
   expect(new Set(cars.map(car => car.lane)).size).toBe(cars.length);
   const clearance = 2 * Math.hypot(3.6, 2) * MAX_CAR_SCALE;
-  for (let seconds = 0; seconds < 300; seconds += .05) {
-    const poses = cars.map(car => fieldPose(seconds, car.id, car.lane));
+  let poses = createFieldCars(cars.map(car => car.id));
+  for (let seconds = 0; seconds < 300; seconds += 1 / 60) {
+    poses = stepFieldCars(poses, 1 / 60);
     for (const [index, pose] of poses.entries()) {
       expect(Math.abs(pose.x) + clearance / 2).toBeLessThan(DRIVING_AREA.halfLength);
       expect(Math.abs(pose.y) + clearance / 2).toBeLessThan(DRIVING_AREA.halfWidth);
