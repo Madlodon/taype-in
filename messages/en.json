@@ -19,6 +19,11 @@
     "username": "Username",
     "signInToContinue": "Log in or play as guest to continue.",
     "password": "Password",
+    "continueWith": "Continue with {provider}",
+    "orDivider": "or",
+    "oauthTitle": "Choose your username",
+    "oauthDescription": "Your {provider} account is linked. Choose the name others will see in races.",
+    "oauthSubmit": "Create account",
     "errors": {
       "usernameTooShort": "Username must be at least 3 characters.",
       "usernameTooLong": "Username must be at most 20 characters.",
@@ -26,7 +31,8 @@
       "passwordTooShort": "Password must be at least 12 characters.",
       "passwordTooLong": "Password must be at most 128 characters.",
       "usernameTaken": "This username is already taken.",
-      "wrongCredentials": "Wrong username or password."
+      "wrongCredentials": "Wrong username or password.",
+      "oauthFailed": "Logging in with Discord or GitHub failed. Try again."
     }
   },
   "Lobbies": {

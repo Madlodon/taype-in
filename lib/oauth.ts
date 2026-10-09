@@ -10,6 +10,9 @@ import { saveAvatar } from "./avatars.ts";
 export const OAUTH_PROVIDERS = ["discord", "github"] as const;
 export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
 
+// Noms de marque : pas traduits.
+export const PROVIDER_NAMES: Record<OAuthProvider, string> = { discord: "Discord", github: "GitHub" };
+
 // Ce qu'on garde du compte externe.
 export type OAuthProfile = {
   provider: OAuthProvider;
