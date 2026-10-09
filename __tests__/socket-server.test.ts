@@ -724,6 +724,12 @@ describe("race end", () => {
     expect((await startRace(hostClient)).secondsLeft).toBeNull();
   });
 
+  test("Should_SendZeroElapsedTime_When_RaceStarts", async () => {
+    const { hostClient } = await lobbyWithTwo();
+
+    expect((await startRace(hostClient)).elapsedMs).toBe(0);
+  });
+
   test("Should_EndRaceForEveryone_When_EveryRacerFinishes", async () => {
     const { lobby, hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
@@ -1023,6 +1029,17 @@ describe("reconnect", () => {
     const { started } = await guestComesBack(lobby, guest);
 
     expect(started.mine).toEqual({ ...typing(content.slice(0, 5), 2), gaveUp: false, removed: [] });
+  });
+
+  test("Should_SendElapsedTime_When_RacerComesBack", async () => {
+    const { guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await dropGuest(hostClient, guestClient);
+
+    const { started } = await guestComesBack(lobby, guest);
+
+    expect(started.elapsedMs).toBeGreaterThanOrEqual(50);
   });
 
   test("Should_KeepTolerantMistakes_When_RacerComesBack", async () => {
