@@ -1,8 +1,8 @@
-// Création, réglages et fermeture des lobbys, invitations et participants connectés (LOB-1 à LOB-5, LOB-7, LOB-10, SALLE-06).
+// Création, réglages et fermeture des lobbys, invitations, participants connectés et exclusions (LOB-1 à LOB-5, LOB-7, LOB-10, SALLE-06, SALLE-07).
 import { randomBytes, randomInt } from "node:crypto";
 import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.ts";
-import { lobbies, lobbyInvites, lobbyParticipants, users } from "../db/schema.ts";
+import { lobbies, lobbyBans, lobbyInvites, lobbyParticipants, users } from "../db/schema.ts";
 
 export type Lobby = typeof lobbies.$inferSelect;
 export type Participant = { id: string; username: string };
@@ -74,8 +74,10 @@ export async function closeLobby(lobbyId: string) {
     .where(and(eq(lobbies.id, lobbyId), isNull(lobbies.closedAt)));
 }
 
-// Une course privée n'est accessible qu'à l'hôte et à ceux qui ont utilisé un lien.
+// Une personne exclue n'entre plus (SALLE-07) ; une course privée n'est accessible
+// qu'à l'hôte et à ceux qui ont utilisé un lien.
 export async function canEnterLobby(lobby: Lobby, userId: string): Promise<boolean> {
+  if (await isBanned(lobby.id, userId)) return false;
   if (lobby.visibility !== "private" || lobby.hostId === userId) return true;
   const [invite] = await db
     .select({ token: lobbyInvites.token })
@@ -118,7 +120,8 @@ export async function findInviteLobby(token: string, userId?: string): Promise<L
 // Réserve le lien pour l'utilisateur et renvoie le lobby, ou null si le lien n'est plus valide.
 export async function claimInvite(token: string, userId: string): Promise<Lobby | null> {
   const lobby = await findInviteLobby(token, userId);
-  if (!lobby) return null;
+  // Une personne exclue ne prend pas un autre lien libre (SALLE-07).
+  if (!lobby || (await isBanned(lobby.id, userId))) return null;
   // Déjà admis (hôte ou autre lien) : on ne gaspille pas ce lien.
   if (await canEnterLobby(lobby, userId)) return lobby;
 
@@ -187,4 +190,20 @@ export async function listParticipants(lobbyId: string): Promise<Participant[]> 
     .innerJoin(users, eq(lobbyParticipants.userId, users.id))
     .where(eq(lobbyParticipants.lobbyId, lobbyId))
     .orderBy(asc(lobbyParticipants.joinedAt));
+}
+
+export async function isBanned(lobbyId: string, userId: string): Promise<boolean> {
+  const [ban] = await db
+    .select({ userId: lobbyBans.userId })
+    .from(lobbyBans)
+    .where(and(eq(lobbyBans.lobbyId, lobbyId), eq(lobbyBans.userId, userId)));
+  return Boolean(ban);
+}
+
+// L'hôte exclut quelqu'un : il ne peut plus revenir et son lien d'invitation est révoqué (SALLE-07).
+export async function banParticipant(lobbyId: string, userId: string) {
+  await db.insert(lobbyBans).values({ lobbyId, userId }).onConflictDoNothing();
+  await db
+    .delete(lobbyInvites)
+    .where(and(eq(lobbyInvites.lobbyId, lobbyId), eq(lobbyInvites.usedBy, userId)));
 }
