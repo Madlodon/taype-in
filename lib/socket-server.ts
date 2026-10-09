@@ -3,7 +3,7 @@ import { completedSentences, thirdWordAhead, GOAL_CHANCE, SHOT_MS, type RemovedW
 // Serveur Socket.IO attaché au serveur HTTP de Next.js (ADR 0001).
 import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
-import { Server } from "socket.io";
+import { Server, type Socket } from "socket.io";
 import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
 import { botKey, xpMultiplier, type Bot } from "./bots.ts";
 import {
@@ -21,6 +21,7 @@ import {
 } from "./lobbies.ts";
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
+import { codeAttempts } from "./rate-limit.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
 import { awardXp, rankRacers, saveResults, updateRanks } from "./results.ts";
 import {
@@ -90,6 +91,13 @@ function readCookie(header: string | undefined, name: string): string | undefine
     if (key === name) return decodeURIComponent(value.join("="));
   }
   return undefined;
+}
+
+// Même règle que lib/client-ip.ts : Caddy remplace x-forwarded-for par l'IP du client.
+function clientIp(handshake: Socket["handshake"]): string {
+  const forwarded = handshake.headers["x-forwarded-for"];
+  const first = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(",")[0].trim();
+  return first || handshake.address;
 }
 
 export function createSocketServer(
@@ -424,9 +432,17 @@ export function createSocketServer(
         return;
       }
 
+      // Trop de codes ratés depuis cette IP : on attend la fin de la minute (SALLE-10).
+      const ip = clientIp(socket.handshake);
+      if (codeAttempts.isBlocked(ip)) {
+        ack?.({ ok: false, error: "tooManyAttempts" });
+        return;
+      }
+
       // Une course privée sans invitation se comporte comme une course inexistante.
       const lobby = await findOpenLobby(result.data.code);
       if (!lobby || !(await canEnterLobby(lobby, socket.data.user.id))) {
+        codeAttempts.recordFailure(ip);
         ack?.({ ok: false, error: "lobbyNotFound" });
         return;
       }

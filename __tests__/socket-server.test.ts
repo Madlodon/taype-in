@@ -18,6 +18,7 @@ import {
   listParticipants,
   updateLobbySettings,
 } from "../lib/lobbies";
+import { CODE_ATTEMPT_LIMIT } from "../lib/rate-limit";
 import { createSocketServer } from "../lib/socket-server";
 import type {
   Ack,
@@ -175,6 +176,22 @@ describe("lobby:join", () => {
       error: "lobbyNotFound",
     });
     expect(await listParticipants(lobby.id)).toEqual([]);
+  });
+
+  test("Should_AckTooManyAttempts_When_IpFailedTooManyCodes", async () => {
+    const lobby = await createLobby((await newUser()).id, "unlisted");
+    const { token } = await createSession((await newUser()).id);
+    const client = connect(url, {
+      transports: ["websocket"],
+      extraHeaders: { cookie: `session=${token}`, "x-forwarded-for": "198.51.100.42" },
+    });
+    clients.push(client);
+    for (let i = 0; i < CODE_ATTEMPT_LIMIT; i++) await join(client, { code: "ZZZZZZZ" });
+
+    expect(await join(client, { code: lobby.code })).toEqual({
+      ok: false,
+      error: "tooManyAttempts",
+    });
   });
 
   test("Should_AckOk_When_UserUsedAnInviteToPrivateLobby", async () => {
