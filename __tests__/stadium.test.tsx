@@ -2,7 +2,9 @@ import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { Arena } from "../components/arena";
 import { STADIUMS, STADIUM_IMAGES } from "../lib/garage-items";
-import { DRIVING_AREA, MAX_CAR_SCALE, project, fieldPose, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
+import { DRIVING_AREA, MAX_CAR_SCALE, project, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
+
+import { createFieldCars, stepFieldCars } from "../lib/field-motion";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -39,8 +41,10 @@ test("Should_KeepDistinctRoutesSmoothAndInsideTheGrass", () => {
   const footprints = new Set<string>();
   for (const id of ["you", "nova", "echo", "blitz", ...Array.from({ length: 12 }, (_, i) => `player-${i}`)]) {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    let cars = createFieldCars([id]);
     for (let time = 0; time < 160; time += .1) {
-      const at = fieldPose(time, id), next = fieldPose(time + .016, id);
+      const at = cars[0], next = stepFieldCars(cars, .016)[0];
+      for (let step = 0; step < 6; step++) cars = stepFieldCars(cars, 1 / 60);
       minX = Math.min(minX, at.x); maxX = Math.max(maxX, at.x);
       minY = Math.min(minY, at.y); maxY = Math.max(maxY, at.y);
       // Include the whole body and its ground shadow, not only the centre point.
@@ -72,9 +76,51 @@ test("Should_NotJump_When_RankingChangesOrAnotherCarJoins", () => {
   expect(pose()).toBe(initial);
 });
 
+test("Should_KeepDrivingFromTheSamePose_When_TheVisibleRankingChanges", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const you = { id: "you", name: "You", progress: .1, you: true };
+  const rival = { ...you, id: "rival", you: false };
+  const { container, rerender } = render(<Arena cars={[you, rival]} />);
+  const pose = () => container.querySelector('[data-car-id="you"] > g > g')!.getAttribute("transform");
+  const initial = pose();
+  for (let time = 100; time <= 3000; time += 100) act(() => tick(time));
+  const moving = pose();
+  expect(moving).not.toBe(initial);
+  rerender(<Arena cars={[rival, { ...you, progress: .9 }, { ...rival, id: "new" }]} />);
+  expect(pose()).toBe(moving);
+  act(() => tick(3016));
+  const after = pose();
+  expect(after).not.toBe(moving);
+  const coordinates = (transform: string | null) => transform!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  const [x, y] = coordinates(moving), [nextX, nextY] = coordinates(after);
+  expect(Math.hypot(x - nextX, y - nextY)).toBeLessThan(1);
+});
+
+test("Should_ResumeWithoutTeleporting_When_AFrameArrivesAfterATabPause", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container } = render(<Arena stadium="top-down" />);
+  const position = () => container.querySelector('[data-car-id="preview"] > g > g')!.getAttribute("transform")!
+    .match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  act(() => tick(100));
+  const [x, y] = position();
+  act(() => tick(60000));
+  const [nextX, nextY] = position();
+  const distance = Math.hypot((x - nextX) * 106 / 974, (y - nextY) * 70 / 492);
+  expect(distance).toBeGreaterThan(0);
+  expect(distance).toBeLessThan(7 * .25);
+});
+
 test("Should_SendGoalsIntoTheNetAndMissesOntoThePitch", async () => {
   const { shotBall } = await import("../lib/stadium-track");
-  const pose = fieldPose(2);
+  const pose = createFieldCars(["preview"])[0];
   expect(shotBall(pose, 1.2, true).x).toBeCloseTo(56);
   expect(shotBall(pose, 1.2, true).y).toBeCloseTo(0);
   expect(shotBall(pose, 1.2, false).x).toBeCloseTo(48);
@@ -116,9 +162,10 @@ test("Should_RenderTheGarageArtworkForEachDemoCarAndBall", async () => {
   const { battleCars } = await import("../components/hero-battle");
   const cars = battleCars(6000, "You");
   const { container } = render(<Arena cars={cars} />);
+  const poses = createFieldCars(cars.map(car => car.id));
   for (const car of cars) {
     const element = container.querySelector(`[data-car-id="${car.id}"]`)!;
-    const pose = fieldPose(0, car.id, car.lane);
+    const pose = poses.find(pose => pose.id === car.id)!;
     const at = project(pose.x, pose.y, 0, "diorama");
     expect(element.querySelector("[clip-path] > g")?.getAttribute("transform")).toBe(`translate(${at.x} ${at.y})`);
     expect(element.querySelector(`[data-body="${car.body}"] path`)).not.toBeNull();
@@ -135,23 +182,31 @@ test("Should_ShowExhaustAndGainSpeedThenStopBoostingWithoutJumping", () => {
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   vi.spyOn(performance, "now").mockReturnValue(0);
   const cars = [{ id: "you", name: "Alex", progress: .2, you: true }];
-  const { container, rerender } = render(<Arena cars={cars} />);
+  const { container, rerender } = render(<Arena stadium="top-down" cars={cars} />);
   expect(container.querySelector(".car-boost")).toBeNull();
   act(() => tick(100));
   const at = () => container.querySelector('[data-car-id="you"] > g > g')!.getAttribute("transform");
   const before = at();
-  rerender(<Arena cars={cars} boosts={{ you: 100 }} />);
+  rerender(<Arena stadium="top-down" cars={cars} boosts={{ you: 100 }} />);
   expect(at()).toBe(before);
   act(() => tick(200));
   expect(container.querySelector(".car-boost")).not.toBeNull();
-  const boosted = fieldPose(.3, "you"); // .2 seconds driving + .1 extra from boost.
-  const projected = project(boosted.x, boosted.y, 0, "diorama");
-  expect(at()).toBe(`translate(${projected.x} ${projected.y})`);
-  act(() => tick(600));
+  const boosted = at();
+  expect(boosted).not.toBe(before);
+  act(() => tick(400));
+  act(() => tick(450));
   expect(container.querySelector(".car-boost")).toBeNull();
-  const coasting = fieldPose(.95, "you"); // .6 seconds driving + .35 boost, retained.
-  const after = project(coasting.x, coasting.y, 0, "diorama");
-  expect(at()).toBe(`translate(${after.x} ${after.y})`);
+  const coastStart = at();
+  act(() => tick(550));
+  expect(at()).not.toBe(coastStart);
+  const position = (transform: string | null) => transform!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  const distance = (a: string | null, b: string | null) => {
+    const [ax, ay] = position(a), [bx, by] = position(b);
+    return Math.hypot((ax - bx) * 106 / 974, (ay - by) * 70 / 492);
+  };
+  // Compare ground distances, allowing for a curved path between the two samples.
+  expect(distance(before, boosted)).toBeCloseTo(distance(coastStart, at()) * 2, 2);
+
 });
 
 test.each(["octane", "fennec", "dominus", "merc"])("Should_TouchHopAndCatchTheBall_When_Driving_%s", async body => {

@@ -8,7 +8,8 @@ import { CarBoost } from "@/components/car-boost";
 import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
 import { STADIUM_IMAGES, type Stadium } from "@/lib/garage-items";
-import { DRIVING_AREA, MAX_CAR_SCALE, fieldPose, project, shotBall, dribbleBall } from "@/lib/stadium-track";
+import { DRIVING_AREA, MAX_CAR_SCALE, project, shotBall, dribbleBall } from "@/lib/stadium-track";
+import { createFieldCars, stepFieldCars, type FieldMotion } from "@/lib/field-motion";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
 export function arenaPosition(progress: number) {
@@ -67,28 +68,46 @@ export const BOOST_MS = 350;
 type ArenaProps = { boosts?: Record<string, number>; shots?: Record<string, Shot>; progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
 
 export function Arena({ progress, cars, shots = {}, boosts = {}, className = "", stadium = "diorama", carScale = .45 }: ArenaProps) {
-  const inputs = useRef({ boosts, shots });
-  useEffect(() => { inputs.current = { boosts, shots }; }, [boosts, shots]);
-  const [motion, setMotion] = useState({ seconds: 0, now: 0,
+  const racers: TrackCar[] = cars ?? [{ id: "preview", name: "", progress: progress ?? .16, you: true }];
+  const ids = racers.map(car => car.id);
+  const inputs = useRef({ boosts, shots, ids });
+  useEffect(() => { inputs.current = { boosts, shots, ids }; });
+  const [motion, setMotion] = useState(() => ({ seconds: 0, now: 0,
+    drivers: createFieldCars(ids),
     offsets: {} as Record<string, number>,
-    launches: {} as Record<string, { sequence: number; pose: ReturnType<typeof fieldPose> }> });
+    launches: {} as Record<string, { sequence: number; pose: FieldMotion }> }));
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const start = performance.now();
     let frame = requestAnimationFrame(function tick(now) {
-      const { boosts, shots } = inputs.current;
+      const { boosts, shots, ids } = inputs.current;
       setMotion(previous => {
         const offsets = { ...previous.offsets }, launches = { ...previous.launches };
+        let drivers = createFieldCars(ids, previous.drivers);
+        // Resume gently after a hidden tab instead of replaying minutes of movement.
+        let cursor = Math.max(previous.now || start, now - 250);
         for (const [id, began] of Object.entries(boosts)) {
-          // Integrate extra travel instead of changing the route phase abruptly.
           const activeMs = Math.max(0, Math.min(now, began + BOOST_MS) - Math.max(previous.now || start, began));
           offsets[id] = (offsets[id] ?? 0) + activeMs / 1000;
         }
-        for (const [id, shot] of Object.entries(shots)) {
-          if (launches[id]?.sequence !== shot.sequence) launches[id] = { sequence: shot.sequence,
-            pose: fieldPose((shot.receivedAt - start) / 1000 + (offsets[id] ?? 0), id) };
+        while (cursor < now) {
+          for (const [id, shot] of Object.entries(shots)) {
+            const pose = drivers.find(car => car.id === id);
+            if (pose && shot.receivedAt <= cursor && launches[id]?.sequence !== shot.sequence) {
+              launches[id] = { sequence: shot.sequence, pose };
+            }
+          }
+          let end = Math.min(now, cursor + 1000 / 60);
+          // Split at event times so boosts and shots start from the actual driving pose.
+          for (const began of Object.values(boosts)) for (const boundary of [began, began + BOOST_MS]) {
+            if (boundary > cursor) end = Math.min(end, boundary);
+          }
+          for (const shot of Object.values(shots)) if (shot.receivedAt > cursor) end = Math.min(end, shot.receivedAt);
+          const boosting = new Set(Object.keys(boosts).filter(id => cursor >= boosts[id] && cursor < boosts[id] + BOOST_MS));
+          drivers = stepFieldCars(drivers, (end - cursor) / 1000, boosting);
+          cursor = end;
         }
-        return { seconds: (now - start) / 1000, now, offsets, launches };
+        return { seconds: (now - start) / 1000, now, drivers, offsets, launches };
       });
       frame = requestAnimationFrame(tick);
     });
@@ -98,7 +117,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
   const id = useId().replaceAll(":", "");
   const position = arenaPosition(progress ?? 0.16);
   if (stadium) {
-    const racers: TrackCar[] = cars ?? [{ id: "preview", name: "", progress: progress ?? .16, you: true }];
+    const poses = createFieldCars(ids, motion.drivers);
     return <svg className={`arena ${className}`} viewBox="0 0 1400 900" fill="none" aria-hidden="true" data-stadium={stadium}>
       <defs>
         <clipPath id={`${id}-driving-area`}>
@@ -110,7 +129,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
       </defs>
       <image href={STADIUM_IMAGES[stadium]} width="1400" height="900" />
       {racers.map(car => {
-        const pose = fieldPose(seconds + (offsets[car.id] ?? 0), car.id, car.lane);
+        const pose = poses.find(pose => pose.id === car.id)!; // Every visible ID has a persistent pose.
         const at = project(pose.x, pose.y, 0, stadium);
         const shot = shots[car.id];
         const elapsed = shot ? Math.max(0, (now - shot.receivedAt) / 1000) : Infinity;
