@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn(), setSessionCookie: vi.fn() }));
 vi.mock("../lib/auth", () => ({ createGuest: vi.fn(), createSession: vi.fn() }));
+vi.mock("../lib/client-ip", () => ({ getClientIp: vi.fn(async () => "203.0.113.1") }));
 vi.mock("../lib/lobbies", () => ({
   MAX_INVITES: 300,
   DEFAULT_TIMER_SECONDS: 300,
@@ -331,8 +332,16 @@ describe("createInvitesAction", () => {
     expect(lobbies.createInvites).not.toHaveBeenCalled();
   });
 
-  test("Should_CreateNoLink_When_LobbyIsNotPrivate", async () => {
+  test("Should_CreateLinks_When_LobbyIsJoinedByCode", async () => {
     vi.mocked(lobbies.findOpenLobby).mockResolvedValue(aLobby);
+
+    await createInvitesAction(form({ code: "K7P3XM", count: "30" }));
+
+    expect(lobbies.createInvites).toHaveBeenCalledWith("lobby-1", 30);
+  });
+
+  test("Should_CreateNoLink_When_LobbyIsPublic", async () => {
+    vi.mocked(lobbies.findOpenLobby).mockResolvedValue({ ...aLobby, visibility: "public" });
 
     await createInvitesAction(form({ code: "K7P3XM", count: "30" }));
 
@@ -379,7 +388,7 @@ describe("joinInviteAction", () => {
 
     await expect(joinInviteAction(form({ token: "abc" }))).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(lobbies.claimInvite).toHaveBeenCalledWith("abc", "user-1");
+    expect(lobbies.claimInvite).toHaveBeenCalledWith("abc", "user-1", "203.0.113.1");
     expect(auth.createGuest).not.toHaveBeenCalled();
     expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
   });
@@ -394,7 +403,7 @@ describe("joinInviteAction", () => {
     await expect(joinInviteAction(form({ token: "abc" }))).rejects.toThrow("NEXT_REDIRECT");
 
     expect(setSessionCookie).toHaveBeenCalledWith("jeton", expiresAt);
-    expect(lobbies.claimInvite).toHaveBeenCalledWith("abc", "guest-9");
+    expect(lobbies.claimInvite).toHaveBeenCalledWith("abc", "guest-9", "203.0.113.1");
     expect(redirect).toHaveBeenCalledWith("/lobbies/K7P3XM");
   });
 

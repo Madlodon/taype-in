@@ -219,7 +219,7 @@
   },
   "Invites": {
     "title": "Liens d'invitation",
-    "description": "Chaque lien fait entrer une seule personne. Les liens ne marchent plus quand la course est fermée.",
+    "description": "Chaque lien fait entrer une seule personne et reste lié à son adresse IP. Les liens ne marchent plus quand la course est fermée ou la personne exclue.",
     "count": "Nombre de liens",
     "generate": "Générer les liens",
     "usage": "{used} sur {total} liens utilisés",
@@ -228,7 +228,7 @@
   },
   "InvitePage": {
     "title": "Invitation à une course",
-    "description": "Tu es invité à une course privée.",
+    "description": "Tu es invité à une course.",
     "join": "Rejoindre la course",
     "joinAsGuest": "Rejoindre en invité",
     "haveAccount": "Tu as un compte ? Connecte-toi d'abord.",

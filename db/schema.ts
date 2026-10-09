@@ -131,7 +131,7 @@ export const lobbyParticipants = pgTable(
   ],
 );
 
-// Liens d'invitation à usage unique d'une course privée (LOB-3).
+// Liens d'invitation à usage unique d'une course privée ou sur code (LOB-3, SALLE-04).
 export const lobbyInvites = pgTable(
   "lobby_invites",
   {
@@ -141,6 +141,8 @@ export const lobbyInvites = pgTable(
       .references(() => lobbies.id, { onDelete: "cascade" }),
     // Null tant que le lien n'a pas servi ; ensuite, seule cette personne peut l'utiliser.
     usedBy: uuid("used_by").references(() => users.id, { onDelete: "cascade" }),
+    // Adresse IP liée au premier usage : une autre IP est refusée (SALLE-04).
+    usedIp: text("used_ip"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

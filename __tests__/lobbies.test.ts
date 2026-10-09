@@ -23,6 +23,10 @@ import {
   updateLobbySettings,
 } from "../lib/lobbies";
 
+// Adresses de test (RFC 5737).
+const IP = "203.0.113.1";
+const OTHER_IP = "203.0.113.2";
+
 // Utilisateurs créés par un test, supprimés après (avec leurs lobbys).
 const createdIds: string[] = [];
 
@@ -280,30 +284,61 @@ test("Should_AdmitUserAndMarkLinkUsed_When_UserClaimsInvite", async () => {
   const [token] = await createInvites(lobby.id, 1);
   const student = await newUser();
 
-  expect((await claimInvite(token, student.id))?.id).toBe(lobby.id);
+  expect((await claimInvite(token, student.id, IP))?.id).toBe(lobby.id);
 
   expect(await canEnterLobby(lobby, student.id)).toBe(true);
   expect(await listInvites(lobby.id)).toEqual([{ token, used: true }]);
 });
 
-test("Should_RefuseLink_When_AnotherUserAlreadyUsedIt", async () => {
+test("Should_RefuseLink_When_AnotherIpAlreadyUsedIt", async () => {
   const lobby = await createLobby((await newUser()).id, "private");
   const [token] = await createInvites(lobby.id, 1);
-  await claimInvite(token, (await newUser()).id);
+  await claimInvite(token, (await newUser()).id, IP);
   const other = await newUser();
 
-  expect(await claimInvite(token, other.id)).toBeNull();
-  expect(await findInviteLobby(token, other.id)).toBeNull();
+  expect(await claimInvite(token, other.id, OTHER_IP)).toBeNull();
+  expect(await findInviteLobby(token, OTHER_IP)).toBeNull();
   expect(await canEnterLobby(lobby, other.id)).toBe(false);
 });
 
-test("Should_AcceptLinkAgain_When_SameUserReopensIt", async () => {
+test("Should_RefuseLink_When_SameUserComesFromAnotherIp", async () => {
   const lobby = await createLobby((await newUser()).id, "private");
   const [token] = await createInvites(lobby.id, 1);
   const student = await newUser();
-  await claimInvite(token, student.id);
+  await claimInvite(token, student.id, IP);
 
-  expect((await claimInvite(token, student.id))?.id).toBe(lobby.id);
+  expect(await claimInvite(token, student.id, OTHER_IP)).toBeNull();
+});
+
+test("Should_MoveLinkToNewAccount_When_ReusedFromSameIp", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+  const lostSession = await newUser();
+  await claimInvite(token, lostSession.id, IP);
+  const newGuest = await newUser();
+
+  expect((await claimInvite(token, newGuest.id, IP))?.id).toBe(lobby.id);
+  expect(await canEnterLobby(lobby, newGuest.id)).toBe(true);
+  expect(await canEnterLobby(lobby, lostSession.id)).toBe(false);
+});
+
+test("Should_BindLink_When_LobbyIsJoinedByCode", async () => {
+  const lobby = await createLobby((await newUser()).id, "unlisted");
+  const [token] = await createInvites(lobby.id, 1);
+
+  expect((await claimInvite(token, (await newUser()).id, IP))?.id).toBe(lobby.id);
+
+  expect(await listInvites(lobby.id)).toEqual([{ token, used: true }]);
+  expect(await claimInvite(token, (await newUser()).id, OTHER_IP)).toBeNull();
+});
+
+test("Should_AcceptLinkAgain_When_SameUserReopensItFromSameIp", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [token] = await createInvites(lobby.id, 1);
+  const student = await newUser();
+  await claimInvite(token, student.id, IP);
+
+  expect((await claimInvite(token, student.id, IP))?.id).toBe(lobby.id);
 });
 
 test("Should_RefuseEntry_When_UserWasKickedFromPublicLobby", async () => {
@@ -320,11 +355,11 @@ test("Should_RevokeInviteLink_When_InvitedUserIsKicked", async () => {
   const lobby = await createLobby((await newUser()).id, "private");
   const [token, other] = await createInvites(lobby.id, 2);
   const kicked = await newUser();
-  await claimInvite(token, kicked.id);
+  await claimInvite(token, kicked.id, IP);
 
   await banParticipant(lobby.id, kicked.id);
 
-  expect(await findInviteLobby(token, kicked.id)).toBeNull();
+  expect(await findInviteLobby(token, IP)).toBeNull();
   expect(await canEnterLobby(lobby, kicked.id)).toBe(false);
   expect(await listInvites(lobby.id)).toEqual([{ token: other, used: false }]);
 });
@@ -335,7 +370,7 @@ test("Should_KeepFreeLinkUnused_When_KickedUserTriesIt", async () => {
   const kicked = await newUser();
   await banParticipant(lobby.id, kicked.id);
 
-  expect(await claimInvite(token, kicked.id)).toBeNull();
+  expect(await claimInvite(token, kicked.id, IP)).toBeNull();
   expect(await listInvites(lobby.id)).toEqual([{ token, used: false }]);
 });
 
@@ -347,14 +382,14 @@ test("Should_KeepOneBan_When_UserIsKickedTwice", async () => {
   await expect(banParticipant(lobby.id, kicked.id)).resolves.toBeUndefined();
 });
 
-test("Should_GiveLinkToOnlyOneUser_When_TwoUsersClaimItAtOnce", async () => {
+test("Should_GiveLinkToOnlyOneIp_When_TwoIpsClaimItAtOnce", async () => {
   const lobby = await createLobby((await newUser()).id, "private");
   const [token] = await createInvites(lobby.id, 1);
   const [first, second] = [await newUser(), await newUser()];
 
   const results = await Promise.all([
-    claimInvite(token, first.id),
-    claimInvite(token, second.id),
+    claimInvite(token, first.id, IP),
+    claimInvite(token, second.id, OTHER_IP),
   ]);
 
   expect(results.filter(Boolean)).toHaveLength(1);
@@ -365,7 +400,7 @@ test("Should_KeepLinkUnused_When_UserCanAlreadyEnter", async () => {
   const lobby = await createLobby(host.id, "private");
   const [token] = await createInvites(lobby.id, 1);
 
-  expect((await claimInvite(token, host.id))?.id).toBe(lobby.id);
+  expect((await claimInvite(token, host.id, IP))?.id).toBe(lobby.id);
 
   expect(await listInvites(lobby.id)).toEqual([{ token, used: false }]);
 });
@@ -375,11 +410,11 @@ test("Should_RefuseLink_When_LobbyIsClosed", async () => {
   const [token] = await createInvites(lobby.id, 1);
   await db.update(lobbies).set({ closedAt: new Date() }).where(eq(lobbies.id, lobby.id));
 
-  expect(await findInviteLobby(token)).toBeNull();
-  expect(await claimInvite(token, (await newUser()).id)).toBeNull();
+  expect(await findInviteLobby(token, IP)).toBeNull();
+  expect(await claimInvite(token, (await newUser()).id, IP)).toBeNull();
 });
 
 test("Should_ReturnNull_When_LinkDoesNotExist", async () => {
-  expect(await findInviteLobby("inconnu")).toBeNull();
-  expect(await claimInvite("inconnu", (await newUser()).id)).toBeNull();
+  expect(await findInviteLobby("inconnu", IP)).toBeNull();
+  expect(await claimInvite("inconnu", (await newUser()).id, IP)).toBeNull();
 });

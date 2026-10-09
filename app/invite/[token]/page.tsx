@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { joinInviteAction } from "@/app/actions/lobbies";
 import { Arena } from "@/components/arena";
+import { getClientIp } from "@/lib/client-ip";
 import { findInviteLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 
@@ -10,7 +11,7 @@ import { getCurrentUser } from "@/lib/session-cookie";
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const user = await getCurrentUser();
-  const lobby = await findInviteLobby(token, user?.id);
+  const lobby = await findInviteLobby(token, await getClientIp());
   const t = await getTranslations("InvitePage");
   const d = await getTranslations("Design");
   const next = `/invite/${encodeURIComponent(token)}`;

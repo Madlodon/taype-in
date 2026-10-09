@@ -106,6 +106,13 @@
       "when": 1791511934848,
       "tag": "0014_lobby_bans",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791575590327,
+      "tag": "0015_invite_ip",
+      "breakpoints": true
     }
   ]
 }

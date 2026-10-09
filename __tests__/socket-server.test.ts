@@ -181,7 +181,7 @@ describe("lobby:join", () => {
     const lobby = await createLobby((await newUser()).id, "private");
     const [token] = await createInvites(lobby.id, 1);
     const student = await newUser();
-    await claimInvite(token, student.id);
+    await claimInvite(token, student.id, "203.0.113.1");
     const client = await newClient(student);
 
     expect(await join(client, { code: lobby.code })).toEqual({ ok: true });
@@ -1435,14 +1435,14 @@ describe("lobby:kick", () => {
     const lobby = await createLobby(host.id, "private");
     const [token] = await createInvites(lobby.id, 1);
     const guest = await newUser();
-    await claimInvite(token, guest.id);
+    await claimInvite(token, guest.id, "203.0.113.1");
     const hostClient = await newClient(host);
     await join(hostClient, { code: lobby.code });
     await join(await newClient(guest), { code: lobby.code });
 
     await hostClient.emitWithAck("lobby:kick", { id: guest.id });
 
-    expect(await claimInvite(token, guest.id)).toBeNull();
+    expect(await claimInvite(token, guest.id, "203.0.113.1")).toBeNull();
     expect(await join(await newClient(guest), { code: lobby.code })).toEqual({
       ok: false,
       error: "lobbyNotFound",

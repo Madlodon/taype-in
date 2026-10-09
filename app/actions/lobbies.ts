@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createGuest, createSession } from "@/lib/auth";
+import { getClientIp } from "@/lib/client-ip";
 import {
   CAPACITY_OPTIONS,
   canEnterLobby,
@@ -80,7 +81,7 @@ export async function joinLobbyAction(
   redirect(`/lobbies/${lobby.code}`);
 }
 
-// L'hôte génère d'un coup le nombre de liens voulu (LOB-3, LOB-7).
+// L'hôte d'une course privée ou sur code génère d'un coup le nombre de liens voulu (LOB-3, LOB-7, SALLE-03).
 export async function createInvitesAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect("/");
@@ -92,7 +93,7 @@ export async function createInvitesAction(formData: FormData) {
     .min(1)
     .max(MAX_INVITES)
     .safeParse(formData.get("count"));
-  if (!lobby || lobby.hostId !== user.id || lobby.visibility !== "private" || !count.success) {
+  if (!lobby || lobby.hostId !== user.id || lobby.visibility === "public" || !count.success) {
     return;
   }
   await createInvites(lobby.id, count.data);
@@ -120,7 +121,7 @@ export async function joinInviteAction(formData: FormData) {
     await setSessionCookie(session.token, session.expiresAt);
   }
 
-  const lobby = await claimInvite(token, user.id);
+  const lobby = await claimInvite(token, user.id, await getClientIp());
   // Lien pris entre-temps : la page d'invitation affiche qu'il n'est plus valide.
   redirect(lobby ? `/lobbies/${lobby.code}` : `/invite/${encodeURIComponent(token)}`);
 }
