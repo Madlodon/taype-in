@@ -129,6 +129,7 @@
       "noText": "Aucun texte disponible dans cette langue",
       "raceNotRunning": "Aucune course en cours",
       "notRacer": "Tu ne cours pas dans cette course",
+      "impossibleProgress": "Saisie trop rapide pour être réelle",
       "cannotGiveUp": "Tu ne peux plus abandonner",
       "raceNotFinished": "La course n'est pas terminée",
       "botNotFound": "Bot introuvable",

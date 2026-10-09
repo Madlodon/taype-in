@@ -52,10 +52,12 @@ async function startServer(
     shotRandom?: () => number;
     goalChance?: number;
     hostGraceMs?: number;
+    maxWpm?: number;
   } = {},
 ) {
   const httpServer = createServer();
-  io = createSocketServer(httpServer, { countdownMs: 100, botSpeedup: 1000, ...options });
+  // Les tests envoient tout le texte d'un coup : la limite de vitesse est levée sauf pour l'anti-triche.
+  io = createSocketServer(httpServer, { countdownMs: 100, botSpeedup: 1000, maxWpm: Infinity, ...options });
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
   url = `http://localhost:${(httpServer.address() as AddressInfo).port}`;
 }
@@ -775,13 +777,13 @@ describe("race end", () => {
     await io.close();
     await startServer({ idleMs: 300 });
     const { hostClient, guestClient } = await lobbyWithTwo();
-    await startRace(hostClient);
+    const { content } = await startRace(hostClient);
     let ended = false;
     hostClient.on("race:ended", () => (ended = true));
     const endedLater = next<RaceEndedMessage>(hostClient, "race:ended");
 
     await new Promise((resolve) => setTimeout(resolve, 200));
-    await progress(guestClient, typing("U", 0));
+    await progress(guestClient, typing(content[0], 0));
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(ended).toBe(false);
@@ -992,6 +994,51 @@ describe("race:progress", () => {
 
     expect(await progress(hostClient, payload)).toEqual({ ok: false, error: "invalidMessage" });
   });
+
+  describe("anti-cheat", () => {
+    beforeEach(async () => {
+      await io.close();
+      await startServer({ maxWpm: 300 });
+    });
+
+    test("Should_AckOk_When_ProgressIsHuman", async () => {
+      const { hostClient } = await lobbyWithTwo();
+      const { content } = await startRace(hostClient);
+
+      expect(await progress(hostClient, typing(content.slice(0, 3), 0))).toEqual({ ok: true });
+    });
+
+    test("Should_AckImpossibleProgress_When_WholeTextArrivesRightAfterGo", async () => {
+      const { hostClient } = await lobbyWithTwo();
+      const { content } = await startRace(hostClient);
+
+      expect(await progress(hostClient, typing(content, 0))).toEqual({
+        ok: false,
+        error: "impossibleProgress",
+      });
+    });
+
+    test("Should_AckImpossibleProgress_When_TypedJumpsAheadWithoutKeys", async () => {
+      const { hostClient } = await lobbyWithTwo();
+      const { content } = await startRace(hostClient);
+
+      expect(await progress(hostClient, { ...typing(content.slice(0, 8), 0), keys: 1 })).toEqual({
+        ok: false,
+        error: "impossibleProgress",
+      });
+    });
+
+    test("Should_KeepRaceRunning_When_UpdateIsRejected", async () => {
+      const { lobby, hostClient } = await lobbyWithTwo();
+      const { content } = await startRace(hostClient);
+      await progress(hostClient, typing(content.slice(0, 2), 0));
+      await progress(hostClient, typing(content, 0));
+
+      // Le texte complet a été refusé : rien n'est fini et la saisie suivante repart de l'ancienne.
+      expect((await savedRace(lobby.id)).endedAt).toBeNull();
+      expect(await progress(hostClient, typing(content.slice(0, 3), 0))).toEqual({ ok: true });
+    });
+  });
 });
 
 function giveUp(client: Socket): Promise<Ack> {
@@ -1182,10 +1229,10 @@ describe("race:positions", () => {
 
   test("Should_RankFurthestRacerFirst_When_RacersType", async () => {
     const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
-    await startRace(hostClient);
+    const { content } = await startRace(hostClient);
     const hostSees = positionsWhere(hostClient, (message) => message.positions[0].position > 0);
 
-    await progress(guestClient, typing("abc", 0));
+    await progress(guestClient, typing(content.slice(0, 3), 0));
 
     expect(summary(await hostSees)).toEqual([
       [guest.id, 3],
@@ -1195,14 +1242,14 @@ describe("race:positions", () => {
 
   test("Should_RankFirstToArriveAhead_When_RacersAreTied", async () => {
     const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
-    await startRace(hostClient);
+    const { content } = await startRace(hostClient);
     const hostSees = positionsWhere(hostClient, (message) =>
       message.positions.every(({ position }) => position === 2),
     );
 
-    await progress(guestClient, typing("ab", 0));
+    await progress(guestClient, typing(content.slice(0, 2), 0));
     await new Promise((resolve) => setTimeout(resolve, 10));
-    await progress(hostClient, typing("ab", 0));
+    await progress(hostClient, typing(content.slice(0, 2), 0));
 
     expect(summary(await hostSees)).toEqual([
       [guest.id, 2],
@@ -1225,8 +1272,8 @@ describe("race:positions", () => {
 
   test("Should_SendCurrentPositions_When_RacerComesBackDuringRace", async () => {
     const { host, guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
-    await startRace(hostClient);
-    await progress(hostClient, typing("abcd", 0));
+    const { content } = await startRace(hostClient);
+    await progress(hostClient, typing(content.slice(0, 4), 0));
     await dropGuest(hostClient, guestClient);
     const back = await newClient(guest);
     const backSees = next<RacePositionsMessage>(back, "race:positions");
