@@ -32,7 +32,7 @@ function uniqueId() {
 
 // Faux fournisseur : chaque URL appelée renvoie la réponse prévue.
 function mockProvider(routes: Record<string, Response | (() => Response)>) {
-  const fetchMock = vi.fn(async (input: string | URL | Request) => {
+  const fetchMock = vi.fn<typeof fetch>(async (input) => {
     const url = String(input);
     const match = Object.keys(routes).find((prefix) => url.startsWith(prefix));
     if (!match) return new Response("not found", { status: 404 });

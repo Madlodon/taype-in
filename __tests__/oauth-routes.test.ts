@@ -32,7 +32,7 @@ function params(provider: string) {
   return { params: Promise.resolve({ provider }) };
 }
 
-async function redirectOf(response: Promise<Response>) {
+async function redirectOf(response: Promise<unknown>) {
   const error = (await response.catch((e: Error) => e)) as Error;
   return error.message.replace("NEXT_REDIRECT ", "");
 }
