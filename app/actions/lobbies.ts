@@ -19,6 +19,7 @@ import {
   TIMER_OPTIONS,
   type LobbySettings,
 } from "@/lib/lobbies";
+import { codeAttempts } from "@/lib/rate-limit";
 import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
 import { TEXT_LENGTHS } from "@/lib/texts";
 
@@ -72,10 +73,16 @@ export async function joinLobbyAction(
 ): Promise<JoinFormState> {
   const user = await getCurrentUser();
   const code = String(formData.get("code") ?? "");
+  // Trop de codes ratés depuis cette IP : on attend la fin de la minute (SALLE-10).
+  const ip = await getClientIp();
+  if (codeAttempts.isBlocked(ip)) return { error: "tooManyAttempts", code };
   const lobby = code.trim() ? await findOpenLobby(code) : null;
   // Le code seul ne suffit pas pour une course privée (LOB-3).
   const canEnter = lobby && (user ? await canEnterLobby(lobby, user.id) : lobby.visibility !== "private");
-  if (!canEnter) return { error: "noOpenLobby", code };
+  if (!canEnter) {
+    codeAttempts.recordFailure(ip);
+    return { error: "noOpenLobby", code };
+  }
   // Depuis l'accueil sans session : connexion ou invité, puis retour à la course (JOIN-01).
   if (!user) redirect(`/login?next=/lobbies/${lobby.code}`);
   redirect(`/lobbies/${lobby.code}`);
