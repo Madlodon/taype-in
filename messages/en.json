@@ -223,7 +223,8 @@
     "blocking": "Blocking mode: a wrong character stops you until you type the right one.",
     "tolerant": "Tolerant mode: keep going and fix with Backspace. Every mistake counts, even fixed.",
     "errors": "{count, plural, =0 {No errors} one {# error} other {# errors}}",
-    "finished": "Finished! {count, plural, =0 {No errors.} one {# error.} other {# errors.}}"
+    "finished": "Finished! {count, plural, =0 {No errors.} one {# error.} other {# errors.}}",
+    "live": "{wpm} WPM · Accuracy {accuracy}%"
   },
   "Invites": {
     "title": "Invite links",

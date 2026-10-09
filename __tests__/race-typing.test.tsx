@@ -1,4 +1,5 @@
-import { afterEach, expect, test } from "vitest";
+import { act } from "react";
+import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { RaceTyping } from "../components/race-typing";
@@ -14,7 +15,7 @@ function renderTyping(
 ) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <RaceTyping content={content} errorMode={errorMode} initial={initial} />
+      <RaceTyping content={content} errorMode={errorMode} initial={initial} startedAt={Date.now()} />
     </NextIntlClientProvider>,
   );
   return screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -31,8 +32,19 @@ function wrongLetters() {
 
 const status = () => screen.getByRole("status").textContent;
 
+// Ligne MPM et précision sous le champ (COURSE-04).
+const live = () => screen.getByText(/MPM/).textContent;
+
+// Avance l'horloge de la course, comme si le joueur réfléchissait avant la prochaine frappe.
+function wait(ms: number) {
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+}
+
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 test("Should_ShowTextFieldAndNoError_When_RaceStarts", () => {
@@ -146,12 +158,12 @@ test("Should_RemoveRewardWordFromInputAndPrompt_WithoutCountingItAsTyped", () =>
   const content = "Go. One two three four five.";
   let latest: Typing | undefined;
   const { rerender } = render(<NextIntlClientProvider locale="en" messages={en}>
-    <RaceTyping content={content} errorMode="blocking" onProgress={value => { latest = value; }} />
+    <RaceTyping content={content} errorMode="blocking" startedAt={Date.now()} onProgress={value => { latest = value; }} />
   </NextIntlClientProvider>);
   const input = screen.getByRole("textbox") as HTMLTextAreaElement;
   type(input, "Go. O");
   rerender(<NextIntlClientProvider locale="en" messages={en}>
-    <RaceTyping content={content} errorMode="blocking" removed={[{ start: 18, end: 23 }]}
+    <RaceTyping content={content} errorMode="blocking" startedAt={Date.now()} removed={[{ start: 18, end: 23 }]}
       onProgress={value => { latest = value; }} />
   </NextIntlClientProvider>);
   expect(input.value).toBe("Go. O");
@@ -161,4 +173,63 @@ test("Should_RemoveRewardWordFromInputAndPrompt_WithoutCountingItAsTyped", () =>
   expect(latest?.typed).toBe(content);
   expect(latest?.keys).toBe(content.length - 5);
   expect(latest?.errors).toBe(0);
+});
+
+test("Should_ShowZeroWpmAndAccuracy_When_NothingIsTypedYet", () => {
+  renderTyping("blocking");
+
+  expect(live()).toBe("0 MPM · Précision 0 %");
+});
+
+test("Should_UpdateWpmAndAccuracy_When_RacerTypes", () => {
+  vi.useFakeTimers();
+  const input = renderTyping("blocking", "chat chat");
+
+  wait(6000);
+  type(input, "c", "ch");
+
+  // 2 caractères justes en 6 s : (2 ÷ 5) ÷ 0,1 min = 4 MPM.
+  expect(live()).toBe("4 MPM · Précision 100 %");
+
+  type(input, "chx");
+
+  expect(live()).toBe("4 MPM · Précision 67 %");
+});
+
+test("Should_LowerWpm_When_TimePassesWithoutTyping", () => {
+  vi.useFakeTimers();
+  const input = renderTyping("blocking", "chat chat");
+
+  wait(6000);
+  type(input, "ch");
+  wait(6000);
+
+  expect(live()).toBe("2 MPM · Précision 100 %");
+});
+
+test("Should_KeepFinalWpm_When_TextIsFinished", () => {
+  vi.useFakeTimers();
+  const input = renderTyping("tolerant");
+
+  wait(6000);
+  type(input, "chat");
+  wait(60_000);
+
+  expect(live()).toBe("8 MPM · Précision 100 %");
+});
+
+test("Should_CountOnlyCorrectCharactersInWpm_When_TolerantLeavesErrors", () => {
+  vi.useFakeTimers();
+  const input = renderTyping("tolerant");
+
+  wait(6000);
+  type(input, "cx");
+
+  expect(live()).toBe("2 MPM · Précision 50 %");
+});
+
+test("Should_ShowWpmAndAccuracyInEnglish_When_LocaleIsEnglish", () => {
+  renderTyping("blocking", "chat", "en");
+
+  expect(screen.getByText("0 WPM · Accuracy 0%")).toBeTruthy();
 });

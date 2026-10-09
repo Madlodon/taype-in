@@ -1,16 +1,26 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { withoutRemoved, restoreRemoved, type RemovedWord } from "@/lib/race-goals";
-import { applyInput, EMPTY_TYPING, type ErrorMode, type Typing } from "@/lib/typing";
+import {
+  accuracy,
+  applyInput,
+  countCorrect,
+  EMPTY_TYPING,
+  wordsPerMinute,
+  type ErrorMode,
+  type Typing,
+} from "@/lib/typing";
 
 // onProgress reçoit la saisie après chaque frappe ; initial = saisie reprise après une reconnexion (CRS-6).
+// startedAt = moment du « Go » (Date.now()), pour le MPM en direct (COURSE-04).
 // children s'affiche entre le texte et le champ, là où les yeux restent pendant la frappe.
 type Props = {
   content: string;
   errorMode: ErrorMode;
   initial?: Typing;
+  startedAt: number;
   removed?: RemovedWord[];
   onProgress?: (typing: Typing) => void;
   children?: ReactNode;
@@ -22,6 +32,7 @@ export function RaceTyping({
   content,
   errorMode,
   initial = EMPTY_TYPING,
+  startedAt,
   removed = [],
   onProgress,
   children,
@@ -33,12 +44,22 @@ export function RaceTyping({
   const visibleContent = withoutRemoved(content, removed);
   const visibleTyped = withoutRemoved(typing.typed, removed);
   const finished = visibleTyped.length === visibleContent.length;
+  // Horloge du MPM : avance chaque seconde et à chaque frappe, s'arrête à l'arrivée.
+  const [now, setNow] = useState(startedAt);
+  const wpm = wordsPerMinute(countCorrect(visibleTyped, visibleContent), now - startedAt);
+
+  useEffect(() => {
+    if (finished) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [finished]);
 
   function update(value: string) {
     setDraft(undefined);
     const edited = applyInput({ ...typing, typed: visibleTyped }, visibleContent, errorMode, value);
     const next = { ...edited, typed: restoreRemoved(edited.typed, content, removed) };
     setTyping(next);
+    setNow(() => Date.now());
     onProgress?.(next);
   }
 
@@ -92,6 +113,12 @@ export function RaceTyping({
       />
       <p id="race-typing-help" className="form-note">
         {t(errorMode)}
+      </p>
+      <p className="form-note">
+        {t("live", {
+          wpm: Math.round(wpm),
+          accuracy: Math.round(accuracy(typing.keys, typing.errors)),
+        })}
       </p>
       <p role="status" className="form-note">
         {finished ? t("finished", { count: typing.errors }) : t("errors", { count: typing.errors })}
