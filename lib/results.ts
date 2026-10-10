@@ -14,6 +14,7 @@ export type Racer = ProgressMessage & {
   id: string;
   username: string;
   finished: boolean;
+  gaveUp: boolean;
   durationMs: number;
   reachedAt: number;
   removed?: RemovedWord[];
@@ -25,30 +26,42 @@ export type Placement = Omit<RaceResult, "rankLevel" | "rankChange" | "xp" | "xp
 // Mode tolérant : chaque faute ajoute 1 s au temps (Q-7).
 export const PENALTY_MS_PER_ERROR = 1000;
 
-// Ordre d'arrivée (temps + pénalité) ; ceux qui n'ont pas fini, selon leur progression (Q-7).
+function statusOf(racer: Racer): RaceResult["status"] {
+  if (racer.finished) return "finished";
+  return racer.gaveUp ? "gaveUp" : "timeUp";
+}
+
+const STATUS_ORDER: RaceResult["status"][] = ["finished", "timeUp", "gaveUp"];
+
+// Ceux qui ont fini, par temps + pénalité (Q-7) ; puis temps écoulé, puis abandons,
+// chacun selon sa progression (à l'abandon pour ces derniers) (COURSE-10).
 export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMode): Placement[] {
   const scored = racers.map((racer) => ({
     racer,
+    status: statusOf(racer),
     penaltyMs: errorMode === "tolerant" ? racer.errors * PENALTY_MS_PER_ERROR : 0,
   }));
   scored.sort(
     (a, b) =>
-      Number(b.racer.finished) - Number(a.racer.finished) ||
+      STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) ||
       (a.racer.finished
         ? a.racer.durationMs + a.penaltyMs - (b.racer.durationMs + b.penaltyMs)
         : b.racer.typed.length - a.racer.typed.length) ||
       a.racer.reachedAt - b.racer.reachedAt,
   );
-  return scored.map(({ racer, penaltyMs }, index) => ({
+  return scored.map(({ racer, status, penaltyMs }, index) => ({
     id: racer.id,
     username: racer.username,
     rank: index + 1,
     wpm: wordsPerMinute(countCorrect(withoutRemoved(racer.typed, racer.removed ?? []), withoutRemoved(content, racer.removed ?? [])), racer.durationMs),
+    rawWpm: wordsPerMinute(racer.keys, racer.durationMs),
     accuracy: accuracy(racer.keys, racer.errors),
     durationMs: racer.durationMs,
     penaltyMs,
     errors: racer.errors,
     finished: racer.finished,
+    status,
+    bonuses: racer.removed?.length ?? 0,
     keyErrors: racer.keyErrors,
   }));
 }
@@ -60,10 +73,13 @@ export async function saveResults(raceId: string, ranked: Placement[]) {
     userId: result.id,
     rank: result.rank,
     wpm: result.wpm,
+    rawWpm: result.rawWpm,
     accuracy: result.accuracy,
     durationMs: result.durationMs,
     errorCount: result.errors,
     finished: result.finished,
+    gaveUp: result.status === "gaveUp",
+    bonuses: result.bonuses,
     keyErrors: result.keyErrors,
   }));
   if (rows.length > 0) await db.insert(results).values(rows);
