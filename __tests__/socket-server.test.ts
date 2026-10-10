@@ -1281,8 +1281,8 @@ describe("race:positions", () => {
 
     expect(await guestSees).toEqual({
       positions: [
-        { id: host.id, username: host.username, position: 0 },
-        { id: guest.id, username: guest.username, position: 0 },
+        { id: host.id, username: host.username, position: 0, wpm: 0 },
+        { id: guest.id, username: guest.username, position: 0, wpm: 0 },
       ],
     });
   });
@@ -1298,6 +1298,18 @@ describe("race:positions", () => {
       [guest.id, 3],
       [host.id, 0],
     ]);
+  });
+
+  test("Should_SendLiveWpm_When_RacerTypesCorrectCharacters", async () => {
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const hostSees = positionsWhere(hostClient, (message) => message.positions[0].position > 0);
+
+    await progress(guestClient, typing(content.slice(0, 3), 0));
+
+    const wpm = Object.fromEntries((await hostSees).positions.map((entry) => [entry.id, entry.wpm]));
+    expect(Number.isInteger(wpm[guest.id]) && wpm[guest.id] > 0).toBe(true);
+    expect(wpm[host.id]).toBe(0);
   });
 
   test("Should_RankFirstToArriveAhead_When_RacersAreTied", async () => {

@@ -76,9 +76,9 @@ export type RaceStartedMessage = {
   mine?: ProgressMessage & { gaveUp: boolean; removed?: RemovedWord[] };
 };
 
-// Classement en direct, du premier au dernier ; position = caractères tapés (CRS-2).
+// Classement en direct, du premier au dernier ; position = caractères tapés (CRS-2), wpm = MPM en direct (COURSE-05).
 export type RacePositionsMessage = {
-  positions: { id: string; username: string; position: number; bot?: Bot }[];
+  positions: { id: string; username: string; position: number; wpm: number; bot?: Bot }[];
 };
 
 // Résultat d'un coureur, du premier au dernier (FIN-2) ; accuracy en %, penaltyMs = +1 s par faute en mode tolérant.
