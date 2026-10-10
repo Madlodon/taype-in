@@ -326,7 +326,9 @@
     "goal": "BUUUUT !",
     "finished": "Texte terminé. Ballon au fond du filet. Bien joué.",
     "track": "Parcours dans le stade",
-    "typing": "Sur le terrain"
+    "typing": "Sur le terrain",
+    "keyboardTitle": "Sors ton clavier.",
+    "keyboardNote": "Taper une course se fait avec un vrai clavier. Reviens sur un ordinateur pour courir. Tu peux quand même suivre la piste d’ici."
   },
   "ErrorPages": {
     "notFoundTag": "Erreur 404",

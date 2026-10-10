@@ -1420,6 +1420,21 @@ a, button, input {
   margin-bottom: 8px;
 }
 
+/* Téléphone (tactile et étroit) : la saisie laisse place au message clavier (DES-06). */
+.phone-only {
+  display: none;
+}
+
+@media (pointer: coarse) and (max-width: 767px) {
+  .phone-only {
+    display: block;
+  }
+
+  .phone-hidden {
+    display: none;
+  }
+}
+
 @media (min-width: 1440px) {
   .page-shell {
     padding-top: 64px;
