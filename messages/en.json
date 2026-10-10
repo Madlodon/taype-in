@@ -129,6 +129,7 @@
       "noText": "No text available in this language",
       "raceNotRunning": "No race is running",
       "notRacer": "You are not racing in this race",
+      "impossibleProgress": "Typing too fast to be real",
       "cannotGiveUp": "You can't give up anymore",
       "raceNotFinished": "The race isn't over",
       "botNotFound": "Bot not found",

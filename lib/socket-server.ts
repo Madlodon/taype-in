@@ -21,6 +21,7 @@ import {
 } from "./lobbies.ts";
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
+import { isPlausibleProgress, MAX_WPM } from "./progress-check.ts";
 import { codeAttempts } from "./rate-limit.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
 import { awardXp, rankRacers, saveResults, updateRanks } from "./results.ts";
@@ -119,6 +120,8 @@ export function createSocketServer(
     goalChance = GOAL_CHANCE,
     // SALLE-08 : délai laissé à l'hôte parti pour revenir (ex. rechargement de la page).
     hostGraceMs = 10_000,
+    // TECH-5 : vitesse maximale acceptée ; Infinity pour les tests E2E qui tapent d'un coup.
+    maxWpm = MAX_WPM,
     // COURSE-08 : un coureur déconnecté depuis 30 s abandonne.
     giveUpMs = 30_000,
   } = {},
@@ -679,6 +682,22 @@ export function createSocketServer(
       }
       if (result.data.typed.length > live.content.length) {
         ack?.({ ok: false, error: "invalidMessage" });
+        return;
+      }
+      // Une fois fini, la saisie ne change plus : inutile de la vérifier.
+      if (
+        player.state === "connected" &&
+        !isPlausibleProgress(
+          player,
+          result.data,
+          live.content,
+          live.errorMode,
+          player.removed,
+          Date.now() - live.startedAt,
+          maxWpm,
+        )
+      ) {
+        ack?.({ ok: false, error: "impossibleProgress" });
         return;
       }
 

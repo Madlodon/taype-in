@@ -11,9 +11,13 @@ const handle = app.getRequestHandler();
 await app.prepare();
 
 const httpServer = createServer((req, res) => handle(req, res));
-// GOAL_CHANCE=0 désactive les buts (tests E2E).
+// GOAL_CHANCE=0 désactive les buts ; MAX_WPM=Infinity accepte la saisie instantanée (tests E2E).
 const goalChance = process.env.GOAL_CHANCE;
-createSocketServer(httpServer, goalChance ? { goalChance: Number(goalChance) } : {});
+const maxWpm = process.env.MAX_WPM;
+createSocketServer(httpServer, {
+  ...(goalChance && { goalChance: Number(goalChance) }),
+  ...(maxWpm && { maxWpm: Number(maxWpm) }),
+});
 
 httpServer.listen(port, () => {
   console.log(`> Serveur prêt sur http://localhost:${port}`);
