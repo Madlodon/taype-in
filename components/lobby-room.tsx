@@ -23,6 +23,7 @@ import { Arena } from "@/components/arena";
 import { BotBadge } from "@/components/bot-badge";
 import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
 import { RaceResults } from "@/components/race-results";
+import { KeyboardNote } from "@/components/keyboard-note";
 import { RaceTyping } from "@/components/race-typing";
 import type { RemovedWord } from "@/lib/race-goals";
 import { SessionStats } from "@/components/session-stats";
@@ -402,30 +403,34 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     return (
       <>
         {track}
+        <KeyboardNote />
         <section className="panel panel-accent">
-          <RaceTyping
-            content={race.content}
-            errorMode={race.errorMode}
-            initial={resumed}
-            startedAt={startedAt}
-            removed={removed}
-            onProgress={progress}
-          >
-            {/* Toujours là, même vide : le champ ne bouge pas quand un dépassement s'affiche. */}
-            <p aria-live="polite" className="overtake">
-              {overtake && (
-                <span key={overtake.at} className={`overtake-${overtake.direction}`}>
-                  <span aria-hidden="true">{overtake.direction === "up" ? "▲ " : "▼ "}</span>
-                  {t(`overtake.${overtake.direction}`, {
-                    names: format.list(overtake.names),
-                    count: overtake.names.length,
-                    rank: overtake.rank,
-                  })}
-                </span>
-              )}
-            </p>
-          </RaceTyping>
-          {goalWord && <p role="status" className="form-note">{t("goalRemoved", { word: goalWord })}</p>}
+          {/* Sur téléphone, seuls le temps restant et « Abandonner » restent (DES-06). */}
+          <div className="phone-hidden">
+            <RaceTyping
+              content={race.content}
+              errorMode={race.errorMode}
+              initial={resumed}
+              startedAt={startedAt}
+              removed={removed}
+              onProgress={progress}
+            >
+              {/* Toujours là, même vide : le champ ne bouge pas quand un dépassement s'affiche. */}
+              <p aria-live="polite" className="overtake">
+                {overtake && (
+                  <span key={overtake.at} className={`overtake-${overtake.direction}`}>
+                    <span aria-hidden="true">{overtake.direction === "up" ? "▲ " : "▼ "}</span>
+                    {t(`overtake.${overtake.direction}`, {
+                      names: format.list(overtake.names),
+                      count: overtake.names.length,
+                      rank: overtake.rank,
+                    })}
+                  </span>
+                )}
+              </p>
+            </RaceTyping>
+            {goalWord && <p role="status" className="form-note">{t("goalRemoved", { word: goalWord })}</p>}
+          </div>
           {timeLeft}
           {!finished && (
             <button type="button" className="btn btn-secondary btn-lg mt-5" onClick={giveUp}>
