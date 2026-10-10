@@ -855,9 +855,9 @@ describe("race results", () => {
 
     await progress(hostClient, typing(content, 0));
 
-    expect((await ended).results.map((result) => [result.id, result.finished])).toEqual([
-      [host.id, true],
-      [guest.id, false],
+    expect((await ended).results.map((result) => [result.id, result.status])).toEqual([
+      [host.id, "finished"],
+      [guest.id, "gaveUp"],
     ]);
   });
 
@@ -870,9 +870,9 @@ describe("race results", () => {
     await progress(guestClient, typing(content.slice(0, 8), 0));
 
     const { results: ranked } = await ended;
-    expect(ranked.map((result) => [result.id, result.finished])).toEqual([
-      [guest.id, false],
-      [host.id, false],
+    expect(ranked.map((result) => [result.id, result.status])).toEqual([
+      [guest.id, "timeUp"],
+      [host.id, "timeUp"],
     ]);
     expect(ranked[0].durationMs).toBeGreaterThanOrEqual(900);
   });

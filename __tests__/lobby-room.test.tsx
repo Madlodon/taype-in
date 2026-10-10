@@ -654,14 +654,14 @@ test("Should_MarkHostWatchingAndNotCountHim_When_HostWatchesRace", () => {
 test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {
   renderRoom();
   startRace(["u1", "u2"]);
-  const stats = { wpm: 40, accuracy: 100, durationMs: 30_000, penaltyMs: 0, errors: 0, keyErrors: {} };
+  const stats = { wpm: 40, rawWpm: 42, accuracy: 100, durationMs: 30_000, penaltyMs: 0, errors: 0, bonuses: 0, keyErrors: {} };
 
   act(() =>
     handlers["race:ended"]({
       reason: "allFinished",
       results: [
-        { ...stats, id: "u2", username: "moi", rank: 1, finished: true },
-        { ...stats, id: "u1", username: "alex", rank: 2, finished: false },
+        { ...stats, id: "u2", username: "moi", rank: 1, finished: true, status: "finished" },
+        { ...stats, id: "u1", username: "alex", rank: 2, finished: false, status: "timeUp" },
       ],
     }),
   );
