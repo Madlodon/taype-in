@@ -890,6 +890,7 @@ function sendPositions(count: number, userRank: number) {
     id: index + 1 === userRank ? "u2" : `r${index + 1}`,
     username: index + 1 === userRank ? "moi" : `joueur${index + 1}`,
     position: count - index - 1,
+    wpm: (count - index) * 10,
   }));
   act(() => handlers["race:positions"]({ positions }));
 }
@@ -905,13 +906,13 @@ test("Should_ShowRankingWithProgress_When_ServerSendsPositions", () => {
   act(() =>
     handlers["race:positions"]({
       positions: [
-        { id: "u1", username: "alex", position: 3 },
-        { id: "u2", username: "moi", position: 0 },
+        { id: "u1", username: "alex", position: 3, wpm: 42 },
+        { id: "u2", username: "moi", position: 0, wpm: 0 },
       ],
     }),
   );
 
-  expect(ranking().map((item) => item.textContent)).toEqual(["alex20 %", "moi (toi)0 %"]);
+  expect(ranking().map((item) => item.textContent)).toEqual(["alex42 MPM · 20 %", "moi (toi)0 MPM · 0 %"]);
 });
 
 test("Should_UpdateRanking_When_NewPositionsArrive", () => {
@@ -921,41 +922,46 @@ test("Should_UpdateRanking_When_NewPositionsArrive", () => {
 
   sendPositions(2, 1);
 
-  expect(ranking()[0].textContent).toBe("moi (toi)7 %");
+  expect(ranking()[0].textContent).toBe("moi (toi)20 MPM · 7 %");
 });
 
-test("Should_ShowTopTenAndNeighbours_When_UserIsFarBehind", () => {
+test("Should_ListEveryRacer_When_UserIsFarBehind", () => {
   renderRoom();
   startRace(["u2"]);
 
   sendPositions(30, 15);
 
-  expect(ranking().map((item) => item.getAttribute("value"))).toEqual([
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "14",
-    "15",
-    "16",
-  ]);
-  expect(ranking()[10].className).toContain("ranking-gap");
-  expect(ranking()[11].className).toContain("ranking-you");
+  expect(ranking().map((item) => item.getAttribute("value"))).toEqual(
+    Array.from({ length: 30 }, (_, index) => String(index + 1)),
+  );
+  expect(ranking()[14].className).toContain("ranking-you");
 });
 
-test("Should_ShowOnlyTopTen_When_UserIsSpectating", () => {
+test("Should_ListEveryRacer_When_UserIsSpectating", () => {
   renderRoom();
   startRace(["u1", "u3"]);
 
   sendPositions(30, 0);
 
-  expect(ranking()).toHaveLength(10);
+  expect(ranking()).toHaveLength(30);
+});
+
+test("Should_ShowAvatarOfEachPlayerButNotBots_When_ServerSendsPositions", () => {
+  renderRoom();
+  startRace(["u1", "u2", "b1"]);
+
+  act(() =>
+    handlers["race:positions"]({
+      positions: [
+        { id: "u1", username: "alex", position: 2, wpm: 30 },
+        { id: "b1", username: "Bot", position: 1, wpm: 25, bot: { level: "beginner", number: 1 } },
+        { id: "u2", username: "moi", position: 0, wpm: 0 },
+      ],
+    }),
+  );
+
+  const images = ranking().map((item) => item.querySelector("img")?.getAttribute("src"));
+  expect(images).toEqual(["/avatars/u1", undefined, "/avatars/u2"]);
 });
 
 test("Should_DrawOneCarTagPerShownPlayer_When_ServerSendsPositions", () => {
@@ -1001,7 +1007,7 @@ test("Should_ShowRankingInEnglish_When_LocaleIsEnglish", () => {
 
   expect(
     within(screen.getByRole("list", { name: "Ranking" })).getAllByRole("listitem")[1].textContent,
-  ).toBe("moi (you)0%");
+  ).toBe("moi (you)10 WPM · 0%");
 });
 
 test("Should_ApplyServerGoalWithoutLosingInput_When_RewardArrives", () => {
@@ -1040,7 +1046,7 @@ test.each(["blocking", "tolerant"])("Should_BoostImmediatelyForCorrectInputOnly_
   const { container } = renderRoom("en");
   startRace(["u1", "u2"], mode);
   act(() => handlers["race:positions"]({ positions: [
-    { id: "u1", username: "Alex", position: 0 }, { id: "u2", username: "You", position: 0 },
+    { id: "u1", username: "Alex", position: 0, wpm: 0 }, { id: "u2", username: "You", position: 0, wpm: 0 },
   ] }));
   const input = screen.getByRole("textbox");
   const exhaust = () => container.querySelector('[data-car-id="u2"] .car-boost');
@@ -1069,6 +1075,7 @@ function sendOrder(...ids: string[]) {
     id,
     username: id === "u2" ? "moi" : id,
     position: ids.length - index,
+    wpm: 0,
   }));
   act(() => handlers["race:positions"]({ positions }));
 }
@@ -1257,16 +1264,16 @@ test("Should_NameBotInRankingAndOvertake_When_BotPassesUser", () => {
   const bot = { id: "b1", username: "Bot expert 1", bot: { level: "expert", number: 1 } };
   act(() =>
     handlers["race:positions"]({
-      positions: [{ id: "u2", username: "moi", position: 2 }, { ...bot, position: 1 }],
+      positions: [{ id: "u2", username: "moi", position: 2, wpm: 0 }, { ...bot, position: 1, wpm: 0 }],
     }),
   );
 
   act(() =>
     handlers["race:positions"]({
-      positions: [{ ...bot, position: 3 }, { id: "u2", username: "moi", position: 2 }],
+      positions: [{ ...bot, position: 3, wpm: 50 }, { id: "u2", username: "moi", position: 2, wpm: 0 }],
     }),
   );
 
-  expect(ranking()[0].textContent).toBe("Bot Expert 1Bot20 %");
+  expect(ranking()[0].textContent).toBe("Bot Expert 1Bot50 MPM · 20 %");
   expect(overtakeText(container)).toBe("▼ Bot Expert 1 t'a dépassé · 2e");
 });

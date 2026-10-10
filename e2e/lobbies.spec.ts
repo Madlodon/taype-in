@@ -380,14 +380,14 @@ test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser
 
   const ranking = host.page.getByRole("list", { name: "Classement" }).getByRole("listitem");
   await expect(ranking).toHaveCount(2, { timeout: 8000 });
-  await expect(ranking.first()).toHaveText(`${host.name} (toi)0 %`);
+  await expect(ranking.first()).toHaveText(`${host.name} (toi)0 MPM · 0 %`);
   const input = player.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused();
   const text = (await player.page.locator(".typing-text").textContent())!;
   await player.page.keyboard.type(text.slice(0, 10));
 
-  await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ %$`));
-  await expect(ranking.nth(1)).toHaveText(`${host.name} (toi)0 %`);
+  await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ MPM · \\d+ %$`));
+  await expect(ranking.nth(1)).toHaveText(`${host.name} (toi)0 MPM · 0 %`);
 });
 
 test("Should_ShowOvertakeAboveText_When_RacerPassesAnother", async ({ browser }) => {
@@ -398,7 +398,7 @@ test("Should_ShowOvertakeAboveText_When_RacerPassesAnother", async ({ browser })
   await expect(participants(host.page)).toHaveCount(2);
   await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const ranking = player.page.getByRole("list", { name: "Classement" }).getByRole("listitem");
-  await expect(ranking.first()).toHaveText(`${host.name}0 %`, { timeout: 8000 });
+  await expect(ranking.first()).toHaveText(`${host.name}0 MPM · 0 %`, { timeout: 8000 });
   const text = (await player.page.locator(".typing-text").textContent())!;
 
   await player.page.keyboard.type(text.slice(0, 10));

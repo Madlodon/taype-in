@@ -108,6 +108,7 @@
     "ranking": "Ranking",
     "you": "(you)",
     "percent": "{value}%",
+    "wpmValue": "{value} WPM",
     "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
     "overtake": {
       "up": "You passed {names} · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",

@@ -1,4 +1,4 @@
-import { hasCorrectInput } from "./typing.ts";
+import { countCorrect, hasCorrectInput, wordsPerMinute } from "./typing.ts";
 import { completedSentences, thirdWordAhead, GOAL_CHANCE, SHOT_MS, type RemovedWord } from "./race-goals.ts";
 // Serveur Socket.IO attaché au serveur HTTP de Next.js (ADR 0001).
 import { randomUUID } from "node:crypto";
@@ -193,17 +193,20 @@ export function createSocketServer(
   }
 
   // Classement : le plus avancé d'abord ; à égalité, celui qui y est arrivé le premier.
+  // wpm = MPM en direct, arrondi, avec la formule des résultats (COURSE-05).
   function ranking(live: LiveRace): RacePositionsMessage {
     const positions = [...live.positions].sort(
       ([, a], [, b]) => b.position - a.position || a.at - b.at,
     );
+    const now = Date.now();
     return {
-      positions: positions.map(([id, { username, position, bot }]) => ({
-        id,
-        username,
-        position,
-        bot,
-      })),
+      positions: positions.map(([id, { username, position, bot }]) => {
+        const player = live.players.get(id);
+        const wpm = player
+          ? wordsPerMinute(countCorrect(player.typed, live.content), (player.doneAt ?? now) - live.startedAt)
+          : 0;
+        return { id, username, position, wpm: Math.round(wpm), bot };
+      }),
     };
   }
 
