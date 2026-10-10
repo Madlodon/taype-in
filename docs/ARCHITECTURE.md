@@ -157,6 +157,7 @@ stateDiagram-v2
     [*] --> connected
     connected --> disconnected : disconnect
     disconnected --> connected : reconnect
+    disconnected --> abandoned : 30 s sans retour
     connected --> finished : finish
     connected --> abandoned : abandon
     finished --> [*]
@@ -168,9 +169,9 @@ stateDiagram-v2
 | `connected`    | Tape le texte                                            |
 | `disconnected` | Connexion perdue ; la course continue sans lui (CRS-6)   |
 | `finished`     | A terminé le texte                                       |
-| `abandoned`    | A cliqué sur « Abandonner » ; devient spectateur (CRS-7) |
+| `abandoned`    | A cliqué sur « Abandonner » ou absent depuis 30 s ; devient spectateur (CRS-7, COURSE-08) |
 
-- Pas de délai d'abandon : le joueur peut revenir tant que la course dure et reprend exactement où il était. S'il est encore absent à la fin, il est « non terminé ».
+- Le joueur qui revient dans les 30 s reprend exactement où il était. Après 30 s, il a abandonné (COURSE-08). Si la course finit avant, il est « non terminé ».
 - `finished` et `abandoned` sont finaux pour la course. Une déconnexion après coup ne change plus l'état du joueur.
 
 ## Temps réel

@@ -53,6 +53,7 @@ async function startServer(
     goalChance?: number;
     hostGraceMs?: number;
     maxWpm?: number;
+    giveUpMs?: number;
   } = {},
 ) {
   const httpServer = createServer();
@@ -1121,6 +1122,48 @@ describe("reconnect", () => {
     const ended = next<RaceEndedMessage>(hostClient, "race:ended");
 
     expect(await progress(client, typing(content, 0))).toEqual({ ok: true });
+
+    expect(await ended).toMatchObject({ reason: "allFinished" });
+  });
+});
+
+// COURSE-08 : 30 s pour revenir, raccourcies ici.
+describe("give up after disconnect", () => {
+  test("Should_ResumeRacing_When_RacerComesBackBeforeDelay", async () => {
+    await startServer({ giveUpMs: 300 });
+    const { guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    await progress(guestClient, typing(content.slice(0, 3), 0));
+    await dropGuest(hostClient, guestClient);
+
+    const { client, started } = await guestComesBack(lobby, guest);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect(started.mine).toMatchObject({ typed: content.slice(0, 3), gaveUp: false });
+    expect(await progress(client, typing(content.slice(0, 4), 0))).toEqual({ ok: true });
+  });
+
+  test("Should_GiveUp_When_RacerStaysAwayPastDelay", async () => {
+    await startServer({ giveUpMs: 50 });
+    const { guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
+    await startRace(hostClient);
+    await dropGuest(hostClient, guestClient);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const { client, started } = await guestComesBack(lobby, guest);
+
+    expect(started.mine?.gaveUp).toBe(true);
+    expect(await progress(client, typing("U", 0))).toEqual({ ok: false, error: "notRacer" });
+  });
+
+  test("Should_EndRace_When_OnlyAbsentRacerGivesUpAfterDelay", async () => {
+    await startServer({ giveUpMs: 50 });
+    const { hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    await progress(hostClient, typing(content, 0));
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await dropGuest(hostClient, guestClient);
 
     expect(await ended).toMatchObject({ reason: "allFinished" });
   });

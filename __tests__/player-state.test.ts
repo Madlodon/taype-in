@@ -7,6 +7,7 @@ describe("nextPlayerState", () => {
     ["connected", "finish", "finished"],
     ["connected", "abandon", "abandoned"],
     ["disconnected", "reconnect", "connected"],
+    ["disconnected", "abandon", "abandoned"],
   ])("Should_Transition_When_%sReceives%s (→ %s)", (state, event, expected) => {
     expect(nextPlayerState(state, event)).toBe(expected);
   });
@@ -15,7 +16,6 @@ describe("nextPlayerState", () => {
     ["connected", "reconnect"],
     ["disconnected", "disconnect"],
     ["disconnected", "finish"],
-    ["disconnected", "abandon"],
   ])("Should_Throw_When_%sReceives%s", (state, event) => {
     expect(() => nextPlayerState(state, event)).toThrow();
   });
