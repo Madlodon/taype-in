@@ -38,6 +38,9 @@ async function newHost(browser: Browser): Promise<{ page: Page; name: string }> 
   return { page, name };
 }
 
+// Sur téléphone, la saisie est remplacée par un message clavier (DES-06).
+const onPhone = () => test.info().project.name === "mobile";
+
 // Sur mobile, window.innerWidth s'élargit avec le contenu : on compare à la largeur de l'appareil.
 async function expectNoHorizontalScroll(page: Page) {
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -99,6 +102,7 @@ test("Should_ReachEveryPage_When_UsingTheNavigation", async ({ page }) => {
 });
 
 test("Should_TypeAndSeeRanking_When_RacingOnThisScreen", async ({ browser }) => {
+  test.skip(onPhone(), "Pas de saisie sur téléphone");
   const host = await newHost(browser);
   await host.page.getByRole("link", { name: "Démarrer une course" }).click();
   await host.page.getByRole("link", { name: "Créer une course" }).click();
@@ -134,10 +138,12 @@ test("Should_FitResults_When_RaceEnds", async ({ browser }) => {
   await player.page.goto(host.page.url());
   await expect(player.page.getByRole("list", { name: "Participants" })).toBeVisible();
   await host.page.getByRole("button", { name: "Lancer et courir" }).click();
-  const input = host.page.getByRole("textbox", { name: "Tape le texte" });
-  await expect(input).toBeFocused({ timeout: 8000 });
-  const text = (await host.page.locator(".typing-text").textContent())!;
-  await host.page.keyboard.type(text.slice(0, 10));
+  if (!onPhone()) {
+    const input = host.page.getByRole("textbox", { name: "Tape le texte" });
+    await expect(input).toBeFocused({ timeout: 8000 });
+    const text = (await host.page.locator(".typing-text").textContent())!;
+    await host.page.keyboard.type(text.slice(0, 10));
+  }
 
   // Les deux abandonnent : la course finit tout de suite et les résultats s'affichent.
   for (const { page } of [player, host]) {
@@ -149,4 +155,37 @@ test("Should_FitResults_When_RaceEnds", async ({ browser }) => {
     await expect(page.getByRole("heading", { name: "Résultats" })).toBeVisible();
     await expectNoHorizontalScroll(page);
   }
+});
+
+test("Should_ShowKeyboardNote_When_RacingOnPhone", async ({ browser, page }) => {
+  test.skip(!onPhone(), "Le message ne s'affiche que sur téléphone");
+  await page.goto("/race");
+  await expect(page.getByRole("note")).toContainText("Sors ton clavier.");
+  await expect(page.getByRole("textbox")).toBeHidden();
+
+  const host = await newHost(browser);
+  await host.page.getByRole("link", { name: "Démarrer une course" }).click();
+  await host.page.getByRole("link", { name: "Créer une course" }).click();
+  await host.page.getByLabel(/Non répertoriée/).check();
+  await host.page.getByRole("button", { name: "Créer la course" }).click();
+  await expect(host.page.getByRole("heading", { name: "Salle d'attente" })).toBeVisible();
+  await expect(host.page.getByRole("note")).toBeHidden();
+  const player = await newGuest(browser);
+  await player.page.goto(host.page.url());
+  await expect(player.page.getByRole("list", { name: "Participants" })).toBeVisible();
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+
+  // La piste et « Abandonner » restent : on peut suivre la course ou la quitter.
+  await expect(player.page.getByRole("note")).toContainText("Sors ton clavier.", { timeout: 8000 });
+  await expect(player.page.getByRole("textbox", { name: "Tape le texte" })).toBeHidden();
+  await expect(player.page.getByRole("list", { name: "Classement" })).toBeVisible();
+  await expect(player.page.getByRole("button", { name: "Abandonner" })).toBeVisible();
+  await expectNoHorizontalScroll(player.page);
+});
+
+test("Should_HideKeyboardNote_When_NotOnPhone", async ({ page }) => {
+  test.skip(onPhone(), "Le message ne s'affiche que sur téléphone");
+  await page.goto("/race");
+  await expect(page.getByRole("textbox")).toBeVisible();
+  await expect(page.getByRole("note")).toBeHidden();
 });

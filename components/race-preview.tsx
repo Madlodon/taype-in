@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Arena } from "@/components/arena";
+import { KeyboardNote } from "@/components/keyboard-note";
 import type { Stadium } from "@/lib/garage-items";
 
 export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
@@ -42,7 +43,7 @@ export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
   }
 
   return <>
-    <dl className="race-stats">
+    <dl className="race-stats phone-hidden">
       <div>
         <dt>{t("progress")}</dt>
         <dd>{Math.round(progress * 100)}<span className="text-sm text-muted"> %</span>
@@ -64,7 +65,8 @@ export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
         <div style={{ width: `${progress * 100}%` }} />
       </div>
     </div>
-    <section className="panel panel-accent">
+    <KeyboardNote />
+    <section className="panel panel-accent phone-hidden">
       <div className="panel-top">
         <span className="eyebrow">{complete ? t("goal") : typed ? t("typing") : t("ready")}</span>
         <button type="button" className="text-link" onClick={restart}>{t("restart")} ↻</button>

@@ -327,7 +327,9 @@
     "goal": "GOOOAL!",
     "finished": "Text complete. Ball in the net. Nicely done.",
     "track": "Stadium route",
-    "typing": "On the pitch"
+    "typing": "On the pitch",
+    "keyboardTitle": "Grab a keyboard.",
+    "keyboardNote": "Racing needs a physical keyboard. Come back on a computer to race. You can still follow the track from here."
   },
   "ErrorPages": {
     "notFoundTag": "Error 404",
