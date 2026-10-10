@@ -24,6 +24,7 @@ import { Avatar } from "@/components/avatar";
 import { BotBadge } from "@/components/bot-badge";
 import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
 import { RaceResults } from "@/components/race-results";
+import { WpmChart } from "@/components/wpm-chart";
 import { KeyboardNote } from "@/components/keyboard-note";
 import { RaceTyping } from "@/components/race-typing";
 import type { RemovedWord } from "@/lib/race-goals";
@@ -492,6 +493,7 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
           </p>
         )}
         {endReason && <RaceResults results={results} userId={userId} />}
+        {endReason && <WpmChart results={results} userId={userId} />}
         {endReason && <KeyboardHeatmap results={results} userId={userId} />}
         {endReason && <SessionStats load={loadSessionStats} />}
         {race && (

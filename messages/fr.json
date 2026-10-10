@@ -213,6 +213,12 @@
     "noErrors": "Aucune faute : une course parfaite !",
     "extras": "Autres caractères"
   },
+  "WpmChart": {
+    "title": "MPM dans le temps",
+    "tooShort": "Course trop courte pour tracer le graphique.",
+    "seconds": "{value} s",
+    "wpmValue": "{value} MPM"
+  },
   "SessionStats": {
     "title": "{count, plural, one {Cette session : # course} other {Cette session : # courses d’affilée}}",
     "averageWpm": "Vitesse moyenne (MPM)",
