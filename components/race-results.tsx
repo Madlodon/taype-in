@@ -59,9 +59,12 @@ export function RaceResults({ results, userId }: Props) {
               <th scope="col">{t("rank")}</th>
               <th scope="col">{t("player")}</th>
               <th scope="col">{t("wpm")}</th>
+              <th scope="col">{t("rawWpm")}</th>
               <th scope="col">{t("accuracy")}</th>
               <th scope="col">{t("time")}</th>
               <th scope="col">{t("errors")}</th>
+              <th scope="col">{t("status")}</th>
+              <th scope="col">{t("bonuses")}</th>
               <th scope="col">{t("level")}</th>
             </tr>
           </thead>
@@ -77,17 +80,20 @@ export function RaceResults({ results, userId }: Props) {
                   </span>
                 </th>
                 <td>{Math.round(result.wpm)}</td>
+                <td>{Math.round(result.rawWpm)}</td>
                 <td>{t("percent", { value: Math.round(result.accuracy) })}</td>
                 <td>
                   {result.finished
                     ? t("seconds", { value: decimal(result.durationMs / 1000) })
-                    : t("notFinished")}
+                    : "—"}
                   {/* Mode tolérant : +1 s par faute, compté dans le classement (Q-7). */}
                   {result.finished &&
                     result.penaltyMs > 0 &&
                     ` ${t("penalty", { value: decimal(result.penaltyMs / 1000) })}`}
                 </td>
                 <td>{result.errors}</td>
+                <td>{t(`statuses.${result.status}`)}</td>
+                <td>{result.bonuses}</td>
                 {/* Un bot n'a pas de rang (BOT-3). */}
                 <td>
                   {result.bot ? (

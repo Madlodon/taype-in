@@ -22,6 +22,7 @@ function racer(overrides: Partial<Racer> = {}): Racer {
     keys: TEXT.length,
     keyErrors: {},
     finished: true,
+    gaveUp: false,
     durationMs: 60_000,
     reachedAt: 0,
     wpmSeries: [],
@@ -158,6 +159,61 @@ describe("rankRacers", () => {
     expect(order(ranked)).toEqual(["premier", "second"]);
   });
 
+  test("Should_RankGaveUpAfterTimeUp_When_TheyTypedMore", () => {
+    const ranked = rankRacers(
+      [
+        racer({ username: "abandon", typed: "cha", finished: false, gaveUp: true }),
+        racer({ username: "temps écoulé", typed: "c", finished: false }),
+        racer({ username: "fini", durationMs: 90_000 }),
+      ],
+      TEXT,
+      "blocking",
+    );
+
+    expect(order(ranked)).toEqual(["fini", "temps écoulé", "abandon"]);
+  });
+
+  test("Should_RankGaveUpByProgress_When_SeveralGaveUp", () => {
+    const ranked = rankRacers(
+      [
+        racer({ username: "c", typed: "c", finished: false, gaveUp: true }),
+        racer({ username: "cha", typed: "cha", finished: false, gaveUp: true }),
+      ],
+      TEXT,
+      "blocking",
+    );
+
+    expect(order(ranked)).toEqual(["cha", "c"]);
+  });
+
+  test.each([
+    [{ finished: true, gaveUp: false }, "finished"],
+    [{ finished: false, gaveUp: false }, "timeUp"],
+    [{ finished: false, gaveUp: true }, "gaveUp"],
+  ] as const)("Should_GiveStatus_When_RacerIs_%o", (state, status) => {
+    const [result] = rankRacers([racer(state)], TEXT, "blocking");
+
+    expect(result.status).toBe(status);
+  });
+
+  test("Should_CountEveryKeyInRawWpm_When_KeysWereWrong", () => {
+    // 4 justes + 6 fautes en 6 s : 10 touches → 20 MPM brut, 8 MPM net.
+    const [result] = rankRacers([racer({ errors: 6, keys: 10, durationMs: 6000 })], TEXT, "blocking");
+
+    expect(result.rawWpm).toBe(20);
+    expect(result.wpm).toBe(8);
+  });
+
+  test("Should_CountGoalsAsBonuses_When_WordsWereRemoved", () => {
+    const [result] = rankRacers(
+      [racer({ removed: [{ start: 0, end: 1 }, { start: 2, end: 3 }] })],
+      TEXT,
+      "blocking",
+    );
+
+    expect(result.bonuses).toBe(2);
+  });
+
   test("Should_GiveEachRacerTheirStats_When_RaceEnds", () => {
     const [result] = rankRacers(
       [racer({ typed: "chxt", errors: 1, keys: 5, keyErrors: { a: 1 }, durationMs: 6000 })],
@@ -168,11 +224,14 @@ describe("rankRacers", () => {
     expect(result).toMatchObject({
       rank: 1,
       wpm: 6,
+      rawWpm: 10,
       accuracy: 80,
       durationMs: 6000,
       penaltyMs: 1000,
       errors: 1,
       finished: true,
+      status: "finished",
+      bonuses: 0,
       keyErrors: { a: 1 },
     });
   });
@@ -226,11 +285,14 @@ describe("saveResults", () => {
         userId: user.id,
         rank: 1,
         wpm: 0.8,
+        rawWpm: 1.2,
         // real : la base garde environ 7 chiffres.
         accuracy: expect.closeTo(66.667, 2),
         durationMs: 60_000,
         errorCount: 2,
         finished: true,
+        gaveUp: false,
+        bonuses: 0,
         keyErrors: { h: 2 },
         wpmSeries: [0, 12, 30],
       },
@@ -257,6 +319,21 @@ describe("saveResults", () => {
       [guest.id, 1, true],
       [user.id, 2, false],
     ]);
+  });
+
+  test("Should_SaveStatus_When_RacerGaveUp", async () => {
+    const user = await newUser();
+    const race = await newRace(user.id);
+    const ranked = rankRacers(
+      [racer({ id: user.id, typed: "ch", finished: false, gaveUp: true, removed: [{ start: 3, end: 4 }] })],
+      TEXT,
+      "blocking",
+    );
+
+    await saveResults(race.id, ranked);
+
+    const [saved] = await db.select().from(results).where(eq(results.raceId, race.id));
+    expect(saved).toMatchObject({ finished: false, gaveUp: true, bonuses: 1 });
   });
 
   test("Should_SaveNothing_When_NobodyRaced", async () => {

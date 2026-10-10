@@ -12,11 +12,14 @@ function result(rank: number, overrides: Partial<RaceResult> = {}): RaceResult {
     username: `joueur${rank}`,
     rank,
     wpm: 60 - rank,
+    rawWpm: 62 - rank,
     accuracy: 100,
     durationMs: 40_000 + rank * 1000,
     penaltyMs: 0,
     errors: 0,
     finished: true,
+    status: "finished",
+    bonuses: 0,
     keyErrors: {},
     rankLevel: 0,
     rankChange: 0,
@@ -61,7 +64,7 @@ test("Should_ShowOnlyTopThreeOnPodium_When_MoreRacersFinished", () => {
 
 test("Should_ShowEveryPlayerWithStats_When_RaceIsOver", () => {
   renderResults([
-    result(1, { wpm: 52.6, accuracy: 97.4, durationMs: 41_250, errors: 2 }),
+    result(1, { wpm: 52.6, rawWpm: 55.4, accuracy: 97.4, durationMs: 41_250, errors: 2, bonuses: 1 }),
     result(2),
     result(3),
     result(4),
@@ -72,9 +75,12 @@ test("Should_ShowEveryPlayerWithStats_When_RaceIsOver", () => {
     "1",
     "joueur1",
     "53",
+    "55",
     "97 %",
     "41,3 s",
     "2",
+    "Terminé",
+    "1",
     "Bronze I · Div. I =aucun changement",
   ]);
 });
@@ -82,13 +88,21 @@ test("Should_ShowEveryPlayerWithStats_When_RaceIsOver", () => {
 test("Should_ShowPenalty_When_ModeIsTolerant", () => {
   renderResults([result(1, { durationMs: 40_000, errors: 3, penaltyMs: 3000 })]);
 
-  expect(rows()[0][4]).toBe("40 s (+3 s)");
+  expect(rows()[0][5]).toBe("40 s (+3 s)");
 });
 
-test("Should_SayNotFinishedWithoutTime_When_RacerDidNotFinish", () => {
-  renderResults([result(1), result(2, { finished: false, penaltyMs: 2000 })]);
+test("Should_ShowStatusWithoutTime_When_RacerDidNotFinish", () => {
+  renderResults([
+    result(1),
+    result(2, { finished: false, status: "timeUp", penaltyMs: 2000 }),
+    result(3, { finished: false, status: "gaveUp" }),
+  ]);
 
-  expect(rows()[1][4]).toBe("Non terminé");
+  expect(rows().map((row) => [row[5], row[7]])).toEqual([
+    ["41 s", "Terminé"],
+    ["—", "Temps écoulé"],
+    ["—", "Abandon"],
+  ]);
 });
 
 test("Should_HighlightOwnRow_When_UserRaced", () => {
@@ -105,15 +119,21 @@ test("Should_ShowPodiumWithFewerSteps_When_OnlyTwoRaced", () => {
 });
 
 test("Should_ShowResultsInEnglish_When_LocaleIsEnglish", () => {
-  renderResults([result(1, { durationMs: 41_250, accuracy: 97.4, finished: false })], "en");
+  renderResults(
+    [result(1, { durationMs: 41_250, accuracy: 97.4, finished: false, status: "gaveUp" })],
+    "en",
+  );
 
   expect(screen.getByRole("heading", { name: "Results" })).toBeTruthy();
   expect(rows()[0]).toEqual([
     "1",
     "joueur1",
     "59",
+    "61",
     "97%",
-    "Not finished",
+    "—",
+    "0",
+    "Gave up",
     "0",
     "Bronze I · Div. I =no change",
   ]);
@@ -123,19 +143,19 @@ test("Should_ShowResultsInEnglish_When_LocaleIsEnglish", () => {
 test("Should_ShowNewRankWithUpArrow_When_PlayerGainedADivision", () => {
   renderResults([result(1, { rankLevel: 30, rankChange: 1 })]);
 
-  expect(rows()[0][6]).toBe("Or II · Div. III ▲monte d'une division");
+  expect(rows()[0][9]).toBe("Or II · Div. III ▲monte d'une division");
 });
 
 test("Should_ShowDownArrow_When_PlayerLostADivision", () => {
   renderResults([result(1), result(2, { rankLevel: 4, rankChange: -1 })]);
 
-  expect(rows()[1][6]).toBe("Bronze II · Div. I ▼descend d'une division");
+  expect(rows()[1][9]).toBe("Bronze II · Div. I ▼descend d'une division");
 });
 
 test("Should_ShowSupersonicLegendWithoutDivision_When_PlayerIsAtTheTop", () => {
   renderResults([result(1, { rankLevel: 84, rankChange: 1 })], "en");
 
-  expect(rows()[0][6]).toBe("Supersonic Legend ▲up a division");
+  expect(rows()[0][9]).toBe("Supersonic Legend ▲up a division");
 });
 
 test("Should_ShowEachPlayerPhoto_When_RaceIsOver", () => {
@@ -155,7 +175,7 @@ test("Should_MarkBotWithoutAvatarOrRank_When_BotRaced", () => {
   ]);
 
   expect(rows()[1][1]).toBe("Bot Expert 1Bot");
-  expect(rows()[1][6]).toBe("—");
+  expect(rows()[1][9]).toBe("—");
   expect(podium()[1]).toBe("Bot Expert 1Bot58 MPM2");
   expect(document.querySelectorAll("img.avatar")).toHaveLength(2);
 });

@@ -263,6 +263,7 @@ export function createSocketServer(
           id,
           username,
           finished: player.state === "finished",
+          gaveUp: player.state === "abandoned",
           durationMs: (player.doneAt ?? endedAt) - live.startedAt,
           reachedAt: at,
         };

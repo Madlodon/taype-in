@@ -87,11 +87,17 @@ export type RaceResult = {
   username: string;
   rank: number;
   wpm: number;
+  // MPM avec toutes les touches pressées, fautes comprises (RES-02).
+  rawWpm: number;
   accuracy: number;
   durationMs: number;
   penaltyMs: number;
   errors: number;
   finished: boolean;
+  // Fini, temps écoulé (course finie sans lui) ou abandon (COURSE-10).
+  status: "finished" | "timeUp" | "gaveUp";
+  // Bonus reçus : buts marqués pour l'instant (#133).
+  bonuses: number;
   keyErrors: Record<string, number>;
   // MPM à chaque seconde de course, pour le graphique des résultats (RES-03).
   wpmSeries: number[];

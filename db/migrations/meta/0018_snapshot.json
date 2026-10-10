@@ -1,6 +1,6 @@
 {
-  "id": "38f15724-b293-45da-b1c8-5f59bd64f50e",
-  "prevId": "87214d93-9ffd-4b31-8e09-33c1fe7cb044",
+  "id": "85e26ad9-d650-4e7e-ac62-1ed3173cc845",
+  "prevId": "38f15724-b293-45da-b1c8-5f59bd64f50e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -655,6 +655,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'::jsonb"
+        },
+        "wpm_series": {
+          "name": "wpm_series",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
         }
       },
       "indexes": {

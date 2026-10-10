@@ -217,11 +217,17 @@ export const results = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     rank: integer("rank").notNull(),
     wpm: real("wpm").notNull(),
+    // Toutes les touches pressées, fautes comprises (RES-02).
+    rawWpm: real("raw_wpm").notNull().default(0),
     // Pourcentage de 0 à 100.
     accuracy: real("accuracy").notNull(),
     durationMs: integer("duration_ms").notNull(),
     errorCount: integer("error_count").notNull(),
     finished: boolean("finished").notNull(),
+    // Avec finished, donne le statut : fini, temps écoulé ou abandon (COURSE-10).
+    gaveUp: boolean("gave_up").notNull().default(false),
+    // Bonus reçus : buts marqués pour l'instant (#133 ajoutera les siens).
+    bonuses: integer("bonuses").notNull().default(0),
     // Nombre de fautes par touche, pour la heatmap et les touches difficiles.
     keyErrors: jsonb("key_errors")
       .$type<Record<string, number>>()
