@@ -209,8 +209,17 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
       });
     // À chaque connexion, y compris après une coupure, on rentre dans la salle.
     socket.on("connect", () => join());
-    return () => {
+    // En quittant la page (ex. rechargement), la saisie en attente part tout de suite (CRS-6).
+    const flush = () => {
+      if (pendingRef.current === undefined) return;
       clearTimeout(pendingRef.current);
+      pendingRef.current = undefined;
+      socket.emit("race:progress", toProgress(typingRef.current!));
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      flush();
+      window.removeEventListener("pagehide", flush);
       socket.disconnect();
     };
   }, [code, router, userId]);

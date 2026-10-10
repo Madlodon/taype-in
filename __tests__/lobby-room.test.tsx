@@ -745,6 +745,19 @@ test("Should_SendFinishRightAway_When_TextIsCompleteWithinThrottleDelay", () => 
   expect(progressCalls()).toHaveLength(2);
 });
 
+test("Should_SendPendingTyping_When_PageIsLeftWithinThrottleDelay", () => {
+  vi.useFakeTimers();
+  renderRoom();
+  startRace(["u1", "u2"]);
+  fireEvent.change(typingBox()!, { target: { value: "U" } });
+  fireEvent.change(typingBox()!, { target: { value: "Un" } });
+
+  act(() => window.dispatchEvent(new Event("pagehide")));
+
+  expect(progressCalls()).toHaveLength(2);
+  expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: "Un" }));
+});
+
 // Ack du dernier message envoyé sous ce nom.
 function lastAck(event: string) {
   const call = socket.emit.mock.calls.findLast((args) => args[0] === event);
