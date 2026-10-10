@@ -470,7 +470,7 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
     await expect(rows.nth(1)).toContainText(host.name);
     await expect(rows.nth(1)).toContainText("100 %");
     await expect(rows.nth(2)).toContainText(player.name);
-    await expect(rows.nth(2)).toContainText("Non terminé");
+    await expect(rows.nth(2)).toContainText("Abandon");
     // Deux nouveaux joueurs : le gagnant monte, le perdant reste au plancher (#99).
     await expect(rows.nth(1)).toContainText("Bronze I · Div. II");
     await expect(rows.nth(2)).toContainText("Bronze I · Div. I");
