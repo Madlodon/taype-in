@@ -108,6 +108,7 @@
     "ranking": "Classement",
     "you": "(toi)",
     "percent": "{value} %",
+    "wpmValue": "{value} MPM",
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
     "overtake": {
       "up": "Tu as dépassé {names} · {rank, selectordinal, one {#er} other {#e}}",

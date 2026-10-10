@@ -20,6 +20,7 @@ import {
 import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
 import { BOT_LEVELS, type Bot } from "@/lib/bots";
 import { Arena } from "@/components/arena";
+import { Avatar } from "@/components/avatar";
 import { BotBadge } from "@/components/bot-badge";
 import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
 import { RaceResults } from "@/components/race-results";
@@ -336,7 +337,8 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     (participant) => !(hostWatching && participant.id === hostId),
   ).length;
 
-  // Pendant et après la course : le top 10 et tes voisins, sur la piste et dans le classement (CRS-2).
+  // Pendant et après la course : le top 10 et tes voisins sur la piste (CRS-2) ;
+  // le classement à droite liste tout le monde et défile (COURSE-05).
   const shown = race ? selectShown(positions, userId) : [];
   const percent = (position: number) => Math.round((position / race!.content.length) * 100);
   const track =
@@ -357,25 +359,24 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
             you: entry.id === userId,
           }))}
         />
-        <ol aria-label={t("ranking")} className="ranking">
-          {shown.map((entry, index) => (
-            <li
-              key={entry.id}
-              value={entry.rank}
-              className={[
-                entry.id === userId && "ranking-you",
-                index > 0 && entry.rank !== shown[index - 1].rank + 1 && "ranking-gap",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {entry.username}
-              {entry.bot && <BotBadge />}
-              {entry.id === userId && ` ${t("you")}`}
-              <span>{t("percent", { value: percent(entry.position) })}</span>
-            </li>
-          ))}
-        </ol>
+        <div className="ranking-panel">
+          <ol aria-label={t("ranking")} className="ranking">
+            {positions.map((entry, index) => (
+              <li key={entry.id} value={index + 1} className={entry.id === userId ? "ranking-you" : undefined}>
+                {/* Un bot n'a pas de compte, donc pas de photo : un cercle vide garde l'alignement. */}
+                {entry.bot ? <span className="avatar" aria-hidden="true" /> : <Avatar userId={entry.id} size={24} />}
+                <span>
+                  {entry.username}
+                  {entry.bot && <BotBadge />}
+                  {entry.id === userId && ` ${t("you")}`}
+                </span>
+                <span className="ranking-stats">
+                  {t("wpmValue", { value: entry.wpm })} · {t("percent", { value: percent(entry.position) })}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     );
 

@@ -837,10 +837,8 @@ a, button, input {
   flex: 1 1 180px;
 }
 
-/* BOT-3 : à côté du nom, aussi dans le classement où les span flottent à droite. */
-.bot-badge,
-.ranking li .bot-badge {
-  float: none;
+/* BOT-3 : à côté du nom, aussi dans le classement. */
+.bot-badge {
   margin: 0 0 0 8px;
   padding: 3px 6px;
   color: var(--primary);
@@ -860,9 +858,14 @@ a, button, input {
 
 .race-board {
   display: grid;
-  grid-template-columns: 1fr 200px;
+  grid-template-columns: 1fr 240px;
   gap: 16px;
-  align-items: start;
+}
+
+/* Le classement prend la hauteur de l'arène et défile au-delà (COURSE-05). */
+.ranking-panel {
+  position: relative;
+  min-height: 160px;
 }
 
 .car-tag {
@@ -875,34 +878,47 @@ a, button, input {
 }
 
 .ranking {
-  list-style: decimal inside;
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  counter-reset: rank;
   font-size: 13px;
 }
 
+/* Rang et photo à gauche ; le nom en haut, MPM et progression en dessous. */
 .ranking li {
+  display: grid;
+  grid-template-columns: 2.2em 24px 1fr;
+  column-gap: 8px;
+  align-items: center;
   padding: 6px 8px;
   border-radius: 5px;
+  counter-increment: rank;
   overflow-wrap: anywhere;
 }
 
-.ranking li::marker {
+.ranking li::before {
+  content: counter(rank) ".";
+  grid-row: span 2;
   color: var(--muted);
+  text-align: right;
 }
 
-.ranking li span {
-  float: right;
-  margin-left: 6px;
+.ranking .avatar {
+  grid-row: span 2;
+  width: 24px;
+  height: 24px;
+}
+
+.ranking-stats {
   color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .ranking-you {
   background: color-mix(in srgb, var(--primary) 15%, var(--surface));
   font-weight: 700;
-}
-
-.ranking-gap {
-  margin-top: 8px;
-  border-top: 1px dashed var(--border);
 }
 
 /* Dépassement entre le texte et le champ (CRS-3) : la hauteur est réservée pour que rien ne bouge. */
@@ -1502,6 +1518,10 @@ a, button, input {
   .race-board,
   .progression-charts {
     grid-template-columns: 1fr;
+  }
+  /* Sous l'arène, le classement garde une hauteur fixe et défile. */
+  .ranking-panel {
+    height: 240px;
   }
   /* Sur une colonne, l'aperçu du garage passe au-dessus des choix. */
   .garage-preview-panel {

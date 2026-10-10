@@ -118,7 +118,7 @@ test("Should_TypeAndSeeRanking_When_RacingOnThisScreen", async ({ browser }) => 
   await player.page.keyboard.type(text.slice(0, 10));
 
   const ranking = host.page.getByRole("list", { name: "Classement" }).getByRole("listitem");
-  await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ %$`));
+  await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ MPM · \\d+ %$`));
   await expectNoHorizontalScroll(host.page);
   await expectNoHorizontalScroll(player.page);
 });
