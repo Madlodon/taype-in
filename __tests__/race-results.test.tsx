@@ -22,6 +22,7 @@ function result(rank: number, overrides: Partial<RaceResult> = {}): RaceResult {
     rankChange: 0,
     xp: 0,
     xpGained: 0,
+    wpmSeries: [],
     ...overrides,
   };
 }

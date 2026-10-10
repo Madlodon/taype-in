@@ -227,6 +227,8 @@ export const results = pgTable(
       .$type<Record<string, number>>()
       .notNull()
       .default({}),
+    // MPM à chaque seconde de course, pour le graphique des résultats (RES-03, RES-05).
+    wpmSeries: jsonb("wpm_series").$type<number[]>().notNull().default([]),
   },
   (table) => [
     primaryKey({ columns: [table.raceId, table.userId] }),

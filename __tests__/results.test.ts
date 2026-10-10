@@ -24,6 +24,7 @@ function racer(overrides: Partial<Racer> = {}): Racer {
     finished: true,
     durationMs: 60_000,
     reachedAt: 0,
+    wpmSeries: [],
     ...overrides,
   };
 }
@@ -211,7 +212,7 @@ describe("saveResults", () => {
     const user = await newUser();
     const race = await newRace(user.id);
     const ranked = rankRacers(
-      [racer({ id: user.id, errors: 2, keys: 6, keyErrors: { h: 2 } })],
+      [racer({ id: user.id, errors: 2, keys: 6, keyErrors: { h: 2 }, wpmSeries: [0, 12, 30] })],
       TEXT,
       "blocking",
     );
@@ -231,6 +232,7 @@ describe("saveResults", () => {
         errorCount: 2,
         finished: true,
         keyErrors: { h: 2 },
+        wpmSeries: [0, 12, 30],
       },
     ]);
   });

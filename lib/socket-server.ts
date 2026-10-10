@@ -51,7 +51,14 @@ type SocketData = { user: User; lobby?: Lobby };
 
 // Un coureur et ce qu'il a tapé, gardé pour qu'il reprenne où il était (CRS-6).
 // doneAt : moment où il a fini ou abandonné, pour son temps (FIN-2).
-type Player = ProgressMessage & { state: PlayerState; doneAt?: number; removed: RemovedWord[]; sentences: Set<number> };
+// wpmSeries : son MPM à chaque seconde, jusqu'à ce qu'il finisse ou abandonne (RES-03).
+type Player = ProgressMessage & {
+  state: PlayerState;
+  doneAt?: number;
+  removed: RemovedWord[];
+  sentences: Set<number>;
+  wpmSeries: number[];
+};
 
 // Bot ajouté par l'hôte : un id au format d'un utilisateur, qui ne correspond à personne en base (BOT-1).
 type BotParticipant = { id: string; username: string; bot: Bot };
@@ -81,6 +88,7 @@ type LiveRace = {
   endTimer?: NodeJS.Timeout;
   idleTimer?: NodeJS.Timeout;
   positionsTimer?: NodeJS.Timeout;
+  wpmTimer?: NodeJS.Timeout;
   endReason?: RaceEndedMessage["reason"];
   results?: RaceResult[];
 };
@@ -108,11 +116,13 @@ export function createSocketServer(
   // COURSE-03 : compte à rebours de 3 secondes (3, 2, 1).
   // CRS-5 : la course s'arrête après 2 min sans aucune frappe.
   // CRS-2 : les positions partent au plus toutes les 250 ms, seulement si quelqu'un a bougé.
+  // RES-03 : le MPM de chaque coureur est relevé toutes les secondes.
   // botSpeedup accélère les bots, pour des tests rapides.
   {
     countdownMs = 3000,
     idleMs = 2 * 60 * 1000,
     positionsMs = 250,
+    wpmSampleMs = 1000,
     botSpeedup = 1,
     shotMs = SHOT_MS,
     shotRandom = Math.random,
@@ -210,6 +220,15 @@ export function createSocketServer(
     };
   }
 
+  // Ajoute le MPM actuel de chaque coureur encore en course à sa série (RES-03).
+  function sampleWpm(live: LiveRace) {
+    const now = Date.now();
+    for (const player of live.players.values()) {
+      if (player.state === "finished" || player.state === "abandoned") continue;
+      player.wpmSeries.push(Math.round(wordsPerMinute(countCorrect(player.typed, live.content), now - live.startedAt)));
+    }
+  }
+
   function sendPositions(lobby: Lobby, live: LiveRace) {
     if (!live.positionsChanged) return;
     live.positionsChanged = false;
@@ -220,6 +239,7 @@ export function createSocketServer(
     clearTimeout(live.endTimer);
     clearTimeout(live.idleTimer);
     clearInterval(live.positionsTimer);
+    clearInterval(live.wpmTimer);
     live.botTimers.forEach((timer) => clearTimeout(timer));
     live.giveUpTimers.forEach((timer) => clearTimeout(timer));
     live.shotTimers.forEach((timer) => clearTimeout(timer));
@@ -605,6 +625,7 @@ export function createSocketServer(
               keyErrors: {},
               removed: [],
               sentences: new Set<number>(),
+              wpmSeries: [],
             },
           ]),
         ),
@@ -663,6 +684,7 @@ export function createSocketServer(
         live.positionsChanged = true;
         sendPositions(lobby, live);
         live.positionsTimer = setInterval(() => sendPositions(lobby, live), positionsMs);
+        live.wpmTimer = setInterval(() => sampleWpm(live), wpmSampleMs);
         for (const { id, bot } of racers) if (bot) driveBot(lobby, live, id, bot);
       }, countdownMs);
     });
