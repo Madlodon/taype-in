@@ -50,6 +50,9 @@ function withBotNames<T extends { username: string; bot?: Bot }>(
   return entries.map((entry) => (entry.bot ? { ...entry, username: botName(entry.bot) } : entry));
 }
 
+// Au plus 10 messages de progression par seconde (PERF-02).
+const PROGRESS_MS = 100;
+
 // Durée d'affichage d'un dépassement (CRS-3).
 const OVERTAKE_MS = 2500;
 
@@ -91,6 +94,9 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
   const [gaveUp, setGaveUp] = useState(false);
   // Dernière saisie envoyée : renvoyée au retour de la connexion, au cas où des frappes se sont perdues (CRS-6).
   const typingRef = useRef<Typing>(null);
+  // Heure du dernier envoi, et envoi différé de la dernière saisie s'il est trop tôt (PERF-02).
+  const sentAtRef = useRef(0);
+  const pendingRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [resumed, setResumed] = useState<Typing>();
   const [removed, setRemoved] = useState<RemovedWord[]>([]);
   const [boosts, setBoosts] = useState<Record<string, number>>({});
@@ -136,6 +142,8 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
       setMyPosition(undefined);
       setGaveUp(false);
       typingRef.current = null;
+      clearTimeout(pendingRef.current);
+      pendingRef.current = undefined;
       setResumed(undefined);
       setFinished(false);
     });
@@ -201,7 +209,17 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
       });
     // À chaque connexion, y compris après une coupure, on rentre dans la salle.
     socket.on("connect", () => join());
+    // En quittant la page (ex. rechargement), la saisie en attente part tout de suite (CRS-6).
+    const flush = () => {
+      if (pendingRef.current === undefined) return;
+      clearTimeout(pendingRef.current);
+      pendingRef.current = undefined;
+      socket.emit("race:progress", toProgress(typingRef.current!));
+    };
+    window.addEventListener("pagehide", flush);
     return () => {
+      flush();
+      window.removeEventListener("pagehide", flush);
       socket.disconnect();
     };
   }, [code, router, userId]);
@@ -261,16 +279,27 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     });
   }
 
-  // Chaque frappe est envoyée : le serveur sait qui a fini et si quelqu'un tape encore (CRS-5),
-  // et garde la saisie pour une reprise après une coupure (CRS-6).
+  function sendProgress() {
+    clearTimeout(pendingRef.current);
+    pendingRef.current = undefined;
+    sentAtRef.current = Date.now();
+    socketRef.current?.emit("race:progress", toProgress(typingRef.current!));
+  }
+
+  // La saisie est envoyée au plus toutes les 100 ms : le serveur sait qui a fini et si quelqu'un
+  // tape encore (CRS-5), et garde la saisie pour une reprise après une coupure (CRS-6).
+  // La fin du texte part aussitôt pour ne pas retarder l'arrivée.
   function progress(typing: Typing) {
     if (race && hasCorrectInput(typingRef.current ?? EMPTY_TYPING, typing, race.content, removed)) {
       setBoosts(previous => ({ ...previous, [userId]: performance.now() }));
     }
     typingRef.current = typing;
+    const done = typing.typed.length === race?.content.length;
     setMyPosition(typing.typed.length);
-    setFinished(typing.typed.length === race?.content.length);
-    socketRef.current?.emit("race:progress", toProgress(typing));
+    setFinished(done);
+    const wait = sentAtRef.current + PROGRESS_MS - Date.now();
+    if (done || wait <= 0) sendProgress();
+    else pendingRef.current ??= setTimeout(sendProgress, wait);
   }
 
   function giveUp() {

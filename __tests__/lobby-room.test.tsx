@@ -699,6 +699,65 @@ test("Should_SendTypedTextAndErrorsToServer_When_RacerTypes", () => {
   });
 });
 
+const progressCalls = () => socket.emit.mock.calls.filter((args) => args[0] === "race:progress");
+
+test("Should_SendAtMostTenProgressMessagesPerSecond_When_RacerTypesFast", () => {
+  vi.useFakeTimers();
+  renderRoom();
+  startRace(["u1", "u2"]);
+  const text = "Un texte court";
+
+  // Une frappe toutes les 20 ms pendant 280 ms : 50 frappes par seconde.
+  for (let length = 1; length <= text.length; length++) {
+    fireEvent.change(typingBox()!, { target: { value: text.slice(0, length) } });
+    act(() => vi.advanceTimersByTime(20));
+  }
+
+  expect(progressCalls().length).toBeLessThanOrEqual(3);
+});
+
+test("Should_SendLatestTyping_When_ThrottleDelayEnds", () => {
+  vi.useFakeTimers();
+  renderRoom();
+  startRace(["u1", "u2"]);
+  fireEvent.change(typingBox()!, { target: { value: "U" } });
+  fireEvent.change(typingBox()!, { target: { value: "Un" } });
+  fireEvent.change(typingBox()!, { target: { value: "Un " } });
+  expect(progressCalls()).toHaveLength(1);
+
+  act(() => vi.advanceTimersByTime(100));
+
+  expect(progressCalls()).toHaveLength(2);
+  expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: "Un " }));
+});
+
+test("Should_SendFinishRightAway_When_TextIsCompleteWithinThrottleDelay", () => {
+  vi.useFakeTimers();
+  renderRoom();
+  startRace(["u1", "u2"]);
+  fireEvent.change(typingBox()!, { target: { value: "Un texte court" } });
+
+  fireEvent.change(typingBox()!, { target: { value: "Un texte court." } });
+
+  expect(progressCalls()).toHaveLength(2);
+  expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: "Un texte court." }));
+  act(() => vi.advanceTimersByTime(100));
+  expect(progressCalls()).toHaveLength(2);
+});
+
+test("Should_SendPendingTyping_When_PageIsLeftWithinThrottleDelay", () => {
+  vi.useFakeTimers();
+  renderRoom();
+  startRace(["u1", "u2"]);
+  fireEvent.change(typingBox()!, { target: { value: "U" } });
+  fireEvent.change(typingBox()!, { target: { value: "Un" } });
+
+  act(() => window.dispatchEvent(new Event("pagehide")));
+
+  expect(progressCalls()).toHaveLength(2);
+  expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: "Un" }));
+});
+
 // Ack du dernier message envoyé sous ce nom.
 function lastAck(event: string) {
   const call = socket.emit.mock.calls.findLast((args) => args[0] === event);
