@@ -15,6 +15,28 @@ export type Typing = {
 
 export const EMPTY_TYPING: Typing = { typed: "", errors: 0, keys: 0, keyErrors: {}, blocked: false };
 
+// Formules de l'annexe A, partagées par les résultats et l'affichage en direct (COURSE-04).
+// Caractères tapés au bon endroit ; en mode tolérant, les fautes laissées ne comptent pas.
+export function countCorrect(typed: string, content: string): number {
+  let correct = 0;
+  for (let index = 0; index < typed.length; index++) {
+    if (typed[index] === content[index]) correct++;
+  }
+  return correct;
+}
+
+// MPM = (caractères corrects ÷ 5) ÷ minutes écoulées, soit caractères × 12 000 ÷ ms.
+export function wordsPerMinute(correct: number, durationMs: number): number {
+  if (durationMs <= 0) return 0;
+  return (correct * 12_000) / durationMs;
+}
+
+// Pourcentage de touches justes parmi toutes les touches pressées ; 0 si rien n'a été tapé.
+export function accuracy(keys: number, errors: number): number {
+  if (keys <= 0) return 0;
+  return Math.max(0, ((keys - errors) / keys) * 100);
+}
+
 // Applique la nouvelle valeur du champ : caractères ajoutés à la fin ou effacés avec Retour arrière.
 // Une faute compte toujours, même corrigée ensuite (ERR-1).
 export function applyInput(state: Typing, text: string, mode: ErrorMode, value: string): Typing {

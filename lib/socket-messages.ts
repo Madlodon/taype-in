@@ -65,12 +65,14 @@ export type CountdownMessage = { seconds: number };
 
 // Le « Go » : même texte et même mode d'erreur pour tous ; racerIds = ceux qui courent (arrivés après : spectateurs).
 // secondsLeft = temps restant à la minuterie, null sans minuterie (CRS-4).
+// elapsedMs = temps écoulé depuis le « Go », pour le MPM en direct d'un coureur qui revient (COURSE-04).
 // mine : envoyé seulement à un coureur qui revient, pour reprendre où il était (CRS-6) ou rester spectateur s'il a abandonné (CRS-7).
 export type RaceStartedMessage = {
   content: string;
   errorMode: "blocking" | "tolerant";
   racerIds: string[];
   secondsLeft: number | null;
+  elapsedMs: number;
   mine?: ProgressMessage & { gaveUp: boolean; removed?: RemovedWord[] };
 };
 

@@ -224,7 +224,8 @@
     "blocking": "Mode bloquant : un mauvais caractère t'arrête jusqu'à ce que tu tapes le bon.",
     "tolerant": "Mode tolérant : continue et corrige avec Retour arrière. Chaque faute compte, même corrigée.",
     "errors": "{count, plural, =0 {Aucune faute} one {# faute} other {# fautes}}",
-    "finished": "Terminé ! {count, plural, =0 {Aucune faute.} one {# faute.} other {# fautes.}}"
+    "finished": "Terminé ! {count, plural, =0 {Aucune faute.} one {# faute.} other {# fautes.}}",
+    "live": "{wpm} MPM · Précision {accuracy} %"
   },
   "Invites": {
     "title": "Liens d'invitation",

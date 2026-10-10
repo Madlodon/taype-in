@@ -82,6 +82,8 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
   const [countdown, setCountdown] = useState<number>();
   const [race, setRace] = useState<RaceStartedMessage>();
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  // Moment du « Go » selon l'horloge locale, pour le MPM en direct (COURSE-04).
+  const [startedAt, setStartedAt] = useState(0);
   const [endReason, setEndReason] = useState<RaceEndedMessage["reason"]>();
   const [results, setResults] = useState<RaceResult[]>([]);
   const [positions, setPositions] = useState<RacePositionsMessage["positions"]>([]);
@@ -151,6 +153,7 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     socket.on("race:started", (message: RaceStartedMessage) => {
       setCountdown(undefined);
       setRace(message);
+      setStartedAt(Date.now() - message.elapsedMs);
       setRemoved(message.mine?.removed ?? []);
       setSecondsLeft(message.secondsLeft);
       if (message.mine?.gaveUp) setGaveUp(true);
@@ -404,6 +407,7 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
             content={race.content}
             errorMode={race.errorMode}
             initial={resumed}
+            startedAt={startedAt}
             removed={removed}
             onProgress={progress}
           >

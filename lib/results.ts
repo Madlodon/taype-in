@@ -5,7 +5,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { results, users } from "../db/schema.ts";
 import { clampRankLevel, rankMoves } from "./ranks.ts";
-import type { ErrorMode } from "./typing.ts";
+import { accuracy, countCorrect, wordsPerMinute, type ErrorMode } from "./typing.ts";
 import { raceXp } from "./xp.ts";
 import type { ProgressMessage, RaceResult } from "./socket-messages.ts";
 
@@ -24,27 +24,6 @@ export type Placement = Omit<RaceResult, "rankLevel" | "rankChange" | "xp" | "xp
 
 // Mode tolérant : chaque faute ajoute 1 s au temps (Q-7).
 export const PENALTY_MS_PER_ERROR = 1000;
-
-// Caractères tapés au bon endroit ; en mode tolérant, les fautes laissées ne comptent pas.
-export function countCorrect(typed: string, content: string): number {
-  let correct = 0;
-  for (let index = 0; index < typed.length; index++) {
-    if (typed[index] === content[index]) correct++;
-  }
-  return correct;
-}
-
-// MPM = (caractères corrects ÷ 5) ÷ minutes écoulées, soit caractères × 12 000 ÷ ms.
-export function wordsPerMinute(correct: number, durationMs: number): number {
-  if (durationMs <= 0) return 0;
-  return (correct * 12_000) / durationMs;
-}
-
-// Pourcentage de touches justes parmi toutes les touches pressées ; 0 si rien n'a été tapé.
-export function accuracy(keys: number, errors: number): number {
-  if (keys <= 0) return 0;
-  return Math.max(0, ((keys - errors) / keys) * 100);
-}
 
 // Ordre d'arrivée (temps + pénalité) ; ceux qui n'ont pas fini, selon leur progression (Q-7).
 export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMode): Placement[] {

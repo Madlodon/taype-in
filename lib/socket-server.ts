@@ -524,6 +524,7 @@ export function createSocketServer(
           errorMode: race.errorMode,
           racerIds: race.racerIds,
           secondsLeft: secondsLeft(race),
+          elapsedMs: Date.now() - race.startedAt,
           mine: player && {
             typed: player.typed,
             errors: player.errors,
@@ -645,6 +646,7 @@ export function createSocketServer(
           errorMode: live.errorMode,
           racerIds: live.racerIds,
           secondsLeft: secondsLeft(live),
+          elapsedMs: 0,
         });
         // Tous les coureurs partent de 0, dans l'ordre d'arrivée dans le lobby.
         for (const { id, username, bot } of racers) {
