@@ -17,7 +17,12 @@ export default defineConfig({
   // La CI n'installe que Chromium : la tablette garde son format mais roule dans Chromium.
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", testMatch: "responsive.spec.ts", use: { ...devices["Pixel 7"] } },
+    // 360 px : le plus petit téléphone visé (DES-06).
+    {
+      name: "mobile",
+      testMatch: "responsive.spec.ts",
+      use: { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } },
+    },
     {
       name: "tablet",
       testMatch: "responsive.spec.ts",
