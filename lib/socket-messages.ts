@@ -99,6 +99,8 @@ export type RaceResult = {
   // Bonus reçus : buts marqués pour l'instant (#133).
   bonuses: number;
   keyErrors: Record<string, number>;
+  // MPM à chaque seconde de course, pour le graphique des résultats (RES-03).
+  wpmSeries: number[];
   // Rang après la course (lib/ranks.ts) et sa variation : +1, 0 ou -1 division (#99).
   rankLevel: number;
   rankChange: number;

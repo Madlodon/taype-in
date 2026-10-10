@@ -220,6 +220,12 @@
     "noErrors": "No errors: a clean race!",
     "extras": "Other characters"
   },
+  "WpmChart": {
+    "title": "WPM over time",
+    "tooShort": "Race too short to draw the chart.",
+    "seconds": "{value}s",
+    "wpmValue": "{value} WPM"
+  },
   "SessionStats": {
     "title": "{count, plural, one {This session: # race} other {This session: # races in a row}}",
     "averageWpm": "Average speed (WPM)",

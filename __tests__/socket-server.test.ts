@@ -5,7 +5,7 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "socket.io";
 import { io as connect, type Socket } from "socket.io-client";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { lobbies, lobbyParticipants, races, results, users } from "../db/schema";
@@ -54,6 +54,7 @@ async function startServer(
     hostGraceMs?: number;
     maxWpm?: number;
     giveUpMs?: number;
+    wpmSampleMs?: number;
   } = {},
 ) {
   const httpServer = createServer();
@@ -940,6 +941,48 @@ describe("race results", () => {
       [host.id, 100, 100],
       [guest.id, 20, 20],
     ]);
+  });
+
+  test("Should_RecordWpmEverySampleUntilRacerFinishes_When_RaceRuns", async () => {
+    await io.close();
+    await startServer({ wpmSampleMs: 50 });
+    const { host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(hostClient, typing(content.slice(0, 10), 0));
+    await new Promise((resolve) => setTimeout(resolve, 180));
+    await progress(hostClient, typing(content, 0));
+    await new Promise((resolve) => setTimeout(resolve, 180));
+    await progress(guestClient, typing(content, 0));
+
+    const { results: ranked } = await ended;
+    const series = (id: string) => ranked.find((result) => result.id === id)!.wpmSeries;
+
+    expect(series(host.id).length).toBeGreaterThanOrEqual(2);
+    expect(series(host.id).every((wpm) => wpm > 0)).toBe(true);
+    // Le premier a fini plus tôt : sa série s'arrête là, celle de l'autre continue.
+    expect(series(guest.id).length).toBeGreaterThan(series(host.id).length);
+    expect(series(guest.id)[0]).toBe(0);
+  });
+
+  test("Should_SaveWpmSeries_When_RaceEnds", async () => {
+    await io.close();
+    await startServer({ wpmSampleMs: 50 });
+    const { lobby, host, hostClient, guestClient } = await lobbyWithTwo();
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    await progress(hostClient, typing(content, 0));
+    await progress(guestClient, typing(content, 0));
+    const { results: ranked } = await ended;
+
+    const [saved] = await db
+      .select({ wpmSeries: results.wpmSeries })
+      .from(results)
+      .where(and(eq(results.raceId, (await savedRace(lobby.id)).id), eq(results.userId, host.id)));
+
+    expect(saved.wpmSeries.length).toBeGreaterThan(0);
+    expect(saved.wpmSeries).toEqual(ranked.find((result) => result.id === host.id)!.wpmSeries);
   });
 
   test("Should_SendResults_When_JoiningAfterEnd", async () => {

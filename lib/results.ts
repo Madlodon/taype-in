@@ -18,6 +18,7 @@ export type Racer = ProgressMessage & {
   durationMs: number;
   reachedAt: number;
   removed?: RemovedWord[];
+  wpmSeries: number[];
 };
 
 // Place d'un coureur avant la mise à jour des rangs (#99).
@@ -63,6 +64,7 @@ export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMod
     status,
     bonuses: racer.removed?.length ?? 0,
     keyErrors: racer.keyErrors,
+    wpmSeries: racer.wpmSeries,
   }));
 }
 
@@ -81,6 +83,7 @@ export async function saveResults(raceId: string, ranked: Placement[]) {
     gaveUp: result.status === "gaveUp",
     bonuses: result.bonuses,
     keyErrors: result.keyErrors,
+    wpmSeries: result.wpmSeries,
   }));
   if (rows.length > 0) await db.insert(results).values(rows);
 }

@@ -654,7 +654,7 @@ test("Should_MarkHostWatchingAndNotCountHim_When_HostWatchesRace", () => {
 test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {
   renderRoom();
   startRace(["u1", "u2"]);
-  const stats = { wpm: 40, rawWpm: 42, accuracy: 100, durationMs: 30_000, penaltyMs: 0, errors: 0, bonuses: 0, keyErrors: {} };
+  const stats = { wpm: 40, rawWpm: 42, accuracy: 100, durationMs: 30_000, penaltyMs: 0, errors: 0, bonuses: 0, keyErrors: {}, wpmSeries: [20, 40] };
 
   act(() =>
     handlers["race:ended"]({
