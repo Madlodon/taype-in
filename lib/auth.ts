@@ -5,6 +5,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/index.ts";
 import { sessions, users } from "../db/schema.ts";
+import { isUsernameReserved } from "./username.ts";
 
 // Nom du cookie qui porte le jeton ; lu aussi par le serveur Socket.IO.
 export const SESSION_COOKIE = "session";
@@ -49,6 +50,7 @@ export async function signUp(
   password: string,
   guestId?: string,
 ): Promise<User | "taken"> {
+  if (await isUsernameReserved(username)) return "taken";
   const passwordHash = await hash(password, pepper());
   try {
     const [user] = guestId
