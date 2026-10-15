@@ -108,6 +108,7 @@
     "ranking": "Ranking",
     "you": "(you)",
     "percent": "{value}%",
+    "wpmValue": "{value} WPM",
     "spectating": "The race had already started when you arrived: you are watching it and can race in the next one.",
     "overtake": {
       "up": "You passed {names} · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
@@ -173,20 +174,28 @@
     "rank": "Rank",
     "player": "Player",
     "wpm": "WPM",
+    "rawWpm": "Raw WPM",
     "accuracy": "Accuracy",
     "time": "Time",
     "errors": "Errors",
+    "status": "Status",
+    "statuses": {
+      "finished": "Finished",
+      "timeUp": "Time up",
+      "gaveUp": "Gave up"
+    },
+    "bonuses": "Bonuses",
     "wpmValue": "{value} WPM",
     "percent": "{value}%",
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
-    "notFinished": "Not finished",
     "xpGained": "+{value} XP",
     "levelUp": "Level up! Level {level}",
     "currentLevel": "Level {level}",
     "unlocked": "Unlocked: {items}.",
     "toGarage": "See in the garage",
     "you": "(you)",
+    "personalBest": "New best",
     "level": "Level",
     "rankName": "{tier} {subRank} · Div. {division}",
     "rankUp": "up a division",
@@ -211,6 +220,12 @@
     "errors": "{count, plural, one {# error} other {# errors}}",
     "noErrors": "No errors: a clean race!",
     "extras": "Other characters"
+  },
+  "WpmChart": {
+    "title": "WPM over time",
+    "tooShort": "Race too short to draw the chart.",
+    "seconds": "{value}s",
+    "wpmValue": "{value} WPM"
   },
   "SessionStats": {
     "title": "{count, plural, one {This session: # race} other {This session: # races in a row}}",
@@ -326,7 +341,9 @@
     "goal": "GOOOAL!",
     "finished": "Text complete. Ball in the net. Nicely done.",
     "track": "Stadium route",
-    "typing": "On the pitch"
+    "typing": "On the pitch",
+    "keyboardTitle": "Grab a keyboard.",
+    "keyboardNote": "Racing needs a physical keyboard. Come back on a computer to race. You can still follow the track from here."
   },
   "ErrorPages": {
     "notFoundTag": "Error 404",
@@ -348,11 +365,16 @@
     "bestWpm": "Best speed (WPM)",
     "averageWpm": "Average speed (WPM)",
     "averageAccuracy": "Average accuracy",
+    "wins": "Wins",
     "progression": "Progression",
     "progressionHint": "{count, plural, one {Last race} other {Last # races}}, without bonuses.",
     "noProgression": "Finish a race without bonuses to see your progress.",
     "history": "Race history",
     "noRaces": "No races yet.",
+    "pagination": "History pages",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {count}",
     "date": "Date",
     "text": "Text",
     "rank": "Rank",
@@ -375,6 +397,11 @@
         "guest": "Create an account to have a profile photo."
       }
     }
+  },
+  "PastRace": {
+    "eyebrow": "Past race",
+    "title": "Race results",
+    "summary": "{text} · {date}"
   },
   "Garage": {
     "tag": "Your ride. Your style.",

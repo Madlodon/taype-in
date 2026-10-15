@@ -3,11 +3,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { lobbies, results, users } from "../db/schema";
+import { lobbies, races, results, users } from "../db/schema";
 import { createLobby } from "../lib/lobbies";
 import { createRace } from "../lib/races";
 import { xpForLevel } from "../lib/xp";
-import { awardXp, rankRacers, saveResults, type Racer } from "../lib/results";
+import { awardXp, findPastRace, findPersonalBests, rankRacers, saveResults, type Racer } from "../lib/results";
 import { accuracy, countCorrect, wordsPerMinute } from "../lib/typing";
 
 const TEXT = "chat";
@@ -22,8 +22,10 @@ function racer(overrides: Partial<Racer> = {}): Racer {
     keys: TEXT.length,
     keyErrors: {},
     finished: true,
+    gaveUp: false,
     durationMs: 60_000,
     reachedAt: 0,
+    wpmSeries: [],
     ...overrides,
   };
 }
@@ -157,6 +159,61 @@ describe("rankRacers", () => {
     expect(order(ranked)).toEqual(["premier", "second"]);
   });
 
+  test("Should_RankGaveUpAfterTimeUp_When_TheyTypedMore", () => {
+    const ranked = rankRacers(
+      [
+        racer({ username: "abandon", typed: "cha", finished: false, gaveUp: true }),
+        racer({ username: "temps écoulé", typed: "c", finished: false }),
+        racer({ username: "fini", durationMs: 90_000 }),
+      ],
+      TEXT,
+      "blocking",
+    );
+
+    expect(order(ranked)).toEqual(["fini", "temps écoulé", "abandon"]);
+  });
+
+  test("Should_RankGaveUpByProgress_When_SeveralGaveUp", () => {
+    const ranked = rankRacers(
+      [
+        racer({ username: "c", typed: "c", finished: false, gaveUp: true }),
+        racer({ username: "cha", typed: "cha", finished: false, gaveUp: true }),
+      ],
+      TEXT,
+      "blocking",
+    );
+
+    expect(order(ranked)).toEqual(["cha", "c"]);
+  });
+
+  test.each([
+    [{ finished: true, gaveUp: false }, "finished"],
+    [{ finished: false, gaveUp: false }, "timeUp"],
+    [{ finished: false, gaveUp: true }, "gaveUp"],
+  ] as const)("Should_GiveStatus_When_RacerIs_%o", (state, status) => {
+    const [result] = rankRacers([racer(state)], TEXT, "blocking");
+
+    expect(result.status).toBe(status);
+  });
+
+  test("Should_CountEveryKeyInRawWpm_When_KeysWereWrong", () => {
+    // 4 justes + 6 fautes en 6 s : 10 touches → 20 MPM brut, 8 MPM net.
+    const [result] = rankRacers([racer({ errors: 6, keys: 10, durationMs: 6000 })], TEXT, "blocking");
+
+    expect(result.rawWpm).toBe(20);
+    expect(result.wpm).toBe(8);
+  });
+
+  test("Should_CountGoalsAsBonuses_When_WordsWereRemoved", () => {
+    const [result] = rankRacers(
+      [racer({ removed: [{ start: 0, end: 1 }, { start: 2, end: 3 }] })],
+      TEXT,
+      "blocking",
+    );
+
+    expect(result.bonuses).toBe(2);
+  });
+
   test("Should_GiveEachRacerTheirStats_When_RaceEnds", () => {
     const [result] = rankRacers(
       [racer({ typed: "chxt", errors: 1, keys: 5, keyErrors: { a: 1 }, durationMs: 6000 })],
@@ -167,11 +224,14 @@ describe("rankRacers", () => {
     expect(result).toMatchObject({
       rank: 1,
       wpm: 6,
+      rawWpm: 10,
       accuracy: 80,
       durationMs: 6000,
       penaltyMs: 1000,
       errors: 1,
       finished: true,
+      status: "finished",
+      bonuses: 0,
       keyErrors: { a: 1 },
     });
   });
@@ -211,7 +271,7 @@ describe("saveResults", () => {
     const user = await newUser();
     const race = await newRace(user.id);
     const ranked = rankRacers(
-      [racer({ id: user.id, errors: 2, keys: 6, keyErrors: { h: 2 } })],
+      [racer({ id: user.id, errors: 2, keys: 6, keyErrors: { h: 2 }, wpmSeries: [0, 12, 30] })],
       TEXT,
       "blocking",
     );
@@ -225,12 +285,16 @@ describe("saveResults", () => {
         userId: user.id,
         rank: 1,
         wpm: 0.8,
+        rawWpm: 1.2,
         // real : la base garde environ 7 chiffres.
         accuracy: expect.closeTo(66.667, 2),
         durationMs: 60_000,
         errorCount: 2,
         finished: true,
+        gaveUp: false,
+        bonuses: 0,
         keyErrors: { h: 2 },
+        wpmSeries: [0, 12, 30],
       },
     ]);
   });
@@ -255,6 +319,21 @@ describe("saveResults", () => {
       [guest.id, 1, true],
       [user.id, 2, false],
     ]);
+  });
+
+  test("Should_SaveStatus_When_RacerGaveUp", async () => {
+    const user = await newUser();
+    const race = await newRace(user.id);
+    const ranked = rankRacers(
+      [racer({ id: user.id, typed: "ch", finished: false, gaveUp: true, removed: [{ start: 3, end: 4 }] })],
+      TEXT,
+      "blocking",
+    );
+
+    await saveResults(race.id, ranked);
+
+    const [saved] = await db.select().from(results).where(eq(results.raceId, race.id));
+    expect(saved).toMatchObject({ finished: false, gaveUp: true, bonuses: 1 });
   });
 
   test("Should_SaveNothing_When_NobodyRaced", async () => {
@@ -367,6 +446,177 @@ describe("awardXp", () => {
   });
 });
 
+describe("findPastRace", () => {
+  const createdIds: string[] = [];
+
+  async function newUser() {
+    const [user] = await db
+      .insert(users)
+      .values({ username: `t_${Math.random().toString(36).slice(2, 12)}` })
+      .returning();
+    createdIds.push(user.id);
+    return user;
+  }
+
+  async function newRace(hostId: string) {
+    return (await createRace(await createLobby(hostId, "unlisted")))!;
+  }
+
+  afterEach(async () => {
+    const ids = createdIds.splice(0);
+    await db.delete(lobbies).where(inArray(lobbies.hostId, ids));
+    await db.delete(users).where(inArray(users.id, ids));
+  });
+
+  test("Should_ReturnSavedResultsByRank_When_RaceIsOver", async () => {
+    const winner = await newUser();
+    const quitter = await newUser();
+    const race = await newRace(winner.id);
+    const endedAt = new Date("2026-03-01T10:00:00Z");
+    await db.update(races).set({ endedAt, errorMode: "tolerant" }).where(eq(races.id, race.id));
+    const ranked = rankRacers(
+      [
+        racer({ id: quitter.id, username: quitter.username, typed: "c", finished: false, gaveUp: true, errors: 2 }),
+        racer({ id: winner.id, username: winner.username, keyErrors: { h: 1 }, wpmSeries: [10, 20] }),
+      ],
+      TEXT,
+      "tolerant",
+    );
+    await saveResults(race.id, ranked);
+
+    const past = await findPastRace(race.id);
+
+    expect(past).toMatchObject({ date: endedAt, textTitle: expect.any(String), content: race.content });
+    expect(past?.results).toEqual(ranked);
+    expect(past?.results.map((result) => [result.username, result.status, result.penaltyMs])).toEqual([
+      [winner.username, "finished", 0],
+      [quitter.username, "gaveUp", 2000],
+    ]);
+  });
+
+  test("Should_ReturnNull_When_RaceHasNoSavedResult", async () => {
+    const race = await newRace((await newUser()).id);
+
+    expect(await findPastRace(race.id)).toBeNull();
+  });
+
+  test.each([
+    ["race is unknown", crypto.randomUUID()],
+    ["id is not a uuid", "pas-un-id"],
+  ])("Should_ReturnNull_When_%s", async (_name, id) => {
+    expect(await findPastRace(id)).toBeNull();
+  });
+});
+
 afterAll(async () => {
   await db.$client.end();
+});
+
+describe("findPersonalBests", () => {
+  const createdIds: string[] = [];
+
+  async function newUser() {
+    const [user] = await db
+      .insert(users)
+      .values({ username: `t_${Math.random().toString(36).slice(2, 12)}` })
+      .returning();
+    createdIds.push(user.id);
+    return user;
+  }
+
+  async function newRace(hostId: string, bonusesEnabled = false) {
+    const race = (await createRace(await createLobby(hostId, "unlisted")))!;
+    if (bonusesEnabled) await db.update(races).set({ bonusesEnabled }).where(eq(races.id, race.id));
+    return race;
+  }
+
+  // Une course déjà enregistrée ; « chat » en 60 s = 0,8 MPM, en 30 s = 1,6 MPM.
+  async function pastRace(userId: string, overrides: Partial<Racer> = {}, bonusesEnabled = false) {
+    const race = await newRace(userId, bonusesEnabled);
+    await saveResults(race.id, rankRacers([racer({ id: userId, ...overrides })], TEXT, "blocking"));
+  }
+
+  async function bests(userId: string, overrides: Partial<Racer> = {}, bonusesEnabled = false) {
+    const race = await newRace(userId, bonusesEnabled);
+    return findPersonalBests(race.id, rankRacers([racer({ id: userId, ...overrides })], TEXT, "blocking"));
+  }
+
+  beforeAll(async () => {
+    await migrate(db, { migrationsFolder: "db/migrations" });
+  });
+
+  afterEach(async () => {
+    const ids = createdIds.splice(0);
+    await db.delete(lobbies).where(inArray(lobbies.hostId, ids));
+    await db.delete(users).where(inArray(users.id, ids));
+  });
+
+  test("Should_FindPlayer_When_SpeedBeatsEveryEarlierRace", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+    await pastRace(user.id, { durationMs: 45_000 });
+
+    expect(await bests(user.id, { durationMs: 30_000 })).toEqual(new Set([user.id]));
+  });
+
+  test.each([
+    ["Equal", 60_000],
+    ["Slower", 90_000],
+  ])("Should_FindNobody_When_SpeedIs%s", async (_, durationMs) => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+
+    expect(await bests(user.id, { durationMs })).toEqual(new Set());
+  });
+
+  test("Should_FindNobody_When_ItIsTheFirstRace", async () => {
+    const user = await newUser();
+
+    expect(await bests(user.id)).toEqual(new Set());
+  });
+
+  test("Should_FindNobody_When_RacerDidNotFinish", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+
+    expect(await bests(user.id, { typed: "chat", finished: false, durationMs: 10_000 })).toEqual(new Set());
+  });
+
+  test("Should_IgnoreEarlierRace_When_ItWasNotFinished", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+    await pastRace(user.id, { finished: false, durationMs: 10_000 });
+
+    expect(await bests(user.id, { durationMs: 30_000 })).toEqual(new Set([user.id]));
+  });
+
+  test("Should_IgnoreEarlierRace_When_ItHadBonuses", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+    await pastRace(user.id, { durationMs: 10_000 }, true);
+
+    expect(await bests(user.id, { durationMs: 30_000 })).toEqual(new Set([user.id]));
+  });
+
+  test("Should_FindNobody_When_RaceHasBonuses", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+
+    expect(await bests(user.id, { durationMs: 30_000 }, true)).toEqual(new Set());
+  });
+
+  test("Should_CompareEachPlayerToTheirOwnBest_When_SeveralRaced", async () => {
+    const fast = await newUser();
+    const slow = await newUser();
+    await pastRace(fast.id, { durationMs: 10_000 });
+    await pastRace(slow.id, { durationMs: 60_000 });
+    const race = await newRace(fast.id);
+    const ranked = rankRacers(
+      [racer({ id: fast.id, durationMs: 20_000 }), racer({ id: slow.id, durationMs: 30_000 })],
+      TEXT,
+      "blocking",
+    );
+
+    expect(await findPersonalBests(race.id, ranked)).toEqual(new Set([slow.id]));
+  });
 });

@@ -7,6 +7,7 @@ function positions(count: number) {
     id: `p${index + 1}`,
     username: `joueur${index + 1}`,
     position: count - index,
+    wpm: 0,
   }));
 }
 
@@ -46,6 +47,7 @@ test("Should_KeepPlayerData_When_Selected", () => {
     id: "p2",
     username: "joueur2",
     position: 1,
+    wpm: 0,
     rank: 2,
   });
 });
@@ -56,6 +58,7 @@ function order(...ids: string[]) {
     id,
     username: `joueur-${id}`,
     position: ids.length - index,
+    wpm: 0,
   }));
 }
 

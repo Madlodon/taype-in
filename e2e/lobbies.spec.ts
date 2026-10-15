@@ -380,14 +380,14 @@ test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser
 
   const ranking = host.page.getByRole("list", { name: "Classement" }).getByRole("listitem");
   await expect(ranking).toHaveCount(2, { timeout: 8000 });
-  await expect(ranking.first()).toHaveText(`${host.name} (toi)0 %`);
+  await expect(ranking.first()).toHaveText(`${host.name} (toi)0 MPM · 0 %`);
   const input = player.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused();
   const text = (await player.page.locator(".typing-text").textContent())!;
   await player.page.keyboard.type(text.slice(0, 10));
 
-  await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ %$`));
-  await expect(ranking.nth(1)).toHaveText(`${host.name} (toi)0 %`);
+  await expect(ranking.first()).toHaveText(new RegExp(`^${player.name}\\d+ MPM · \\d+ %$`));
+  await expect(ranking.nth(1)).toHaveText(`${host.name} (toi)0 MPM · 0 %`);
 });
 
 test("Should_ShowOvertakeAboveText_When_RacerPassesAnother", async ({ browser }) => {
@@ -398,7 +398,7 @@ test("Should_ShowOvertakeAboveText_When_RacerPassesAnother", async ({ browser })
   await expect(participants(host.page)).toHaveCount(2);
   await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const ranking = player.page.getByRole("list", { name: "Classement" }).getByRole("listitem");
-  await expect(ranking.first()).toHaveText(`${host.name}0 %`, { timeout: 8000 });
+  await expect(ranking.first()).toHaveText(`${host.name}0 MPM · 0 %`, { timeout: 8000 });
   const text = (await player.page.locator(".typing-text").textContent())!;
 
   await player.page.keyboard.type(text.slice(0, 10));
@@ -470,7 +470,7 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
     await expect(rows.nth(1)).toContainText(host.name);
     await expect(rows.nth(1)).toContainText("100 %");
     await expect(rows.nth(2)).toContainText(player.name);
-    await expect(rows.nth(2)).toContainText("Non terminé");
+    await expect(rows.nth(2)).toContainText("Abandon");
     // Deux nouveaux joueurs : le gagnant monte, le perdant reste au plancher (#99).
     await expect(rows.nth(1)).toContainText("Bronze I · Div. II");
     await expect(rows.nth(2)).toContainText("Bronze I · Div. I");

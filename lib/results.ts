@@ -1,9 +1,9 @@
 import { withoutRemoved, type RemovedWord } from "./race-goals.ts";
 // Résultats d'une course : vitesse, précision, temps et classement (FIN-1, FIN-2, ERR-3),
 // enregistrés dans l'historique de chaque joueur, invités compris (FIN-4, PROF-5).
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, max, sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
-import { results, users } from "../db/schema.ts";
+import { races, results, texts, users } from "../db/schema.ts";
 import { clampRankLevel, rankMoves } from "./ranks.ts";
 import { accuracy, countCorrect, wordsPerMinute, type ErrorMode } from "./typing.ts";
 import { raceXp } from "./xp.ts";
@@ -14,42 +14,57 @@ export type Racer = ProgressMessage & {
   id: string;
   username: string;
   finished: boolean;
+  gaveUp: boolean;
   durationMs: number;
   reachedAt: number;
   removed?: RemovedWord[];
+  wpmSeries: number[];
 };
 
 // Place d'un coureur avant la mise à jour des rangs (#99).
-export type Placement = Omit<RaceResult, "rankLevel" | "rankChange" | "xp" | "xpGained">;
+export type Placement = Omit<RaceResult, "rankLevel" | "rankChange" | "xp" | "xpGained" | "personalBest">;
 
 // Mode tolérant : chaque faute ajoute 1 s au temps (Q-7).
 export const PENALTY_MS_PER_ERROR = 1000;
 
-// Ordre d'arrivée (temps + pénalité) ; ceux qui n'ont pas fini, selon leur progression (Q-7).
+function statusOf(racer: Racer): RaceResult["status"] {
+  if (racer.finished) return "finished";
+  return racer.gaveUp ? "gaveUp" : "timeUp";
+}
+
+const STATUS_ORDER: RaceResult["status"][] = ["finished", "timeUp", "gaveUp"];
+
+// Ceux qui ont fini, par temps + pénalité (Q-7) ; puis temps écoulé, puis abandons,
+// chacun selon sa progression (à l'abandon pour ces derniers) (COURSE-10).
 export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMode): Placement[] {
   const scored = racers.map((racer) => ({
     racer,
+    status: statusOf(racer),
     penaltyMs: errorMode === "tolerant" ? racer.errors * PENALTY_MS_PER_ERROR : 0,
   }));
   scored.sort(
     (a, b) =>
-      Number(b.racer.finished) - Number(a.racer.finished) ||
+      STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) ||
       (a.racer.finished
         ? a.racer.durationMs + a.penaltyMs - (b.racer.durationMs + b.penaltyMs)
         : b.racer.typed.length - a.racer.typed.length) ||
       a.racer.reachedAt - b.racer.reachedAt,
   );
-  return scored.map(({ racer, penaltyMs }, index) => ({
+  return scored.map(({ racer, status, penaltyMs }, index) => ({
     id: racer.id,
     username: racer.username,
     rank: index + 1,
     wpm: wordsPerMinute(countCorrect(withoutRemoved(racer.typed, racer.removed ?? []), withoutRemoved(content, racer.removed ?? [])), racer.durationMs),
+    rawWpm: wordsPerMinute(racer.keys, racer.durationMs),
     accuracy: accuracy(racer.keys, racer.errors),
     durationMs: racer.durationMs,
     penaltyMs,
     errors: racer.errors,
     finished: racer.finished,
+    status,
+    bonuses: racer.removed?.length ?? 0,
     keyErrors: racer.keyErrors,
+    wpmSeries: racer.wpmSeries,
   }));
 }
 
@@ -60,13 +75,51 @@ export async function saveResults(raceId: string, ranked: Placement[]) {
     userId: result.id,
     rank: result.rank,
     wpm: result.wpm,
+    rawWpm: result.rawWpm,
     accuracy: result.accuracy,
     durationMs: result.durationMs,
     errorCount: result.errors,
     finished: result.finished,
+    gaveUp: result.status === "gaveUp",
+    bonuses: result.bonuses,
     keyErrors: result.keyErrors,
+    wpmSeries: result.wpmSeries,
   }));
   if (rows.length > 0) await db.insert(results).values(rows);
+}
+
+// Joueurs qui battent leur meilleure vitesse (RES-04) : mêmes courses que le profil
+// (terminées, sans bonus) ; une première course ne compte pas. À appeler avant saveResults.
+export async function findPersonalBests(raceId: string, ranked: Placement[]): Promise<Set<string>> {
+  const finished = ranked.filter((placement) => placement.finished);
+  if (finished.length === 0) return new Set();
+  const [race] = await db
+    .select({ bonusesEnabled: races.bonusesEnabled })
+    .from(races)
+    .where(eq(races.id, raceId));
+  if (!race || race.bonusesEnabled) return new Set();
+  const rows = await db
+    .select({ userId: results.userId, best: max(results.wpm) })
+    .from(results)
+    .innerJoin(races, eq(races.id, results.raceId))
+    .where(
+      and(
+        inArray(results.userId, finished.map((placement) => placement.id)),
+        eq(results.finished, true),
+        eq(races.bonusesEnabled, false),
+      ),
+    )
+    .groupBy(results.userId);
+  const bests = new Map(rows.map((row) => [row.userId, row.best]));
+  // wpm est un real en base : on compare à la même précision pour qu'une égalité ne compte pas.
+  return new Set(
+    finished
+      .filter((placement) => {
+        const best = bests.get(placement.id);
+        return best != null && Math.fround(placement.wpm) > Math.fround(best);
+      })
+      .map((placement) => placement.id),
+  );
 }
 
 export type RankUpdate = { rankLevel: number; rankChange: number };
@@ -128,4 +181,55 @@ export async function awardXp(ranked: Placement[], multiplier = 1): Promise<Map<
     }
   });
   return updates;
+}
+
+export type PastRace = {
+  date: Date;
+  // Titre du texte de la banque ; null pour un texte écrit par l'hôte.
+  textTitle: string | null;
+  content: string;
+  results: Placement[];
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Résultats enregistrés d'une course finie, pour les réafficher depuis l'historique (HIST-02).
+// Les bots ne sont pas enregistrés ; null si la course est inconnue ou sans résultat.
+export async function findPastRace(raceId: string): Promise<PastRace | null> {
+  if (!UUID.test(raceId)) return null;
+  const date = sql<Date>`coalesce(${races.endedAt}, ${races.createdAt})`.mapWith(races.createdAt);
+  const [race] = await db
+    .select({ date, textTitle: texts.title, content: races.content, errorMode: races.errorMode })
+    .from(races)
+    .leftJoin(texts, eq(texts.id, races.textId))
+    .where(eq(races.id, raceId));
+  if (!race) return null;
+  const rows = await db
+    .select({ result: results, username: users.username })
+    .from(results)
+    .innerJoin(users, eq(users.id, results.userId))
+    .where(eq(results.raceId, raceId))
+    .orderBy(results.rank);
+  if (rows.length === 0) return null;
+  return {
+    date: race.date,
+    textTitle: race.textTitle,
+    content: race.content,
+    results: rows.map(({ result, username }) => ({
+      id: result.userId,
+      username,
+      rank: result.rank,
+      wpm: result.wpm,
+      rawWpm: result.rawWpm,
+      accuracy: result.accuracy,
+      durationMs: result.durationMs,
+      penaltyMs: race.errorMode === "tolerant" ? result.errorCount * PENALTY_MS_PER_ERROR : 0,
+      errors: result.errorCount,
+      finished: result.finished,
+      status: result.finished ? "finished" : result.gaveUp ? "gaveUp" : "timeUp",
+      bonuses: result.bonuses,
+      keyErrors: result.keyErrors,
+      wpmSeries: result.wpmSeries,
+    })),
+  };
 }

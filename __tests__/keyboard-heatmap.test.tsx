@@ -12,16 +12,21 @@ function result(rank: number, keyErrors: Record<string, number>): RaceResult {
     username: `joueur${rank}`,
     rank,
     wpm: 50,
+    rawWpm: 52,
     accuracy: 95,
     durationMs: 40_000,
     penaltyMs: 0,
     errors: Object.values(keyErrors).reduce((sum, errors) => sum + errors, 0),
     finished: true,
+    status: "finished",
+    bonuses: 0,
     keyErrors,
     rankLevel: 0,
     rankChange: 0,
     xp: 0,
     xpGained: 0,
+    personalBest: false,
+    wpmSeries: [],
   };
 }
 

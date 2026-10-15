@@ -108,6 +108,7 @@
     "ranking": "Classement",
     "you": "(toi)",
     "percent": "{value} %",
+    "wpmValue": "{value} MPM",
     "spectating": "La course avait déjà commencé à ton arrivée : tu la regardes et tu pourras courir la prochaine.",
     "overtake": {
       "up": "Tu as dépassé {names} · {rank, selectordinal, one {#er} other {#e}}",
@@ -173,20 +174,28 @@
     "rank": "Rang",
     "player": "Joueur",
     "wpm": "MPM",
+    "rawWpm": "MPM brut",
     "accuracy": "Précision",
     "time": "Temps",
     "errors": "Fautes",
+    "status": "Statut",
+    "statuses": {
+      "finished": "Terminé",
+      "timeUp": "Temps écoulé",
+      "gaveUp": "Abandon"
+    },
+    "bonuses": "Bonus",
     "wpmValue": "{value} MPM",
     "percent": "{value} %",
     "seconds": "{value} s",
     "penalty": "(+{value} s)",
-    "notFinished": "Non terminé",
     "xpGained": "+{value} XP",
     "levelUp": "Niveau supérieur ! Niveau {level}",
     "currentLevel": "Niveau {level}",
     "unlocked": "Débloqué : {items}.",
     "toGarage": "Voir au garage",
     "you": "(toi)",
+    "personalBest": "Nouveau record",
     "level": "Niveau",
     "rankName": "{tier} {subRank} · Div. {division}",
     "rankUp": "monte d'une division",
@@ -211,6 +220,12 @@
     "errors": "{count, plural, one {# faute} other {# fautes}}",
     "noErrors": "Aucune faute : une course parfaite !",
     "extras": "Autres caractères"
+  },
+  "WpmChart": {
+    "title": "MPM dans le temps",
+    "tooShort": "Course trop courte pour tracer le graphique.",
+    "seconds": "{value} s",
+    "wpmValue": "{value} MPM"
   },
   "SessionStats": {
     "title": "{count, plural, one {Cette session : # course} other {Cette session : # courses d’affilée}}",
@@ -326,7 +341,9 @@
     "goal": "BUUUUT !",
     "finished": "Texte terminé. Ballon au fond du filet. Bien joué.",
     "track": "Parcours dans le stade",
-    "typing": "Sur le terrain"
+    "typing": "Sur le terrain",
+    "keyboardTitle": "Sors ton clavier.",
+    "keyboardNote": "Taper une course se fait avec un vrai clavier. Reviens sur un ordinateur pour courir. Tu peux quand même suivre la piste d’ici."
   },
   "ErrorPages": {
     "notFoundTag": "Erreur 404",
@@ -348,11 +365,16 @@
     "bestWpm": "Meilleure vitesse (MPM)",
     "averageWpm": "Vitesse moyenne (MPM)",
     "averageAccuracy": "Précision moyenne",
+    "wins": "Victoires",
     "progression": "Progression",
     "progressionHint": "{count, plural, one {Dernière course} other {# dernières courses}}, sans bonus.",
     "noProgression": "Termine une course sans bonus pour voir ta progression.",
     "history": "Historique des courses",
     "noRaces": "Aucune course pour l’instant.",
+    "pagination": "Pages de l’historique",
+    "previous": "Précédente",
+    "next": "Suivante",
+    "pageOf": "Page {page} sur {count}",
     "date": "Date",
     "text": "Texte",
     "rank": "Rang",
@@ -375,6 +397,11 @@
         "guest": "Crée un compte pour avoir une photo de profil."
       }
     }
+  },
+  "PastRace": {
+    "eyebrow": "Course passée",
+    "title": "Résultats de la course",
+    "summary": "{text} · {date}"
   },
   "Garage": {
     "tag": "Ton bolide. Ton style.",

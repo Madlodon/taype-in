@@ -17,12 +17,15 @@ import {
   type RaceGoalMessage,
   type RaceBoostMessage,
 } from "@/lib/socket-messages";
-import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
+import { detectOvertake, type Overtake } from "@/lib/track";
 import { BOT_LEVELS, type Bot } from "@/lib/bots";
 import { Arena } from "@/components/arena";
+import { Avatar } from "@/components/avatar";
 import { BotBadge } from "@/components/bot-badge";
 import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
 import { RaceResults } from "@/components/race-results";
+import { WpmChart } from "@/components/wpm-chart";
+import { KeyboardNote } from "@/components/keyboard-note";
 import { RaceTyping } from "@/components/race-typing";
 import type { RemovedWord } from "@/lib/race-goals";
 import { SessionStats } from "@/components/session-stats";
@@ -336,12 +339,12 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     (participant) => !(hostWatching && participant.id === hostId),
   ).length;
 
-  // Le classement garde le top 10 et tes voisins ; le terrain montre seulement le top 5.
-  const shown = race ? selectShown(positions, userId) : [];
+  // Le terrain montre seulement le top 5 ;
+  // le classement à droite liste tout le monde et défile (COURSE-05).
   const field = race ? positions.slice(0, 5) : [];
   const percent = (position: number) => Math.round((position / race!.content.length) * 100);
   const track =
-    shown.length === 0 ? (
+    field.length === 0 ? (
       <Arena progress={0} cars={race ? [] : undefined} stadium={stadium} />
     ) : (
       <div className="race-board">
@@ -358,25 +361,24 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
             you: entry.id === userId,
           }))}
         />
-        <ol aria-label={t("ranking")} className="ranking">
-          {shown.map((entry, index) => (
-            <li
-              key={entry.id}
-              value={entry.rank}
-              className={[
-                entry.id === userId && "ranking-you",
-                index > 0 && entry.rank !== shown[index - 1].rank + 1 && "ranking-gap",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {entry.username}
-              {entry.bot && <BotBadge />}
-              {entry.id === userId && ` ${t("you")}`}
-              <span>{t("percent", { value: percent(entry.position) })}</span>
-            </li>
-          ))}
-        </ol>
+        <div className="ranking-panel">
+          <ol aria-label={t("ranking")} className="ranking">
+            {positions.map((entry, index) => (
+              <li key={entry.id} value={index + 1} className={entry.id === userId ? "ranking-you" : undefined}>
+                {/* Un bot n'a pas de compte, donc pas de photo : un cercle vide garde l'alignement. */}
+                {entry.bot ? <span className="avatar" aria-hidden="true" /> : <Avatar userId={entry.id} size={24} />}
+                <span>
+                  {entry.username}
+                  {entry.bot && <BotBadge />}
+                  {entry.id === userId && ` ${t("you")}`}
+                </span>
+                <span className="ranking-stats">
+                  {t("wpmValue", { value: entry.wpm })} · {t("percent", { value: percent(entry.position) })}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     );
 
@@ -403,30 +405,34 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     return (
       <>
         {track}
+        <KeyboardNote />
         <section className="panel panel-accent">
-          <RaceTyping
-            content={race.content}
-            errorMode={race.errorMode}
-            initial={resumed}
-            startedAt={startedAt}
-            removed={removed}
-            onProgress={progress}
-          >
-            {/* Toujours là, même vide : le champ ne bouge pas quand un dépassement s'affiche. */}
-            <p aria-live="polite" className="overtake">
-              {overtake && (
-                <span key={overtake.at} className={`overtake-${overtake.direction}`}>
-                  <span aria-hidden="true">{overtake.direction === "up" ? "▲ " : "▼ "}</span>
-                  {t(`overtake.${overtake.direction}`, {
-                    names: format.list(overtake.names),
-                    count: overtake.names.length,
-                    rank: overtake.rank,
-                  })}
-                </span>
-              )}
-            </p>
-          </RaceTyping>
-          {goalWord && <p role="status" className="form-note">{t("goalRemoved", { word: goalWord })}</p>}
+          {/* Sur téléphone, seuls le temps restant et « Abandonner » restent (DES-06). */}
+          <div className="phone-hidden">
+            <RaceTyping
+              content={race.content}
+              errorMode={race.errorMode}
+              initial={resumed}
+              startedAt={startedAt}
+              removed={removed}
+              onProgress={progress}
+            >
+              {/* Toujours là, même vide : le champ ne bouge pas quand un dépassement s'affiche. */}
+              <p aria-live="polite" className="overtake">
+                {overtake && (
+                  <span key={overtake.at} className={`overtake-${overtake.direction}`}>
+                    <span aria-hidden="true">{overtake.direction === "up" ? "▲ " : "▼ "}</span>
+                    {t(`overtake.${overtake.direction}`, {
+                      names: format.list(overtake.names),
+                      count: overtake.names.length,
+                      rank: overtake.rank,
+                    })}
+                  </span>
+                )}
+              </p>
+            </RaceTyping>
+            {goalWord && <p role="status" className="form-note">{t("goalRemoved", { word: goalWord })}</p>}
+          </div>
           {timeLeft}
           {!finished && (
             <button type="button" className="btn btn-secondary btn-lg mt-5" onClick={giveUp}>
@@ -487,6 +493,7 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
           </p>
         )}
         {endReason && <RaceResults results={results} userId={userId} />}
+        {endReason && <WpmChart results={results} userId={userId} />}
         {endReason && <KeyboardHeatmap results={results} userId={userId} />}
         {endReason && <SessionStats load={loadSessionStats} />}
         {race && (

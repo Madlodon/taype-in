@@ -1,4 +1,5 @@
 import { getFormatter, getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { removeAvatarAction, uploadAvatarAction } from "@/app/actions/avatar";
 import { Avatar } from "@/components/avatar";
@@ -9,26 +10,29 @@ import {
   computeStats,
   findProfileUser,
   listRaceHistory,
+  paginateHistory,
   progressionPoints,
-  type HistoryEntry,
+  textLabel,
 } from "@/lib/profile";
 import { getCurrentUser } from "@/lib/session-cookie";
 import { levelProgress } from "@/lib/xp";
 
-// Premiers mots d'un texte écrit par l'hôte, qui n'a pas de titre.
-function excerpt(content: string): string {
-  const words = content.split(/\s+/);
-  return words.length > 6 ? `${words.slice(0, 6).join(" ")}…` : content;
-}
-
 // Page publique : visiteurs, invités et propriétaire voient les mêmes données (PROF-2, PROF-3).
-export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
+export default async function ProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const profile = await findProfileUser((await params).username);
   if (!profile) notFound();
   const isOwner = (await getCurrentUser())?.id === profile.id;
   const history = await listRaceHistory(profile.id);
   const avatarVersion = await getAvatarVersion(profile.id);
   const stats = computeStats(history);
+  const { entries, page, pageCount } = paginateHistory(history, Number((await searchParams).page ?? 1));
+  const pageHref = (target: number) => `/profile/${encodeURIComponent(profile.username)}?page=${target}`;
   const progression = progressionPoints(history);
   const level = levelProgress(profile.xp);
   const t = await getTranslations("Profile");
@@ -36,7 +40,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const wpm = (value: number | null) => (value === null ? "—" : Math.round(value));
   const percent = (value: number | null) =>
     value === null ? "—" : t("percent", { value: Math.round(value) });
-  const text = (entry: HistoryEntry) => entry.textTitle ?? excerpt(entry.content);
   const chartDate = (date: Date) => format.dateTime(date, { day: "numeric", month: "short" });
 
   return (
@@ -81,6 +84,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         <div>
           <dt>{t("averageAccuracy")}</dt>
           <dd>{percent(stats.averageAccuracy)}</dd>
+        </div>
+        <div>
+          <dt>{t("wins")}</dt>
+          <dd>{stats.wins}</dd>
         </div>
       </dl>
       <section className="panel progression" aria-labelledby="progression-title">
@@ -135,10 +142,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((entry) => (
+                  {entries.map((entry) => (
                     <tr key={entry.raceId}>
                       <td>{format.dateTime(entry.date, { dateStyle: "medium" })}</td>
-                      <th scope="row">{text(entry)}</th>
+                      {/* Rouvre les résultats complets de la course (HIST-02). */}
+                      <th scope="row">
+                        <Link href={`/races/${entry.raceId}`}>{textLabel(entry.textTitle, entry.content)}</Link>
+                      </th>
                       <td>{entry.rank}</td>
                       <td>{Math.round(entry.wpm)}</td>
                       <td>{percent(entry.accuracy)}</td>
@@ -147,6 +157,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 </tbody>
               </table>
             </div>
+          )}
+          {pageCount > 1 && (
+            <nav aria-label={t("pagination")} className="history-pagination">
+              {page > 1 && <Link href={pageHref(page - 1)}>{t("previous")}</Link>}
+              <span>{t("pageOf", { page, count: pageCount })}</span>
+              {page < pageCount && <Link href={pageHref(page + 1)}>{t("next")}</Link>}
+            </nav>
           )}
         </section>
         <aside className="panel">

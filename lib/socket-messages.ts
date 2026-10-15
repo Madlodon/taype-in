@@ -76,9 +76,9 @@ export type RaceStartedMessage = {
   mine?: ProgressMessage & { gaveUp: boolean; removed?: RemovedWord[] };
 };
 
-// Classement en direct, du premier au dernier ; position = caractères tapés (CRS-2).
+// Classement en direct, du premier au dernier ; position = caractères tapés (CRS-2), wpm = MPM en direct (COURSE-05).
 export type RacePositionsMessage = {
-  positions: { id: string; username: string; position: number; bot?: Bot }[];
+  positions: { id: string; username: string; position: number; wpm: number; bot?: Bot }[];
 };
 
 // Résultat d'un coureur, du premier au dernier (FIN-2) ; accuracy en %, penaltyMs = +1 s par faute en mode tolérant.
@@ -87,12 +87,20 @@ export type RaceResult = {
   username: string;
   rank: number;
   wpm: number;
+  // MPM avec toutes les touches pressées, fautes comprises (RES-02).
+  rawWpm: number;
   accuracy: number;
   durationMs: number;
   penaltyMs: number;
   errors: number;
   finished: boolean;
+  // Fini, temps écoulé (course finie sans lui) ou abandon (COURSE-10).
+  status: "finished" | "timeUp" | "gaveUp";
+  // Bonus reçus : buts marqués pour l'instant (#133).
+  bonuses: number;
   keyErrors: Record<string, number>;
+  // MPM à chaque seconde de course, pour le graphique des résultats (RES-03).
+  wpmSeries: number[];
   // Rang après la course (lib/ranks.ts) et sa variation : +1, 0 ou -1 division (#99).
   rankLevel: number;
   rankChange: number;
@@ -100,6 +108,8 @@ export type RaceResult = {
   // XP totale après la course et XP gagnée (#35) ; xp = null pour un invité.
   xp: number | null;
   xpGained: number;
+  // Meilleure vitesse du joueur battue (RES-04).
+  personalBest: boolean;
 };
 
 // Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5), avec le classement final.

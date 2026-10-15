@@ -22,10 +22,19 @@ export type ProfileStats = {
   bestWpm: number | null;
   averageWpm: number | null;
   averageAccuracy: number | null;
+  // Courses terminées à la première place (AUTH-06).
+  wins: number;
   hardestKeys: { key: string; errors: number }[];
 };
 
 export const HARDEST_KEYS_COUNT = 5;
+
+// Titre du texte de la banque, sinon ses premiers mots : un texte écrit par l'hôte n'a pas de titre.
+export function textLabel(textTitle: string | null, content: string): string {
+  if (textTitle !== null) return textTitle;
+  const words = content.split(/\s+/);
+  return words.length > 6 ? `${words.slice(0, 6).join(" ")}…` : content;
+}
 
 // Les invités n'ont pas de profil.
 export async function findProfileUser(username: string): Promise<User | null> {
@@ -78,6 +87,7 @@ export function computeStats(history: HistoryEntry[]): ProfileStats {
     bestWpm: fair.length === 0 ? null : Math.max(...fair),
     averageWpm: average(fair),
     averageAccuracy: average(finished.map((entry) => entry.accuracy)),
+    wins: finished.filter((entry) => entry.rank === 1).length,
     hardestKeys: [...errorsByKey]
       .filter(([, errors]) => errors > 0)
       .sort((a, b) => b[1] - a[1])
@@ -98,4 +108,16 @@ export function progressionPoints(history: HistoryEntry[]): ProgressionPoint[] {
     .slice(0, PROGRESSION_RACES)
     .reverse()
     .map(({ date, wpm, accuracy }) => ({ date, wpm, accuracy }));
+}
+
+export const HISTORY_PAGE_SIZE = 10;
+
+export type HistoryPage = { entries: HistoryEntry[]; page: number; pageCount: number };
+
+// Une page de l'historique (HIST-01) ; une page invalide ou hors limites donne la plus proche.
+export function paginateHistory(history: HistoryEntry[], page: number): HistoryPage {
+  const pageCount = Math.max(1, Math.ceil(history.length / HISTORY_PAGE_SIZE));
+  const current = Number.isInteger(page) ? Math.min(Math.max(page, 1), pageCount) : 1;
+  const start = (current - 1) * HISTORY_PAGE_SIZE;
+  return { entries: history.slice(start, start + HISTORY_PAGE_SIZE), page: current, pageCount };
 }

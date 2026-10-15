@@ -1,0 +1,1 @@
+ALTER TABLE "results" ADD COLUMN "wpm_series" jsonb DEFAULT '[]'::jsonb NOT NULL;
