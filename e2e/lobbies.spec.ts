@@ -105,21 +105,29 @@ test("Should_JoinFromList_When_RaceIsPublic", async ({ browser }) => {
   await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, `${player.name}Exclure`]);
 });
 
-// JOIN-02 : la liste se met à jour sans recharger, et le filtre de langue cache les autres courses.
-test("Should_ShowNewRaceLiveAndFilterByLanguage_When_WatchingList", async ({ browser }) => {
+// JOIN-02 : la liste se met à jour sans recharger, et les filtres de langue et de complexité cachent les autres courses.
+test("Should_ShowNewRaceLiveAndFilterByLanguageAndComplexity_When_WatchingList", async ({ browser }) => {
   const player = await newGuest(browser);
   await player.page.getByRole("link", { name: "Démarrer une course" }).click();
   await expect(player.page.getByRole("heading", { name: "Courses publiques" })).toBeVisible();
 
   const host = await newHost(browser);
-  await createRace(host.page, /Publique/, (page) => page.getByLabel("Anglais").check());
+  await createRace(host.page, /Publique/, async (page) => {
+    await page.getByLabel("Anglais").check();
+    await page.getByLabel(/^Difficile/).check();
+  });
 
   const listed = player.page.getByRole("listitem").filter({ hasText: `Course de ${host.name}` });
-  await expect(listed).toContainText("1/30 · Anglais · En attente");
+  await expect(listed).toContainText("1/30 · Anglais · Difficile · En attente");
   await player.page.getByLabel("Langue du texte").selectOption("fr");
   await expect(player.page).toHaveURL(/\/lobbies\?lang=fr$/);
   await expect(listed).toHaveCount(0);
   await player.page.getByLabel("Langue du texte").selectOption("en");
+  await expect(listed).toBeVisible();
+  await player.page.getByLabel("Complexité").selectOption("easy");
+  await expect(player.page).toHaveURL(/\/lobbies\?lang=en&complexity=easy$/);
+  await expect(listed).toHaveCount(0);
+  await player.page.getByLabel("Complexité").selectOption("hard");
   await expect(listed).toBeVisible();
 });
 

@@ -2236,6 +2236,7 @@ describe("lobbies explorer", () => {
       participantCount: 1,
       capacity: 4,
       textLanguage: "en",
+      textComplexity: "medium",
       state: "waiting",
     });
   });

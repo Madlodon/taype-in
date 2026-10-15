@@ -5,13 +5,14 @@ import { JoinLobbyForm } from "@/components/join-lobby-form";
 import { LobbyExplorer } from "@/components/lobby-explorer";
 import { getCurrentUser } from "@/lib/session-cookie";
 
-export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string; kicked?: string; lang?: string }> }) {
+export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string; kicked?: string; lang?: string; complexity?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/lobbies");
   // Renvoyé ici quand l'hôte ferme sa course (LOB-10) ou nous exclut (SALLE-07).
-  const { closed, kicked, lang } = await searchParams;
-  // Filtre de langue de l'explorateur (JOIN-02) ; une autre valeur montre toutes les langues.
+  const { closed, kicked, lang, complexity: level } = await searchParams;
+  // Filtres de l'explorateur (JOIN-02) ; une autre valeur ne filtre pas.
   const language = lang === "fr" || lang === "en" ? lang : undefined;
+  const complexity = level === "easy" || level === "medium" || level === "hard" ? level : undefined;
   const t = await getTranslations("Lobbies");
   const d = await getTranslations("Design");
   return (
@@ -30,7 +31,7 @@ export default async function LobbiesPage({ searchParams }: { searchParams: Prom
       {closed && <p role="status" className="panel panel-accent mb-6">{t("closed")}</p>}
       {kicked && <p role="status" className="panel panel-accent mb-6">{t("kicked")}</p>}
       <div className="split-layout">
-        <LobbyExplorer language={language} canCreate={!user.isGuest} />
+        <LobbyExplorer language={language} complexity={complexity} canCreate={!user.isGuest} />
         <aside className="side-stack">
           <section className="panel panel-accent">
             <h2>{t("joinByCode")}</h2>

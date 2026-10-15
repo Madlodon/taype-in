@@ -49,8 +49,14 @@
       "fr": "Français",
       "en": "Anglais"
     },
+    "complexity": "Complexité",
+    "complexities": {
+      "easy": "Facile",
+      "medium": "Moyen",
+      "hard": "Difficile"
+    },
     "loading": "Chargement des courses…",
-    "lobbyInfo": "{count}/{capacity} · {language} · {state}",
+    "lobbyInfo": "{count}/{capacity} · {language} · {complexity} · {state}",
     "states": {
       "waiting": "En attente",
       "racing": "En course",

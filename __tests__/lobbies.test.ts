@@ -229,7 +229,11 @@ test("Should_ListOnlyOpenPublicLobbiesWithParticipants_When_ListingPublicLobbies
 test("Should_ShowHostCountCapacityAndLanguage_When_ListingPublicLobbies", async () => {
   const host = await newUser();
   const guest = await newUser();
-  const lobby = await createLobby(host.id, "public", { capacity: 8, textLanguage: "en" });
+  const lobby = await createLobby(host.id, "public", {
+    capacity: 8,
+    textLanguage: "en",
+    textComplexity: "hard",
+  });
   await addParticipant(lobby.id, host.id);
   await addParticipant(lobby.id, guest.id);
 
@@ -240,6 +244,7 @@ test("Should_ShowHostCountCapacityAndLanguage_When_ListingPublicLobbies", async 
     code: lobby.code,
     capacity: 8,
     textLanguage: "en",
+    textComplexity: "hard",
     hostName: host.username,
     participantCount: 2,
   });
