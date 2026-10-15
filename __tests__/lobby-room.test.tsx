@@ -898,6 +898,17 @@ function ranking() {
   return within(screen.getByRole("list", { name: "Classement" })).getAllByRole("listitem");
 }
 
+test("Should_ShowNoPlaceholderCarOrBall_When_RaceHasNoPositions", () => {
+  const { container } = renderRoom();
+  expect(container.querySelector('[data-car-id="preview"]')).not.toBeNull();
+  startRace(["u2"]);
+  sendPositions(0, 0);
+
+  expect(container.querySelectorAll("[data-car-id]")).toHaveLength(0);
+  expect(container.querySelectorAll("[data-field-ball]")).toHaveLength(0);
+  expect(typingBox()).not.toBeNull();
+});
+
 test("Should_ShowRankingWithProgress_When_ServerSendsPositions", () => {
   renderRoom();
   startRace(["u1", "u2"]);

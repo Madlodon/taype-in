@@ -341,7 +341,7 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
   const percent = (position: number) => Math.round((position / race!.content.length) * 100);
   const track =
     shown.length === 0 ? (
-      <Arena progress={0} stadium={stadium} />
+      <Arena progress={0} cars={race ? [] : undefined} stadium={stadium} />
     ) : (
       <div className="race-board">
         <Arena
