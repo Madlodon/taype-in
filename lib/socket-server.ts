@@ -14,7 +14,7 @@ import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
 import { Server, type Socket } from "socket.io";
 import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
-import { botKey, xpMultiplier, type Bot } from "./bots.ts";
+import { botKey, botSeed, createBotEngine, xpMultiplier, type Bot, type BotEngine } from "./bots.ts";
 import {
   addParticipant,
   banParticipant,
@@ -487,10 +487,10 @@ export function createSocketServer(
     }
   }
 
-  // Le bot tape une touche à la fois, à la vitesse de son niveau, jusqu'à la fin du texte (BOT-2).
-  function driveBot(lobby: Lobby, live: LiveRace, id: string, bot: Bot) {
+  // Le bot tape une touche à la fois, à la vitesse de son niveau, jusqu'à la fin du texte (BOT-02).
+  function driveBot(lobby: Lobby, live: LiveRace, id: string, engine: BotEngine) {
     const player = live.players.get(id)!;
-    const key = botKey(bot.level, { ...player, blocked: false }, player.content, live.errorMode);
+    const key = botKey(engine, { ...player, blocked: false }, player.content, live.errorMode, player.removed);
     // Bonus « attente » : 1 s au moins avant chacune des prochaines lettres (BON-3).
     let delayMs = key.delayMs;
     if (player.slowLetters > 0) {
@@ -500,7 +500,7 @@ export function createSocketServer(
     const timer = setTimeout(async () => {
       if (live.state !== "racing") return;
       await updateProgress(lobby, live, id, key.typing);
-      if (player.state === "connected") driveBot(lobby, live, id, bot);
+      if (player.state === "connected") driveBot(lobby, live, id, engine);
     }, delayMs / botSpeedup);
     live.botTimers.set(id, timer);
   }
@@ -832,7 +832,10 @@ export function createSocketServer(
         sendPositions(lobby, live);
         live.positionsTimer = setInterval(() => sendPositions(lobby, live), positionsMs);
         live.wpmTimer = setInterval(() => sampleWpm(live), wpmSampleMs);
-        for (const { id, bot } of racers) if (bot) driveBot(lobby, live, id, bot);
+        // Chaque bot a sa graine, tirée de la course : la même course redonne les mêmes bots (BOT-05).
+        for (const { id, bot } of racers) {
+          if (bot) driveBot(lobby, live, id, createBotEngine(bot.level, botSeed(live.raceId, bot)));
+        }
       }, countdownMs);
     });
 

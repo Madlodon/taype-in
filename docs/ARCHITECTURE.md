@@ -272,29 +272,23 @@ sequenceDiagram
 
 Le choix d'un moteur côté serveur et les options écartées sont dans l'[ADR 0002](adr/0002-bots.md).
 
-### Aujourd'hui ([#76](https://github.com/Madlodon/taype-in/issues/76))
-
-Moteur dans [`lib/bots.ts`](../lib/bots.ts), lancé par le serveur de sockets.
+Moteur dans [`lib/bots.ts`](../lib/bots.ts), lancé par le serveur de sockets ([#76](https://github.com/Madlodon/taype-in/issues/76), [#132](https://github.com/Madlodon/taype-in/issues/132)).
 
 - L'hôte ajoute ou retire des bots dans la salle d'attente. Ils restent d'une course à l'autre.
 - Un bot est un participant sans compte : il prend une place au classement, mais n'a pas de ligne dans `results`.
 - Le serveur garde une minuterie par bot. À chaque touche, `botKey` donne le délai avant la prochaine touche et la saisie qui en résulte.
-- La saisie passe par `applyInput`, comme pour un joueur : le bot respecte le mode d'erreur (en mode bloquant, il doit retaper le bon caractère).
-- La fonction de hasard est passée en paramètre, ce qui permet des tests unitaires déterministes.
 
-### Prévu pour la remise finale ([#132](https://github.com/Madlodon/taype-in/issues/132))
+Cinq niveaux, avec les valeurs de l'énoncé (BOT-01). La vitesse est mesurée sur un texte simple ; l'XP des joueurs est multipliée selon le niveau des bots (moyenne avec ×1 par joueur).
 
-Cinq niveaux, avec les valeurs de l'énoncé (BOT-01) :
+| Niveau        | MPM visé | Taux d'erreur | XP    |
+| ------------- | -------- | ------------- | ----- |
+| Noob          | 10–20    | 12 %          | ×0,25 |
+| Débutant      | 20–35    | 8 %           | ×0,5  |
+| Intermédiaire | 35–60    | 5 %           | ×1    |
+| Expert        | 70–100   | 2 %           | ×1,5  |
+| Impossible    | 140–170  | 0,5 %         | ×2    |
 
-| Niveau        | MPM visé | Taux d'erreur |
-| ------------- | -------- | ------------- |
-| Noob          | 10–20    | ~12 %         |
-| Débutant      | 20–35    | ~8 %          |
-| Intermédiaire | 35–60    | ~5 %          |
-| Expert        | 70–100   | ~2 %          |
-| Impossible    | 140+     | ~0,5 %        |
-
-- **Vitesse variable** (BOT-02) : chaque bot tire sa vitesse dans la plage de son niveau. Pendant la course, il alterne des séries plus rapides et des hésitations, et ralentit sur les mots difficiles (longs, avec accents, majuscules ou ponctuation).
-- **Erreurs** (BOT-03) : une faute coûte un temps de correction. En mode bloquant, le bot retape le bon caractère ; en mode tolérant, il continue avec la faute.
-- **Identifiés** (BOT-04) : badge « BOT » dans la salle, sur la piste et dans les résultats. Leur progression passe par le même chemin que celle des joueurs, donc les bonus et malus les touchent aussi.
-- **Déterministe** (BOT-05) : chaque bot reçoit une graine (seed) tirée de la course et de son numéro. Un générateur pseudo-aléatoire à graine remplace `Math.random`, donc la même graine donne toujours la même course dans les tests.
+- **Vitesse variable** (BOT-02) : chaque bot tire sa vitesse dans la plage de son niveau au départ. Pendant la course, il tape par séries de 5 à 19 touches : plus vite (×0,7 du délai, 30 %), normalement (50 %) ou en hésitant (×2,5, 20 %). Chaque touche varie aussi de ±50 %. Il tape les mots difficiles (8 caractères ou plus, accent, majuscule ou ponctuation) 1,5 fois plus lentement.
+- **Erreurs** (BOT-03) : une faute coûte le temps de deux touches pour la remarquer. La saisie passe par `applyInput`, comme pour un joueur : en mode bloquant, le bot retape le bon caractère ; en mode tolérant, il continue avec la faute.
+- **Identifiés** (BOT-04) : badge « BOT » dans la salle, sur la piste et dans les résultats. Leur progression passe par `updateProgress`, comme celle des joueurs : ils tirent au but en finissant une phrase, et un but leur retire un mot, qu'ils sautent.
+- **Déterministe** (BOT-05) : chaque bot reçoit une graine tirée de l'id de la course, de son niveau et de son numéro (`botSeed`). Un générateur à graine (mulberry32) remplace `Math.random` : la même graine donne toujours la même course, ce que vérifient les tests unitaires.

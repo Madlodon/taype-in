@@ -202,10 +202,11 @@
     "kick": "Kick",
     "confirmKick": "Kick {username}? They won't be able to come back to this race.",
     "botLevels": {
+      "noob": "Noob",
       "beginner": "Beginner",
       "intermediate": "Intermediate",
-      "advanced": "Advanced",
-      "expert": "Expert"
+      "expert": "Expert",
+      "impossible": "Impossible"
     },
     "editSettings": "Edit settings",
     "saveSettings": "Save settings",

@@ -2207,14 +2207,14 @@ describe("bots", () => {
 
   test("Should_SendBotsToPlayer_When_PlayerJoinsLater", async () => {
     const { lobby, hostClient } = await hostAlone();
-    await addBot(hostClient, "advanced");
+    await addBot(hostClient, "intermediate");
     const late = await newClient();
     const lateSees = nextParticipants(late);
 
     await join(late, { code: lobby.code });
 
     // Les joueurs d'abord, puis les bots.
-    expect((await lateSees).participants[2]).toMatchObject({ bot: { level: "advanced" } });
+    expect((await lateSees).participants[2]).toMatchObject({ bot: { level: "intermediate" } });
   });
 
   test("Should_RemoveBot_When_HostRemovesIt", async () => {
@@ -2386,6 +2386,33 @@ describe("bots", () => {
 
     expect(positions[0]).toMatchObject({ bot: { level: "beginner" } });
     expect(positions[0].position).toBeGreaterThan(0);
+  });
+
+  test("Should_GiveBotsGoalBonuses_When_BotCompletesASentenceFromBehind", async () => {
+    await io.close();
+    // bonusRandom = 0 : l'effet est toujours « retirer des mots », que le bot doit sauter.
+    await startServer({ shotMs: 1, shotRandom: () => 0, bonusRandom: () => 0 });
+    const { lobby, hostClient } = await hostAlone();
+    await db.update(lobbies).set({ bonusesEnabled: true }).where(eq(lobbies.id, lobby.id));
+    await addBot(hostClient, "impossible");
+    let length = Infinity;
+    const botFinished = new Promise<void>((resolve) => {
+      hostClient.on("race:positions", ({ positions }: RacePositionsMessage) => {
+        if (positions.some((racer) => racer.bot && racer.position === length)) resolve();
+      });
+    });
+    const { content } = await startRace(hostClient);
+    length = content.length;
+    // L'hôte part loin devant : seul le bot, derrière, peut marquer (BON-2).
+    await progress(hostClient, typing(content.slice(0, -1), 0));
+    await botFinished;
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(hostClient, typing(content, 0));
+
+    const bot = (await ended).results.find((result) => result.bot);
+    expect(bot).toMatchObject({ finished: true });
+    expect(bot!.bonuses).toBeGreaterThan(0);
   });
 
   test("Should_KeepBots_When_HostRelaunches", async () => {
