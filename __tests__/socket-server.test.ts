@@ -32,6 +32,7 @@ import type {
   RaceStartedMessage,
   RaceShotMessage,
   RaceGoalMessage,
+  SettingsMessage,
 } from "../lib/socket-messages";
 
 let io: Server;
@@ -1483,18 +1484,13 @@ describe("lobby:restart", () => {
   });
 
   test("Should_UseNewSettings_When_HostChangedThemBeforeRelaunching", async () => {
-    const { lobby, hostClient, guestClient } = await finishedRace();
+    const { hostClient, guestClient } = await finishedRace();
     await hostClient.emitWithAck("lobby:restart");
-    await updateLobbySettings(lobby.id, {
+    await hostClient.emitWithAck("lobby:settings", {
       textLanguage: "en",
-      textLength: 50,
-      textType: "sentences",
-      textTargets: [],
-      textLetters: "",
-      customText: null,
+      textLength: "50",
       errorMode: "tolerant",
-      timeLimitSeconds: null,
-      capacity: 30,
+      noTimer: "on",
     });
     const guestSees = next<RaceStartedMessage>(guestClient, "race:started");
 
@@ -1548,6 +1544,98 @@ describe("lobby:restart", () => {
     const client = await newClient();
 
     expect(await client.emitWithAck("lobby:restart")).toEqual({
+      ok: false,
+      error: "lobbyNotFound",
+    });
+  });
+});
+
+describe("lobby:settings", () => {
+  const newSettings = {
+    textLanguage: "en",
+    textLength: "50",
+    textType: "words",
+    textTargets: ["digits", "comma"],
+    textLetters: "QZ",
+    customText: "  Mon   texte secret ",
+    errorMode: "tolerant",
+    timerSeconds: "90",
+    capacity: "4",
+  };
+
+  test("Should_SaveAndSendToEveryoneWithoutCustomText_When_HostChangesSettings", async () => {
+    const { lobby, hostClient, guestClient } = await lobbyWithTwo();
+    const guestSees = next<SettingsMessage>(guestClient, "lobby:settings");
+
+    expect(await hostClient.emitWithAck("lobby:settings", newSettings)).toEqual({ ok: true });
+
+    expect(await guestSees).toEqual({
+      textLanguage: "en",
+      textLength: 50,
+      textType: "words",
+      textTargets: ["comma", "digits"],
+      textLetters: "qz",
+      customText: true,
+      errorMode: "tolerant",
+      timeLimitSeconds: 90,
+      capacity: 4,
+    });
+    expect(await findOpenLobby(lobby.code)).toMatchObject({
+      textLanguage: "en",
+      customText: "Mon texte secret",
+      timeLimitSeconds: 90,
+      capacity: 4,
+    });
+  });
+
+  test("Should_SendCurrentSettings_When_PlayerJoins", async () => {
+    const { lobby } = await lobbyWithTwo({ textLanguage: "en", customText: "Secret", capacity: 5 });
+    const late = await newClient();
+    const sees = next<SettingsMessage>(late, "lobby:settings");
+
+    await join(late, { code: lobby.code });
+
+    expect(await sees).toMatchObject({ textLanguage: "en", customText: true, capacity: 5 });
+  });
+
+  test("Should_UseDefaults_When_SettingsAreInvalid", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo({ textLanguage: "en", capacity: 5 });
+
+    expect(await hostClient.emitWithAck("lobby:settings", "n'importe quoi")).toEqual({ ok: true });
+
+    expect(await findOpenLobby(lobby.code)).toMatchObject({
+      textLanguage: "fr",
+      textLength: 100,
+      capacity: 30,
+      timeLimitSeconds: 300,
+    });
+  });
+
+  test("Should_AckNotHostAndKeepSettings_When_PlayerIsNotHost", async () => {
+    const { lobby, guestClient } = await lobbyWithTwo({ capacity: 5 });
+
+    expect(await guestClient.emitWithAck("lobby:settings", newSettings)).toEqual({
+      ok: false,
+      error: "notHost",
+    });
+    expect((await findOpenLobby(lobby.code))?.capacity).toBe(5);
+  });
+
+  test("Should_AckRaceInProgress_When_RaceIsRunning", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo({ capacity: 5 });
+    await startRace(hostClient);
+
+    expect(await hostClient.emitWithAck("lobby:settings", newSettings)).toEqual({
+      ok: false,
+      error: "raceInProgress",
+    });
+    expect((await findOpenLobby(lobby.code))?.capacity).toBe(5);
+  });
+
+  test("Should_AckLobbyNotFound_When_SocketHasNotJoinedALobby", async () => {
+    const client = await newClient();
+
+    expect(await client.emitWithAck("lobby:settings", newSettings)).toEqual({
       ok: false,
       error: "lobbyNotFound",
     });
