@@ -15,6 +15,10 @@ function fields(settings?: LobbySettings) {
 const settings: LobbySettings = {
   textLanguage: "en",
   textLength: 100,
+  textType: "sentences",
+  textTargets: [],
+  textLetters: "",
+  customText: null,
   errorMode: "blocking",
   timeLimitSeconds: 90,
   capacity: 8,
@@ -69,4 +73,32 @@ test("Should_SelectThirty_When_CreatingLobby", () => {
 
 test("Should_SelectLobbyCapacity_When_EditingSettings", () => {
   expect(capacity(settings).value).toBe("8");
+});
+
+const checked = (label: string | RegExp) => (screen.getByLabelText(label) as HTMLInputElement).checked;
+const value = (label: string | RegExp) => (screen.getByLabelText(label) as HTMLInputElement).value;
+
+test("Should_CheckSentencesWithoutTargets_When_CreatingLobby", () => {
+  fields();
+
+  expect(checked(/^Sentences/)).toBe(true);
+  expect(checked("Digits")).toBe(false);
+  expect(value(/^Your own text/)).toBe("");
+});
+
+test("Should_ShowLobbyTextOptions_When_EditingSettings", () => {
+  fields({
+    ...settings,
+    textType: "words",
+    textTargets: ["comma", "digits"],
+    textLetters: "qz",
+    customText: "Mon texte.",
+  });
+
+  expect(checked(/^Scrambled words/)).toBe(true);
+  expect(checked("Commas")).toBe(true);
+  expect(checked("Digits")).toBe(true);
+  expect(checked("Accents")).toBe(false);
+  expect(value("Specific letters")).toBe("qz");
+  expect(value(/^Your own text/)).toBe("Mon texte.");
 });

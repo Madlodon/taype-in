@@ -120,6 +120,10 @@ test("Should_KeepLobbyAndCodeWithNewSettings_When_HostChangesSettings", async ()
   const settings = {
     textLanguage: "en" as const,
     textLength: 200,
+    textType: "words" as const,
+    textTargets: ["accents", "digits"],
+    textLetters: "qz",
+    customText: "Mon texte.",
     errorMode: "tolerant" as const,
     timeLimitSeconds: null,
     capacity: 8,
