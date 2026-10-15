@@ -8,14 +8,21 @@ import { findPastRace } from "@/lib/results";
 import { getCurrentUser } from "@/lib/session-cookie";
 
 // Résultats complets d'une course de l'historique, ouverts depuis un profil (HIST-02).
-// Publique comme les profils ; le rang gagné et l'XP ne sont pas enregistrés, donc pas réaffichés.
+// Publique comme les profils ; le rang gagné, l'XP et le record du moment ne sont pas enregistrés, donc pas réaffichés.
 export default async function PastRacePage({ params }: { params: Promise<{ id: string }> }) {
   const race = await findPastRace((await params).id);
   if (!race) notFound();
   const userId = (await getCurrentUser())?.id ?? "";
   const t = await getTranslations("PastRace");
   const format = await getFormatter();
-  const results = race.results.map((result) => ({ ...result, rankLevel: 0, rankChange: 0, xp: null, xpGained: 0 }));
+  const results = race.results.map((result) => ({
+    ...result,
+    rankLevel: 0,
+    rankChange: 0,
+    xp: null,
+    xpGained: 0,
+    personalBest: false,
+  }));
 
   return (
     <main id="main" className="page-shell">

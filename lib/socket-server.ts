@@ -24,7 +24,7 @@ import { nextPlayerState, type PlayerState } from "./player-state.ts";
 import { isPlausibleProgress, MAX_WPM } from "./progress-check.ts";
 import { codeAttempts } from "./rate-limit.ts";
 import { createRace, markRaceEnded, markRaceStarted } from "./races.ts";
-import { awardXp, rankRacers, saveResults, updateRanks } from "./results.ts";
+import { awardXp, findPersonalBests, rankRacers, saveResults, updateRanks } from "./results.ts";
 import {
   addBotSchema,
   joinLobbySchema,
@@ -273,10 +273,10 @@ export function createSocketServer(
     );
     await markRaceEnded(live.raceId);
     // Les bots prennent une place au classement, sans ligne de résultat ni rang (aucun utilisateur en base).
-    await saveResults(
-      live.raceId,
-      placements.filter((placement) => !live.positions.get(placement.id)?.bot),
-    );
+    const players = placements.filter((placement) => !live.positions.get(placement.id)?.bot);
+    // Avant l'enregistrement : la course elle-même ne compte pas dans l'ancien record.
+    const personalBests = await findPersonalBests(live.raceId, players);
+    await saveResults(live.raceId, players);
     const ranks = await updateRanks(placements.map((placement) => placement.id));
     // Les bots ne gagnent rien, mais leur niveau change l'XP des joueurs.
     const bots = [...live.positions.values()].flatMap(({ bot }) => (bot ? [bot.level] : []));
@@ -286,6 +286,7 @@ export function createSocketServer(
       ...(ranks.get(placement.id) ?? { rankLevel: 0, rankChange: 0 }),
       bot: live.positions.get(placement.id)?.bot,
       ...(xp.get(placement.id) ?? { xp: null, xpGained: 0 }),
+      personalBest: personalBests.has(placement.id),
     }));
     io.to(lobby.code).emit("race:ended", { reason, results: live.results });
     await updateExplorer();

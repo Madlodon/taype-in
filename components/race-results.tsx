@@ -78,6 +78,8 @@ export function RaceResults({ results, userId, showLevel = true }: Props) {
                     {!result.bot && <Avatar userId={result.id} size={24} />}
                     {name(result)}
                     {result.bot && <BotBadge />}
+                    {/* Meilleure vitesse battue (RES-04). */}
+                    {result.personalBest && <span className="badge best-badge">{t("personalBest")}</span>}
                   </span>
                 </th>
                 <td>{Math.round(result.wpm)}</td>

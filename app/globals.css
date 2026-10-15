@@ -844,6 +844,14 @@ a, button, input {
   color: var(--primary);
 }
 
+.best-badge {
+  margin: 0 0 0 8px;
+  padding: 3px 6px;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--accent-strong);
+}
+
 .participant-remove {
   float: right;
   font-size: 12px;

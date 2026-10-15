@@ -108,6 +108,8 @@ export type RaceResult = {
   // XP totale après la course et XP gagnée (#35) ; xp = null pour un invité.
   xp: number | null;
   xpGained: number;
+  // Meilleure vitesse du joueur battue (RES-04).
+  personalBest: boolean;
 };
 
 // Fin de course : tous ont fini, minuterie écoulée ou 2 min sans frappe (CRS-5), avec le classement final.
