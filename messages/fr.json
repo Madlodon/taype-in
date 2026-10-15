@@ -364,6 +364,7 @@
     "bestWpm": "Meilleure vitesse (MPM)",
     "averageWpm": "Vitesse moyenne (MPM)",
     "averageAccuracy": "Précision moyenne",
+    "wins": "Victoires",
     "progression": "Progression",
     "progressionHint": "{count, plural, one {Dernière course} other {# dernières courses}}, sans bonus.",
     "noProgression": "Termine une course sans bonus pour voir ta progression.",

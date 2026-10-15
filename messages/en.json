@@ -364,6 +364,7 @@
     "bestWpm": "Best speed (WPM)",
     "averageWpm": "Average speed (WPM)",
     "averageAccuracy": "Average accuracy",
+    "wins": "Wins",
     "progression": "Progression",
     "progressionHint": "{count, plural, one {Last race} other {Last # races}}, without bonuses.",
     "noProgression": "Finish a race without bonuses to see your progress.",

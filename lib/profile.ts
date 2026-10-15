@@ -22,6 +22,8 @@ export type ProfileStats = {
   bestWpm: number | null;
   averageWpm: number | null;
   averageAccuracy: number | null;
+  // Courses terminées à la première place (AUTH-06).
+  wins: number;
   hardestKeys: { key: string; errors: number }[];
 };
 
@@ -78,6 +80,7 @@ export function computeStats(history: HistoryEntry[]): ProfileStats {
     bestWpm: fair.length === 0 ? null : Math.max(...fair),
     averageWpm: average(fair),
     averageAccuracy: average(finished.map((entry) => entry.accuracy)),
+    wins: finished.filter((entry) => entry.rank === 1).length,
     hardestKeys: [...errorsByKey]
       .filter(([, errors]) => errors > 0)
       .sort((a, b) => b[1] - a[1])

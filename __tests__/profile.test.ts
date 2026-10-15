@@ -38,6 +38,7 @@ describe("computeStats", () => {
       bestWpm: null,
       averageWpm: null,
       averageAccuracy: null,
+      wins: 0,
       hardestKeys: [],
     });
   });
@@ -149,6 +150,19 @@ describe("progressionPoints", () => {
     expect(points).toHaveLength(PROGRESSION_RACES);
     expect(points[0].wpm).toBe(6);
     expect(points.at(-1)?.wpm).toBe(PROGRESSION_RACES + 5);
+  });
+});
+
+describe("computeStats wins", () => {
+  test("Should_CountFinishedFirstPlaces_When_CountingWins", () => {
+    const stats = computeStats([
+      entry({ rank: 1 }),
+      entry({ rank: 1, bonusesEnabled: true }),
+      entry({ rank: 2 }),
+      entry({ rank: 1, finished: false }),
+    ]);
+
+    expect(stats.wins).toBe(2);
   });
 });
 

@@ -82,6 +82,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <dt>{t("averageAccuracy")}</dt>
           <dd>{percent(stats.averageAccuracy)}</dd>
         </div>
+        <div>
+          <dt>{t("wins")}</dt>
+          <dd>{stats.wins}</dd>
+        </div>
       </dl>
       <section className="panel progression" aria-labelledby="progression-title">
         <h2 id="progression-title">{t("progression")}</h2>

@@ -236,3 +236,11 @@ test("Should_HideLevel_When_ProfileIsGuest", async () => {
 
   expect(screen.queryByRole("progressbar")).toBeNull();
 });
+
+test("Should_ShowWinsCount_When_UserWonRaces", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue([entry({ rank: 1 }), entry({ rank: 2 }), entry({ rank: 1 })]);
+
+  await renderProfile();
+
+  expect(screen.getByText("Victoires").nextSibling?.textContent).toBe("2");
+});
