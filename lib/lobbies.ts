@@ -160,7 +160,7 @@ export async function claimInvite(
   return taken ? lobby : null;
 }
 
-export type PublicLobby = Pick<Lobby, "id" | "code" | "capacity" | "textLanguage"> & {
+export type PublicLobby = Pick<Lobby, "id" | "code" | "capacity" | "textLanguage" | "createdAt"> & {
   hostName: string;
   participantCount: number;
 };
@@ -173,6 +173,7 @@ export async function listPublicLobbies(): Promise<PublicLobby[]> {
       code: lobbies.code,
       capacity: lobbies.capacity,
       textLanguage: lobbies.textLanguage,
+      createdAt: lobbies.createdAt,
       hostName: users.username,
       participantCount: count(lobbyParticipants.userId),
     })
@@ -182,6 +183,21 @@ export async function listPublicLobbies(): Promise<PublicLobby[]> {
     .where(and(eq(lobbies.visibility, "public"), isNull(lobbies.closedAt)))
     .groupBy(lobbies.id, users.username)
     .orderBy(desc(lobbies.createdAt));
+}
+
+export type QuickRaceCandidate = Pick<Lobby, "code" | "capacity" | "createdAt"> & {
+  participantCount: number;
+  state: "waiting" | "racing" | "finished";
+};
+
+// JOIN-03 : « Course rapide » prend le lobby non plein le plus proche de sa capacité (le moins
+// de places libres) ; à égalité, le plus ancien. Pendant le compte à rebours ou la course
+// (racing), on n'entre pas (SALLE-09). null s'il n'y en a aucun.
+export function pickQuickLobby<T extends QuickRaceCandidate>(candidates: T[]): T | null {
+  const free = (lobby: T) => lobby.capacity - lobby.participantCount;
+  const open = candidates.filter((lobby) => lobby.state !== "racing" && free(lobby) > 0);
+  open.sort((a, b) => free(a) - free(b) || a.createdAt.getTime() - b.createdAt.getTime());
+  return open[0] ?? null;
 }
 
 // Le lobby où la personne est déjà, s'il y en a un (SALLE-06).
