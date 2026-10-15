@@ -13,13 +13,17 @@ const handlers: Record<string, Handler> = {};
 const socket = {
   on: vi.fn((event: string, handler: Handler) => (handlers[event] = handler)),
   emit: vi.fn(),
+  emitWithAck: vi.fn(),
   disconnect: vi.fn(),
 };
 
 vi.mock("socket.io-client", () => ({ io: () => socket }));
 
-const router = { replace: vi.fn() };
+const router = { replace: vi.fn(), push: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
+
+// L'action serveur crée la course publique ; ici, on vérifie seulement le formulaire.
+vi.mock("../app/actions/lobbies", () => ({ createLobbyAction: vi.fn() }));
 
 const french: ExplorerLobby = {
   code: "AAAAAA",
@@ -38,10 +42,10 @@ const english: ExplorerLobby = {
   state: "racing",
 };
 
-function renderExplorer(language?: "fr" | "en", locale: "fr" | "en" = "fr") {
+function renderExplorer(language?: "fr" | "en", locale: "fr" | "en" = "fr", canCreate = true) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <LobbyExplorer language={language} canCreate />
+      <LobbyExplorer language={language} canCreate={canCreate} />
     </NextIntlClientProvider>,
   );
   act(() => handlers["connect"]());
@@ -131,4 +135,36 @@ test.each([
   fireEvent.change(screen.getByLabelText("Langue du texte"), { target: { value } });
 
   expect(router.replace).toHaveBeenCalledWith(url);
+});
+
+test("Should_GoToLobby_When_QuickRaceFindsOne", async () => {
+  socket.emitWithAck.mockResolvedValue({ ok: true, code: "AAAAAA" });
+  renderExplorer();
+
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Course rapide" })));
+
+  expect(socket.emitWithAck).toHaveBeenCalledWith("lobbies:quick");
+  expect(router.push).toHaveBeenCalledWith("/lobbies/AAAAAA");
+});
+
+test("Should_OfferPublicLobby_When_NoQuickLobbyForRegisteredUser", async () => {
+  socket.emitWithAck.mockResolvedValue({ ok: false, error: "noQuickLobby" });
+  renderExplorer();
+
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Course rapide" })));
+
+  expect(screen.getByRole("status").textContent).toContain("Aucune course publique à rejoindre pour le moment.");
+  const create = screen.getByRole("button", { name: "Créer une course publique →" });
+  expect(create.closest("form")?.querySelector<HTMLInputElement>("[name=visibility]")?.value).toBe("public");
+  expect(router.push).not.toHaveBeenCalled();
+});
+
+test("Should_ShowEmptyStateOnly_When_NoQuickLobbyForGuest", async () => {
+  socket.emitWithAck.mockResolvedValue({ ok: false, error: "noQuickLobby" });
+  renderExplorer(undefined, "fr", false);
+
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Course rapide" })));
+
+  expect(screen.getByRole("status").textContent).toContain("Aucune course publique à rejoindre pour le moment.");
+  expect(screen.queryByRole("button", { name: "Créer une course publique →" })).toBeNull();
 });

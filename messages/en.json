@@ -49,6 +49,9 @@
       "fr": "French",
       "en": "English"
     },
+    "quickRace": "Race now",
+    "noQuickLobby": "No public race to join right now.",
+    "createPublic": "Create a public race",
     "loading": "Loading races…",
     "lobbyInfo": "{count}/{capacity} · {language} · {state}",
     "states": {
