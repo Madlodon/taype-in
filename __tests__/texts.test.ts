@@ -4,7 +4,15 @@ import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { texts } from "../db/schema";
-import { cutText, pickText, TEXT_LENGTHS } from "../lib/texts";
+import {
+  cutText,
+  normalizeLetters,
+  pickText,
+  pickWords,
+  scrambleWords,
+  TEXT_LENGTHS,
+  toDictionary,
+} from "../lib/texts";
 
 const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
@@ -45,6 +53,96 @@ describe("cutText", () => {
 
   test("Should_ReturnEmptyString_When_TextIsEmpty", () => {
     expect(cutText("", 50)).toBe("");
+  });
+});
+
+describe("toDictionary", () => {
+  test("Should_KeepLowercaseWordsWithoutPunctuation_When_TextHasSentences", () => {
+    expect(toDictionary(["L'été, c'est « super » ! 42 fois.", "Été encore"])).toEqual([
+      "l'été",
+      "c'est",
+      "super",
+      "fois",
+      "été",
+      "encore",
+    ]);
+  });
+});
+
+describe("normalizeLetters", () => {
+  test("Should_KeepLettersOnceInLowercase_When_InputIsMixed", () => {
+    expect(normalizeLetters(" Q-z q1 É")).toBe("qzé");
+  });
+
+  test("Should_ReturnEmpty_When_InputHasNoLetter", () => {
+    expect(normalizeLetters("12 !?")).toBe("");
+  });
+});
+
+describe("scrambleWords", () => {
+  const dictionary = ["chat", "école", "garçon", "l'ami", "zèbre", "pomme", "table"];
+  const words = (text: string) => text.split(" ");
+
+  test("Should_ReturnRequestedWordCountFromDictionary_When_NoTarget", () => {
+    const text = scrambleWords(dictionary, 200, [], "");
+
+    expect(words(text)).toHaveLength(200);
+    expect(words(text).every((word) => dictionary.includes(word))).toBe(true);
+  });
+
+  test.each([
+    ["accents", /[éè]/],
+    ["cedilla", /ç/],
+    ["apostrophe", /'/],
+  ] as const)("Should_FavourTargetedWords_When_TargetIs_%s", (target, pattern) => {
+    const text = scrambleWords(dictionary, 200, [target], "");
+
+    // Sans ciblage, environ 1 mot sur 7 ; avec ciblage, plus de la moitié.
+    expect(words(text).filter((word) => pattern.test(word)).length).toBeGreaterThan(70);
+  });
+
+  test("Should_FavourWordsWithLetters_When_HostPicksLetters", () => {
+    const text = scrambleWords(dictionary, 200, [], "z");
+
+    expect(words(text).filter((word) => word.includes("z")).length).toBeGreaterThan(70);
+  });
+
+  test("Should_AddCommasNotAtEnd_When_CommaIsTargeted", () => {
+    const text = scrambleWords(dictionary, 200, ["comma"], "");
+
+    expect(text).toMatch(/\p{L},/u);
+    expect(text.endsWith(",")).toBe(false);
+  });
+
+  test("Should_InsertNumbers_When_DigitsAreTargeted", () => {
+    expect(words(scrambleWords(dictionary, 200, ["digits"], "")).some((word) => /^\d+$/.test(word)))
+      .toBe(true);
+  });
+
+  test("Should_InsertSpecialCharacters_When_SpecialIsTargeted", () => {
+    expect(scrambleWords(dictionary, 200, ["special"], "")).toMatch(/[@#$%&*+=/?!]/);
+  });
+
+  test("Should_IgnoreTarget_When_NoWordMatches", () => {
+    const text = scrambleWords(["cat", "dog"], 20, ["accents"], "");
+
+    expect(words(text).every((word) => ["cat", "dog"].includes(word))).toBe(true);
+  });
+
+  test("Should_ReturnEmptyString_When_DictionaryIsEmpty", () => {
+    expect(scrambleWords([], 50, ["digits"], "")).toBe("");
+  });
+});
+
+describe("pickWords", () => {
+  test("Should_UseWordsFromBankInLanguage_When_LobbyUsesScrambledWords", async () => {
+    const bank = await db.select().from(texts).where(eq(texts.language, "fr"));
+    const dictionary = toDictionary(bank.map((text) => text.content));
+
+    const picked = await pickWords("fr", 50, [], "");
+
+    expect(picked!.split(" ")).toHaveLength(50);
+    expect(picked!.split(" ").every((word) => dictionary.includes(word))).toBe(true);
   });
 });
 
