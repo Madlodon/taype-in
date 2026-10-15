@@ -9,7 +9,9 @@ import { createRace } from "../lib/races";
 import {
   computeStats,
   findProfileUser,
+  HISTORY_PAGE_SIZE,
   listRaceHistory,
+  paginateHistory,
   PROGRESSION_RACES,
   progressionPoints,
   type HistoryEntry,
@@ -163,6 +165,43 @@ describe("computeStats wins", () => {
     ]);
 
     expect(stats.wins).toBe(2);
+  });
+});
+
+describe("paginateHistory", () => {
+  // 23 courses : 10, 10 puis 3.
+  const history = Array.from({ length: 23 }, (_, index) => entry({ raceId: String(index) }));
+  const ids = (entries: HistoryEntry[]) => entries.map((item) => item.raceId);
+
+  test("Should_ReturnFirstTenRaces_When_PageIsOne", () => {
+    const page = paginateHistory(history, 1);
+
+    expect(ids(page.entries)).toEqual(ids(history.slice(0, HISTORY_PAGE_SIZE)));
+    expect(page).toMatchObject({ page: 1, pageCount: 3 });
+  });
+
+  test("Should_ReturnRemainingRaces_When_PageIsLast", () => {
+    const page = paginateHistory(history, 3);
+
+    expect(ids(page.entries)).toEqual(["20", "21", "22"]);
+  });
+
+  test.each([
+    ["page is past the end", 9, 3],
+    ["page is zero", 0, 1],
+    ["page is negative", -2, 1],
+    ["page is not a number", Number.NaN, 1],
+    ["page is not an integer", 1.5, 1],
+  ])("Should_ClampPage_When_%s", (_name, requested, expected) => {
+    expect(paginateHistory(history, requested).page).toBe(expected);
+  });
+
+  test("Should_ReturnOneEmptyPage_When_HistoryIsEmpty", () => {
+    expect(paginateHistory([], 1)).toEqual({ entries: [], page: 1, pageCount: 1 });
+  });
+
+  test("Should_HaveOnePage_When_HistoryFillsExactlyOnePage", () => {
+    expect(paginateHistory(history.slice(0, HISTORY_PAGE_SIZE), 1).pageCount).toBe(1);
   });
 });
 

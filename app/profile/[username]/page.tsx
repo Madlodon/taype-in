@@ -1,4 +1,5 @@
 import { getFormatter, getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { removeAvatarAction, uploadAvatarAction } from "@/app/actions/avatar";
 import { Avatar } from "@/components/avatar";
@@ -9,6 +10,7 @@ import {
   computeStats,
   findProfileUser,
   listRaceHistory,
+  paginateHistory,
   progressionPoints,
   type HistoryEntry,
 } from "@/lib/profile";
@@ -22,13 +24,21 @@ function excerpt(content: string): string {
 }
 
 // Page publique : visiteurs, invités et propriétaire voient les mêmes données (PROF-2, PROF-3).
-export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
+export default async function ProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const profile = await findProfileUser((await params).username);
   if (!profile) notFound();
   const isOwner = (await getCurrentUser())?.id === profile.id;
   const history = await listRaceHistory(profile.id);
   const avatarVersion = await getAvatarVersion(profile.id);
   const stats = computeStats(history);
+  const { entries, page, pageCount } = paginateHistory(history, Number((await searchParams).page ?? 1));
+  const pageHref = (target: number) => `/profile/${encodeURIComponent(profile.username)}?page=${target}`;
   const progression = progressionPoints(history);
   const level = levelProgress(profile.xp);
   const t = await getTranslations("Profile");
@@ -139,7 +149,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((entry) => (
+                  {entries.map((entry) => (
                     <tr key={entry.raceId}>
                       <td>{format.dateTime(entry.date, { dateStyle: "medium" })}</td>
                       <th scope="row">{text(entry)}</th>
@@ -151,6 +161,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 </tbody>
               </table>
             </div>
+          )}
+          {pageCount > 1 && (
+            <nav aria-label={t("pagination")} className="history-pagination">
+              {page > 1 && <Link href={pageHref(page - 1)}>{t("previous")}</Link>}
+              <span>{t("pageOf", { page, count: pageCount })}</span>
+              {page < pageCount && <Link href={pageHref(page + 1)}>{t("next")}</Link>}
+            </nav>
           )}
         </section>
         <aside className="panel">

@@ -1073,6 +1073,16 @@ a, button, input {
   overflow-x: auto;
 }
 
+.history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .results-table {
   width: 100%;
   border-collapse: collapse;

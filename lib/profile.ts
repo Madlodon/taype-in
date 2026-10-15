@@ -102,3 +102,15 @@ export function progressionPoints(history: HistoryEntry[]): ProgressionPoint[] {
     .reverse()
     .map(({ date, wpm, accuracy }) => ({ date, wpm, accuracy }));
 }
+
+export const HISTORY_PAGE_SIZE = 10;
+
+export type HistoryPage = { entries: HistoryEntry[]; page: number; pageCount: number };
+
+// Une page de l'historique (HIST-01) ; une page invalide ou hors limites donne la plus proche.
+export function paginateHistory(history: HistoryEntry[], page: number): HistoryPage {
+  const pageCount = Math.max(1, Math.ceil(history.length / HISTORY_PAGE_SIZE));
+  const current = Number.isInteger(page) ? Math.min(Math.max(page, 1), pageCount) : 1;
+  const start = (current - 1) * HISTORY_PAGE_SIZE;
+  return { entries: history.slice(start, start + HISTORY_PAGE_SIZE), page: current, pageCount };
+}
