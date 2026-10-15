@@ -49,6 +49,9 @@
       "fr": "Français",
       "en": "Anglais"
     },
+    "quickRace": "Course rapide",
+    "noQuickLobby": "Aucune course publique à rejoindre pour le moment.",
+    "createPublic": "Créer une course publique",
     "complexity": "Complexité",
     "complexities": {
       "easy": "Facile",
