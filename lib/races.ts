@@ -7,9 +7,14 @@ import { pickText } from "./texts.ts";
 
 export type Race = typeof races.$inferSelect;
 
-// Tire un texte selon les réglages du lobby ; null si la banque n'a aucun texte dans cette langue.
+// Tire un texte selon les réglages du lobby ; null si la banque n'a aucun texte correspondant.
 export async function createRace(lobby: Lobby): Promise<Race | null> {
-  const text = await pickText(lobby.textLanguage, lobby.textLength);
+  const text = await pickText(lobby.textLanguage, lobby.textLength, lobby.textComplexity, {
+    punctuation: lobby.textPunctuation,
+    numbers: lobby.textNumbers,
+    capitals: lobby.textCapitals,
+    accents: lobby.textAccents,
+  });
   if (!text) return null;
   const [race] = await db
     .insert(races)

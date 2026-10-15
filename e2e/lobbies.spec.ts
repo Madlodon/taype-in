@@ -351,6 +351,25 @@ test("Should_ShowNoTimeLeft_When_HostChoosesNoTimer", async ({ browser }) => {
   await expect(player.page.getByRole("timer")).toHaveCount(0);
 });
 
+// CONF-06 : chaque case décochée retire ce contenu du texte de la course.
+test("Should_ShowPlainLowercaseText_When_HostUnticksEveryTextOption", async ({ browser }) => {
+  const host = await newHost(browser);
+  const code = await createRace(host.page, /Non répertoriée/, async (page) => {
+    await page.getByRole("radio", { name: "Français" }).check();
+    await page.getByLabel(/^Difficile/).check();
+    for (const option of ["Ponctuation", "Nombres", "Majuscules", "Accents (texte en français)"]) {
+      await page.getByLabel(option).uncheck();
+    }
+  });
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+
+  await expect(player.page.locator(".typing-text")).toHaveText(/^[a-z' -]+$/, { timeout: 8000 });
+});
+
 test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser }) => {
   const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);

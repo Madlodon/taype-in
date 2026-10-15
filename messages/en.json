@@ -76,6 +76,17 @@
     "english": "English",
     "textLength": "Text length",
     "words": "{count} words",
+    "complexity": "Complexity",
+    "complexities": {
+      "easy": "Easy: short words, no digits or special characters",
+      "medium": "Medium: longer words, few special characters",
+      "hard": "Hard: long words, digits and special characters"
+    },
+    "textContent": "Text content (untick to remove)",
+    "punctuation": "Punctuation",
+    "numbers": "Numbers",
+    "capitals": "Capital letters",
+    "accents": "Accents (French text)",
     "errorMode": "Typing errors",
     "blocking": "Blocking: you must type the right character to keep going",
     "tolerant": "Tolerant: you keep going and can fix with Backspace",

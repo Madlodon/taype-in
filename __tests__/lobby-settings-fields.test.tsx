@@ -15,6 +15,11 @@ function fields(settings?: LobbySettings) {
 const settings: LobbySettings = {
   textLanguage: "en",
   textLength: 100,
+  textComplexity: "medium",
+  textPunctuation: true,
+  textNumbers: true,
+  textCapitals: true,
+  textAccents: true,
   errorMode: "blocking",
   timeLimitSeconds: 90,
   capacity: 8,
@@ -69,4 +74,32 @@ test("Should_SelectThirty_When_CreatingLobby", () => {
 
 test("Should_SelectLobbyCapacity_When_EditingSettings", () => {
   expect(capacity(settings).value).toBe("8");
+});
+
+function checked(name: string) {
+  return (screen.getByRole("checkbox", { name }) as HTMLInputElement).checked;
+}
+
+test("Should_SelectMediumAndTickEveryOption_When_CreatingLobby", () => {
+  fields();
+
+  expect((screen.getByRole("radio", { name: /^Medium/ }) as HTMLInputElement).checked).toBe(true);
+  expect(["Punctuation", "Numbers", "Capital letters", "Accents (French text)"].map(checked)).toEqual([
+    true,
+    true,
+    true,
+    true,
+  ]);
+});
+
+test("Should_ShowLobbyComplexityAndOptions_When_EditingSettings", () => {
+  fields({ ...settings, textComplexity: "hard", textNumbers: false, textAccents: false });
+
+  expect((screen.getByRole("radio", { name: /^Hard/ }) as HTMLInputElement).checked).toBe(true);
+  expect(["Punctuation", "Numbers", "Capital letters", "Accents (French text)"].map(checked)).toEqual([
+    true,
+    false,
+    true,
+    false,
+  ]);
 });

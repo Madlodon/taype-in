@@ -50,7 +50,16 @@ export async function createLobby(
 
 export type LobbySettings = Pick<
   Lobby,
-  "textLanguage" | "textLength" | "errorMode" | "timeLimitSeconds" | "capacity"
+  | "textLanguage"
+  | "textLength"
+  | "textComplexity"
+  | "textPunctuation"
+  | "textNumbers"
+  | "textCapitals"
+  | "textAccents"
+  | "errorMode"
+  | "timeLimitSeconds"
+  | "capacity"
 >;
 
 // Nouveaux réglages avant de relancer le lobby ; copiés dans la prochaine course (LOB-9).
