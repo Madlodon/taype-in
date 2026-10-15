@@ -14,6 +14,7 @@ import * as lobbies from "../lib/lobbies";
 import { getClientIp } from "../lib/client-ip";
 import { CODE_ATTEMPT_LIMIT } from "../lib/rate-limit";
 import { getCurrentUser, setSessionCookie } from "../lib/session-cookie";
+import { MAX_CUSTOM_TEXT } from "../lib/texts";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(() => {
@@ -60,6 +61,10 @@ const aLobby = {
   hostId: "user-1",
   textLanguage: "fr" as const,
   textLength: 100,
+  textType: "sentences" as const,
+  textTargets: [],
+  textLetters: "",
+  customText: null,
   errorMode: "blocking" as const,
   timeLimitSeconds: 300,
   capacity: 30,
@@ -68,9 +73,11 @@ const aLobby = {
 };
 const aPrivateLobby = { ...aLobby, visibility: "private" as const };
 
-function form(fields: Record<string, string>) {
+function form(fields: Record<string, string | string[]>) {
   const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) data.set(key, value);
+  for (const [key, value] of Object.entries(fields)) {
+    for (const item of [value].flat()) data.append(key, item);
+  }
   return data;
 }
 
@@ -138,6 +145,10 @@ test("Should_SaveTextSettings_When_HostPicksLanguageAndLength", async () => {
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "public", {
     textLanguage: "en",
     textLength: 200,
+    textType: "sentences",
+    textTargets: [],
+    textLetters: "",
+    customText: null,
     errorMode: "blocking",
     timeLimitSeconds: 300,
     capacity: 30,
@@ -153,10 +164,60 @@ test.each([
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", {
     textLanguage: "fr",
     textLength: 100,
+    textType: "sentences",
+    textTargets: [],
+    textLetters: "",
+    customText: null,
     errorMode: "blocking",
     timeLimitSeconds: 300,
     capacity: 30,
   });
+});
+
+test("Should_SaveScrambledWordsWithTargets_When_HostTicksCharacters", async () => {
+  await expect(
+    createLobbyAction(form({
+      textType: "words",
+      textTargets: ["digits", "unknown", "accents"],
+      textLetters: " Q-z q1 ",
+    })),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
+    textType: "words",
+    textTargets: ["accents", "digits"],
+    textLetters: "qz",
+  }));
+});
+
+test("Should_SaveCustomTextOnOneLine_When_HostWritesText", async () => {
+  await expect(
+    createLobbyAction(form({ customText: "  Mon texte\n\nà moi.  " })),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
+    customText: "Mon texte à moi.",
+  }));
+});
+
+test.each([
+  ["empty", ""],
+  ["blank", "  \n "],
+])("Should_UseBank_When_CustomTextIs_%s", async (_, customText) => {
+  await expect(createLobbyAction(form({ customText }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
+    customText: null,
+  }));
+});
+
+test("Should_CutCustomText_When_LongerThanMax", async () => {
+  await expect(createLobbyAction(form({ customText: "a".repeat(MAX_CUSTOM_TEXT + 50) })))
+    .rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
+    customText: "a".repeat(MAX_CUSTOM_TEXT),
+  }));
 });
 
 test("Should_SaveTolerantMode_When_HostPicksTolerant", async () => {
@@ -453,6 +514,10 @@ describe("updateLobbySettingsAction", () => {
     expect(lobbies.updateLobbySettings).toHaveBeenCalledWith("lobby-1", {
       textLanguage: "en",
       textLength: 50,
+      textType: "sentences",
+      textTargets: [],
+      textLetters: "",
+      customText: null,
       errorMode: "tolerant",
       timeLimitSeconds: null,
       capacity: 4,
