@@ -27,6 +27,7 @@ const settings: LobbySettings = {
   errorMode: "blocking",
   timeLimitSeconds: 90,
   capacity: 8,
+  bonusesEnabled: false,
 };
 
 afterEach(cleanup);
@@ -130,4 +131,17 @@ test("Should_ShowLobbyComplexityAndOptions_When_EditingSettings", () => {
     true,
     false,
   ]);
+});
+
+function bonuses(settings?: LobbySettings) {
+  fields(settings);
+  return screen.getByRole("checkbox", { name: /Turn on bonuses/ }) as HTMLInputElement;
+}
+
+test("Should_LeaveBonusesOff_When_CreatingLobby", () => {
+  expect(bonuses().checked).toBe(false);
+});
+
+test("Should_CheckBonuses_When_LobbyHasThem", () => {
+  expect(bonuses({ ...settings, bonusesEnabled: true }).checked).toBe(true);
 });

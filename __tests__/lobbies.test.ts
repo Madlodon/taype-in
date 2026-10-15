@@ -133,6 +133,7 @@ test("Should_KeepLobbyAndCodeWithNewSettings_When_HostChangesSettings", async ()
     errorMode: "tolerant" as const,
     timeLimitSeconds: null,
     capacity: 8,
+    bonusesEnabled: true,
   };
 
   await updateLobbySettings(lobby.id, settings);

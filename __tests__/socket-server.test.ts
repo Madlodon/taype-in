@@ -276,6 +276,7 @@ describe("lobby:join", () => {
       errorMode: "blocking",
       timeLimitSeconds: 300,
       capacity: 2,
+      bonusesEnabled: false,
     });
 
     expect(await join(await newClient(), { code: lobby.code })).toEqual({
@@ -302,6 +303,7 @@ describe("lobby:join", () => {
       errorMode: "blocking",
       timeLimitSeconds: 300,
       capacity: 2,
+      bonusesEnabled: false,
     });
 
     expect(await listParticipants(lobby.id)).toHaveLength(3);
@@ -1575,6 +1577,7 @@ describe("lobby:settings", () => {
     errorMode: "tolerant",
     timerSeconds: "90",
     capacity: "4",
+    bonusesEnabled: "on",
   };
 
   test("Should_SaveAndSendToEveryoneWithoutCustomText_When_HostChangesSettings", async () => {
@@ -1598,12 +1601,14 @@ describe("lobby:settings", () => {
       errorMode: "tolerant",
       timeLimitSeconds: 90,
       capacity: 4,
+      bonusesEnabled: true,
     });
     expect(await findOpenLobby(lobby.code)).toMatchObject({
       textLanguage: "en",
       customText: "Mon texte secret",
       timeLimitSeconds: 90,
       capacity: 4,
+      bonusesEnabled: true,
     });
   });
 
@@ -2180,6 +2185,7 @@ describe("bots", () => {
       errorMode: "blocking",
       timeLimitSeconds: 300,
       capacity: 2,
+      bonusesEnabled: false,
     });
 
     expect(await addBot(hostClient, "expert")).toEqual({ ok: false, error: "lobbyFull" });
@@ -2202,6 +2208,7 @@ describe("bots", () => {
       errorMode: "blocking",
       timeLimitSeconds: 300,
       capacity: 2,
+      bonusesEnabled: false,
     });
     await addBot(hostClient, "expert");
 

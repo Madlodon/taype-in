@@ -192,6 +192,7 @@ export function createSocketServer(
       errorMode: settings.errorMode,
       timeLimitSeconds: settings.timeLimitSeconds,
       capacity: settings.capacity,
+      bonusesEnabled: settings.bonusesEnabled,
     };
   }
 

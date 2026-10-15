@@ -111,6 +111,12 @@ test.each(["blocking", "tolerant"] as const)(
   },
 );
 
+test.each([true, false])("Should_CopyLobbyBonuses_When_BonusesEnabledIs_%s", async (bonusesEnabled) => {
+  const race = await createRace(await newLobby({ bonusesEnabled }));
+
+  expect(race!.bonusesEnabled).toBe(bonusesEnabled);
+});
+
 test("Should_SaveRace_When_Created", async () => {
   const race = await createRace(await newLobby());
 

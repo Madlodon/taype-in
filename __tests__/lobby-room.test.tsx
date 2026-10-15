@@ -1391,6 +1391,7 @@ const settings: SettingsMessage = {
   errorMode: "tolerant",
   timeLimitSeconds: 90,
   capacity: 4,
+  bonusesEnabled: false,
 };
 
 function sendSettings(message = settings) {
@@ -1421,6 +1422,7 @@ test("Should_ShowSettingsToEveryone_When_ServerSendsThem", () => {
     "Erreurs de frappeTolérant",
     "Minuterie1 min 30",
     "Capacité maximale4 participants",
+    "BonusDésactivés",
   ]);
 });
 
@@ -1437,6 +1439,7 @@ test("Should_UpdateSettings_When_HostChangesThem", () => {
     "Erreurs de frappeTolérant",
     "MinuteriePas de minuterie",
     "Capacité maximale4 participants",
+    "BonusDésactivés",
   ]);
 });
 
@@ -1454,6 +1457,7 @@ test("Should_ShowComplexityAndRemovedContent_When_TextComesFromBankSentences", (
     "Erreurs de frappeTolérant",
     "Minuterie1 min 30",
     "Capacité maximale4 participants",
+    "BonusDésactivés",
   ]);
 });
 

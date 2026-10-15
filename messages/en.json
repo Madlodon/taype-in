@@ -119,6 +119,8 @@
     "noTimer": "No timer",
     "capacity": "Maximum capacity",
     "participants": "{count} participants",
+    "bonuses": "Bonuses",
+    "bonusesEnabled": "Turn on bonuses: goals give the players behind an effect (these races don't count in best speeds)",
     "submit": "Create the race"
   },
   "LobbyRoom": {
@@ -207,7 +209,10 @@
       "letters": "letters “{letters}”",
       "blocking": "Blocking",
       "tolerant": "Tolerant",
-      "removed": "Removed content"
+      "removed": "Removed content",
+      "bonuses": "Bonuses",
+      "on": "On",
+      "off": "Off"
     }
   },
   "RaceResults": {

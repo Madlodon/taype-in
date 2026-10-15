@@ -66,6 +66,7 @@ export type LobbySettings = Pick<
   | "errorMode"
   | "timeLimitSeconds"
   | "capacity"
+  | "bonusesEnabled"
 >;
 
 // Champs du formulaire de réglages, à la création ou dans la salle d'attente (CONF-12).
@@ -110,6 +111,8 @@ export function parseLobbySettings(input: unknown): LobbySettings {
     .pipe(z.union(CAPACITY_OPTIONS.map((count) => z.literal(count))))
     .catch(MAX_CAPACITY)
     .parse(fields.capacity);
+  // Case décochée par défaut : pas de bonus (BON-1).
+  const bonusesEnabled = Boolean(fields.bonusesEnabled);
   return {
     textLanguage,
     textLength,
@@ -125,6 +128,7 @@ export function parseLobbySettings(input: unknown): LobbySettings {
     errorMode,
     timeLimitSeconds,
     capacity,
+    bonusesEnabled,
   };
 }
 

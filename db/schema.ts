@@ -137,6 +137,8 @@ export const lobbies = pgTable("lobbies", {
   timeLimitSeconds: integer("time_limit_seconds").default(300),
   // Capacité maximale choisie par l'hôte, de 2 à 30 (SALLE-05).
   capacity: integer("capacity").notNull().default(30),
+  // Bonus désactivés par défaut, copiés dans chaque course (BON-1).
+  bonusesEnabled: boolean("bonuses_enabled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
