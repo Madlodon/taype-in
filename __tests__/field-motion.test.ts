@@ -2,6 +2,56 @@ import { expect, test } from "vitest";
 import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls, launchFieldShot } from "../lib/field-motion";
 import { DRIVING_AREA, ballContactDistance } from "../lib/stadium-track";
 
+test.each(["octane", "fennec", "dominus", "merc"])("Should_SeparateOverlappingBallsDuringKickCooldown_For_%s", body => {
+  const car = { ...createFieldCars(["you"])[0], x: 0, y: 0, heading: .8 };
+  const bodies = new Map([[car.id, body]]);
+  const halfLength = ballContactDistance(.5, body) - 1.2;
+  for (const [x, y] of [[0, 0], [halfLength, 0], [-halfLength, 0], [0, .9], [halfLength, .9]]) {
+    const ball = { ...createFieldBalls([car])[0],
+      x: x * Math.cos(car.heading) - y * Math.sin(car.heading),
+      y: x * Math.sin(car.heading) + y * Math.cos(car.heading), sinceContact: 0 };
+    const next = stepFieldBalls([ball], [car], 1 / 60, new Set(), .5, bodies)[0];
+    const localX = next.x * Math.cos(car.heading) + next.y * Math.sin(car.heading);
+    const localY = -next.x * Math.sin(car.heading) + next.y * Math.cos(car.heading);
+    expect(Math.hypot(Math.max(0, Math.abs(localX) - halfLength), Math.max(0, Math.abs(localY) - .975))).toBeCloseTo(1.2);
+    expect(next.contacts).toBe(0);
+  }
+});
+
+test("Should_BounceOffAnotherCar_When_AKickReachesIt", () => {
+  const cars = createFieldCars(["a", "b"]).map((car, index) => ({ ...car, x: index * 10, y: 0, heading: 0 }));
+  const ball = { ...createFieldBalls(cars)[0], x: 7.5, vx: 15, sinceContact: 0 };
+  const next = stepFieldBalls([ball], cars, 1 / 60)[0];
+  expect(next.x).toBeCloseTo(10 - ballContactDistance(.45));
+  expect(next.vx).toBeLessThan(0);
+  expect(next.id).toBe("a");
+});
+
+test("Should_DriveClearInsteadOfSpinning_When_TwoDriversPursueNearbyBalls", () => {
+  let cars = createFieldCars(["a", "b"]).map((car, index) => ({ ...car,
+    x: index ? 5 : -5, y: 0, heading: index * Math.PI,
+    targetHeading: index * Math.PI, decisionIn: .1, speed: 6,
+  }));
+  let balls = createFieldBalls(cars);
+  let travel = [0, 0], rotation = [0, 0];
+  for (let step = 0; step < 60 * 30; step++) {
+    const next = stepFieldCars(cars, 1 / 60, new Set(), new Map(balls.map(ball => [ball.id, ball])));
+    balls = stepFieldBalls(balls, next, 1 / 60);
+    next.forEach((car, index) => {
+      travel[index] += Math.hypot(car.x - cars[index].x, car.y - cars[index].y);
+      rotation[index] += Math.abs(car.heading - cars[index].heading);
+    });
+    cars = next;
+    if ((step + 1) % 180 === 0) {
+      for (let index = 0; index < cars.length; index++) {
+        expect(travel[index] > 2 || rotation[index] < Math.PI).toBe(true);
+      }
+      travel = [0, 0]; rotation = [0, 0];
+    }
+  }
+  for (const ball of balls) expect(ball.contacts).toBeGreaterThan(2);
+});
+
 test("Should_PreserveExistingPoses_When_RankingChangesAndCarsJoin", () => {
   const cars = stepFieldCars(createFieldCars(["you", "rival"]), 1 / 60);
   const changed = createFieldCars(["new", "rival", "you"], cars);
