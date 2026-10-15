@@ -1,4 +1,5 @@
 import type { RemovedWord } from "./race-goals.ts";
+import type { BonusEffect } from "./race-bonuses.ts";
 // Messages Socket.IO envoyés par le client, validés avec Zod.
 import { z } from "zod";
 import { BOT_LEVELS, type Bot } from "./bots.ts";
@@ -87,7 +88,8 @@ export type RaceStartedMessage = {
   racerIds: string[];
   secondsLeft: number | null;
   elapsedMs: number;
-  mine?: ProgressMessage & { gaveUp: boolean; removed?: RemovedWord[] };
+  // content : son texte, changé par les bonus reçus (BON-3).
+  mine?: ProgressMessage & { gaveUp: boolean; removed?: RemovedWord[]; content?: string };
 };
 
 // Classement en direct, du premier au dernier ; position = caractères tapés (CRS-2), wpm = MPM en direct (COURSE-05).
@@ -110,7 +112,7 @@ export type RaceResult = {
   finished: boolean;
   // Fini, temps écoulé (course finie sans lui) ou abandon (COURSE-10).
   status: "finished" | "timeUp" | "gaveUp";
-  // Bonus reçus : buts marqués pour l'instant (#133).
+  // Bonus : buts marqués (BON-3).
   bonuses: number;
   keyErrors: Record<string, number>;
   // MPM à chaque seconde de course, pour le graphique des résultats (RES-03).
@@ -134,6 +136,15 @@ export type RaceEndedMessage = {
 
 // The server owns shot outcomes and the removed word offsets.
 export type RaceShotMessage = { id: string; sequence: number; scored: boolean };
-export type RaceGoalMessage = { removed: RemovedWord[]; word?: string };
+// Bonus d'un but (BON-3), envoyé à celui qui marque et à sa cible (from = to pour removeWords).
+// La cible reçoit son nouveau texte (content) ou ses mots retirés (removed) quand ils changent.
+export type RaceBonusMessage = {
+  effect: BonusEffect;
+  from: string;
+  to: string;
+  content?: string;
+  removed?: RemovedWord[];
+  word?: string;
+};
 
 export type RaceBoostMessage = { id: string };

@@ -233,3 +233,22 @@ test("Should_ShowWpmAndAccuracyInEnglish_When_LocaleIsEnglish", () => {
 
   expect(screen.getByText("0 WPM · Accuracy 0%")).toBeTruthy();
 });
+
+test("Should_RefuseLetterTooSoon_When_SlowLettersRemain", () => {
+  vi.useFakeTimers();
+  const onSlowLetter = vi.fn();
+  render(
+    <NextIntlClientProvider locale="fr" messages={fr}>
+      <RaceTyping content="chat" errorMode="blocking" startedAt={Date.now()} slowLetters={2} onSlowLetter={onSlowLetter} />
+    </NextIntlClientProvider>,
+  );
+  const input = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+  type(input, "c", "ch");
+  expect(input.value).toBe("c");
+  wait(1000);
+  type(input, "ch");
+
+  expect(input.value).toBe("ch");
+  expect(onSlowLetter).toHaveBeenCalledTimes(2);
+});

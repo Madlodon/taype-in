@@ -1,5 +1,14 @@
 import { countCorrect, hasCorrectInput, wordsPerMinute } from "./typing.ts";
 import { completedSentences, thirdWordAhead, GOAL_CHANCE, SHOT_MS, type RemovedWord } from "./race-goals.ts";
+import {
+  addWords,
+  availableEffects,
+  isBonusEligible,
+  shuffleNextWord,
+  SLOW_LETTER_MS,
+  SLOW_LETTERS,
+  type BonusEffect,
+} from "./race-bonuses.ts";
 // Serveur Socket.IO attaché au serveur HTTP de Next.js (ADR 0001).
 import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
@@ -50,7 +59,7 @@ import {
   type RaceResult,
   type RaceStartedMessage,
   type RaceShotMessage,
-  type RaceGoalMessage,
+  type RaceBonusMessage,
   type RaceBoostMessage,
 } from "./socket-messages.ts";
 
@@ -59,12 +68,17 @@ type SocketData = { user: User; lobby?: Lobby };
 // Un coureur et ce qu'il a tapé, gardé pour qu'il reprenne où il était (CRS-6).
 // doneAt : moment où il a fini ou abandonné, pour son temps (FIN-2).
 // wpmSeries : son MPM à chaque seconde, jusqu'à ce qu'il finisse ou abandonne (RES-03).
+// content : son texte, changé par les bonus (mots ajoutés, mot mélangé) ; bonuses : buts marqués.
+// slowLetters : lettres qu'un bot doit encore taper avec 1 s d'attente (BON-3).
 type Player = ProgressMessage & {
   state: PlayerState;
   doneAt?: number;
+  content: string;
   removed: RemovedWord[];
   sentences: Set<number>;
   wpmSeries: number[];
+  bonuses: number;
+  slowLetters: number;
 };
 
 // Bot ajouté par l'hôte : un id au format d'un utilisateur, qui ne correspond à personne en base (BOT-1).
@@ -79,6 +93,8 @@ type LiveRace = {
   startedAt: number;
   content: string;
   errorMode: RaceStartedMessage["errorMode"];
+  // Buts et bonus seulement si l'hôte les a activés (BON-1).
+  bonusesEnabled: boolean;
   racerIds: string[];
   timeLimitSeconds: number | null;
   // Fin prévue par la minuterie (ms) ; null sans minuterie.
@@ -135,6 +151,8 @@ export function createSocketServer(
     shotRandom = Math.random,
     // goalChance = 0 : aucun but, pour les tests E2E qui tapent tout le texte.
     goalChance = GOAL_CHANCE,
+    // Choix de l'effet d'un bonus et de son contenu (mots ajoutés, mélange).
+    bonusRandom = Math.random,
     // SALLE-08 : délai laissé à l'hôte parti pour revenir (ex. rechargement de la page).
     hostGraceMs = 10_000,
     // TECH-5 : vitesse maximale acceptée ; Infinity pour les tests E2E qui tapent d'un coup.
@@ -158,7 +176,7 @@ export function createSocketServer(
       "race:positions": (message: RacePositionsMessage) => void;
       "race:boost": (message: RaceBoostMessage) => void;
       "race:shot": (message: RaceShotMessage) => void;
-      "race:goal": (message: RaceGoalMessage) => void;
+      "race:bonus": (message: RaceBonusMessage) => void;
       "race:ended": (message: RaceEndedMessage) => void;
     },
     Record<string, never>,
@@ -256,7 +274,7 @@ export function createSocketServer(
       positions: positions.map(([id, { username, position, bot }]) => {
         const player = live.players.get(id);
         const wpm = player
-          ? wordsPerMinute(countCorrect(player.typed, live.content), (player.doneAt ?? now) - live.startedAt)
+          ? wordsPerMinute(countCorrect(player.typed, player.content), (player.doneAt ?? now) - live.startedAt)
           : 0;
         return { id, username, position, wpm: Math.round(wpm), bot };
       }),
@@ -268,7 +286,7 @@ export function createSocketServer(
     const now = Date.now();
     for (const player of live.players.values()) {
       if (player.state === "finished" || player.state === "abandoned") continue;
-      player.wpmSeries.push(Math.round(wordsPerMinute(countCorrect(player.typed, live.content), now - live.startedAt)));
+      player.wpmSeries.push(Math.round(wordsPerMinute(countCorrect(player.typed, player.content), now - live.startedAt)));
     }
   }
 
@@ -360,6 +378,75 @@ export function createSocketServer(
     }
   }
 
+  // Part de son texte qu'un coureur a tapée ; son texte peut grandir avec un bonus.
+  function progressOf(player: Player) {
+    return player.typed.length / player.content.length;
+  }
+
+  // Position sur la longueur du texte de départ, pour que la piste compare tout le monde (CRS-2).
+  function movePosition(live: LiveRace, id: string) {
+    const player = live.players.get(id)!;
+    const racer = live.positions.get(id)!;
+    const position = Math.round(progressOf(player) * live.content.length);
+    if (racer.position === position) return;
+    live.positions.set(id, { ...racer, position, at: Date.now() });
+    live.positionsChanged = true;
+  }
+
+  function emitTo(lobby: Lobby, id: string, message: RaceBonusMessage) {
+    for (const client of io.sockets.sockets.values()) {
+      if (client.data.user.id === id && client.rooms.has(lobby.code)) client.emit("race:bonus", message);
+    }
+  }
+
+  // But marqué : un effet au hasard (BON-3). Retirer des mots aide celui qui marque ;
+  // les autres effets visent le plus avancé encore en course.
+  function applyBonus(lobby: Lobby, live: LiveRace, id: string) {
+    const player = live.players.get(id)!;
+    const targetId = [...live.positions]
+      .sort(([, a], [, b]) => b.position - a.position || a.at - b.at)
+      .map(([otherId]) => otherId)
+      .find((otherId) => {
+        const other = live.players.get(otherId)!;
+        return otherId !== id && other.state !== "finished" && other.state !== "abandoned";
+      });
+    const effects = availableEffects(targetId ? { bot: Boolean(live.positions.get(targetId)!.bot) } : undefined);
+    const effect: BonusEffect = effects[Math.floor(bonusRandom() * effects.length)];
+    if (effect === "removeWords") {
+      const range = thirdWordAhead(player.content, player.typed.length, player.removed);
+      if (!range) return;
+      player.removed.push(range);
+      player.bonuses++;
+      emitTo(lobby, id, {
+        effect,
+        from: id,
+        to: id,
+        removed: player.removed,
+        word: player.content.slice(range.start, range.end).trim(),
+      });
+      return;
+    }
+    const target = live.players.get(targetId!)!;
+    const message: RaceBonusMessage = { effect, from: id, to: targetId! };
+    if (effect === "addWords") {
+      const added = addWords(target.content, target.typed.length, target.removed, bonusRandom);
+      target.content = added.content;
+      target.removed = added.removed;
+      Object.assign(message, added);
+      movePosition(live, targetId!);
+    } else if (effect === "shuffleWord") {
+      const shuffled = shuffleNextWord(target.content, target.typed.length, target.removed, bonusRandom);
+      if (!shuffled) return;
+      target.content = shuffled;
+      message.content = shuffled;
+    } else if (effect === "slowLetters") {
+      target.slowLetters = SLOW_LETTERS;
+    }
+    player.bonuses++;
+    emitTo(lobby, id, { effect, from: id, to: targetId! });
+    emitTo(lobby, targetId!, message);
+  }
+
   // Nouvelle saisie d'un coureur (joueur ou bot) ; la course finit quand tous ont tapé tout le texte (CRS-5).
   async function updateProgress(
     lobby: Lobby,
@@ -375,34 +462,25 @@ export function createSocketServer(
     player.errors = progress.errors;
     player.keys = progress.keys;
     player.keyErrors = progress.keyErrors;
-    for (const sentence of completedSentences(live.content, player.typed)) {
+    // Sans bonus, pas de tirs ni de buts (BON-1) ; seule la moitié la moins avancée peut marquer (BON-2).
+    for (const sentence of live.bonusesEnabled ? completedSentences(player.content, player.typed) : []) {
       if (player.sentences.has(sentence)) continue;
       player.sentences.add(sentence);
-      const scored = shotRandom() < goalChance;
+      const eligible = isBonusEligible(
+        [...live.players.values()].map(progressOf),
+        progressOf(player),
+      );
+      const scored = eligible && shotRandom() < goalChance;
       io.to(lobby.code).emit("race:shot", { id, sequence: sentence, scored });
       const timer = setTimeout(() => {
         live.shotTimers.delete(timer);
         if (!scored || live.state !== "racing" || player.state === "finished" || player.state === "abandoned") return;
-        const range = thirdWordAhead(live.content, player.typed.length, player.removed);
-        if (!range) return;
-        player.removed.push(range);
-        const message = { removed: player.removed, word: live.content.slice(range.start, range.end).trim() };
-        for (const client of io.sockets.sockets.values()) {
-          if (client.data.user.id === id && client.rooms.has(lobby.code)) client.emit("race:goal", message);
-        }
+        applyBonus(lobby, live, id);
       }, shotMs);
       live.shotTimers.add(timer);
     }
-    const racer = live.positions.get(id)!;
-    if (racer.position !== player.typed.length) {
-      live.positions.set(id, {
-        ...racer,
-        position: player.typed.length,
-        at: Date.now(),
-      });
-      live.positionsChanged = true;
-    }
-    if (player.typed.length === live.content.length) {
+    movePosition(live, id);
+    if (player.typed.length === player.content.length) {
       player.state = nextPlayerState(player.state, "finish");
       player.doneAt = Date.now();
       await endIfNobodyRacing(lobby, live);
@@ -412,12 +490,18 @@ export function createSocketServer(
   // Le bot tape une touche à la fois, à la vitesse de son niveau, jusqu'à la fin du texte (BOT-2).
   function driveBot(lobby: Lobby, live: LiveRace, id: string, bot: Bot) {
     const player = live.players.get(id)!;
-    const key = botKey(bot.level, { ...player, blocked: false }, live.content, live.errorMode);
+    const key = botKey(bot.level, { ...player, blocked: false }, player.content, live.errorMode);
+    // Bonus « attente » : 1 s au moins avant chacune des prochaines lettres (BON-3).
+    let delayMs = key.delayMs;
+    if (player.slowLetters > 0) {
+      player.slowLetters--;
+      delayMs = Math.max(delayMs, SLOW_LETTER_MS);
+    }
     const timer = setTimeout(async () => {
       if (live.state !== "racing") return;
       await updateProgress(lobby, live, id, key.typing);
       if (player.state === "connected") driveBot(lobby, live, id, bot);
-    }, key.delayMs / botSpeedup);
+    }, delayMs / botSpeedup);
     live.botTimers.set(id, timer);
   }
 
@@ -611,6 +695,7 @@ export function createSocketServer(
             keyErrors: player.keyErrors,
             gaveUp: player.state === "abandoned",
             removed: player.removed,
+            content: player.content,
           },
         });
         socket.emit("race:positions", ranking(race));
@@ -667,6 +752,7 @@ export function createSocketServer(
         startedAt: 0,
         content: "",
         errorMode: lobby.errorMode,
+        bonusesEnabled: false,
         racerIds: racers.map((racer) => racer.id),
         timeLimitSeconds: null,
         endsAt: null,
@@ -679,9 +765,12 @@ export function createSocketServer(
               errors: 0,
               keys: 0,
               keyErrors: {},
+              content: "",
               removed: [],
               sentences: new Set<number>(),
               wpmSeries: [],
+              bonuses: 0,
+              slowLetters: 0,
             },
           ]),
         ),
@@ -701,6 +790,8 @@ export function createSocketServer(
       }
       live.raceId = race.id;
       live.content = race.content;
+      live.bonusesEnabled = race.bonusesEnabled;
+      for (const player of live.players.values()) player.content = race.content;
       live.timeLimitSeconds = race.timeLimitSeconds;
 
       io.to(lobby.code).emit("race:countdown", {
@@ -763,7 +854,7 @@ export function createSocketServer(
         ack?.({ ok: false, error: "notRacer" });
         return;
       }
-      if (result.data.typed.length > live.content.length) {
+      if (result.data.typed.length > player.content.length) {
         ack?.({ ok: false, error: "invalidMessage" });
         return;
       }
@@ -773,7 +864,7 @@ export function createSocketServer(
         !isPlausibleProgress(
           player,
           result.data,
-          live.content,
+          player.content,
           live.errorMode,
           player.removed,
           Date.now() - live.startedAt,
@@ -784,7 +875,7 @@ export function createSocketServer(
         return;
       }
 
-      if (player.state === "connected" && hasCorrectInput(player, result.data, live.content, player.removed)) {
+      if (player.state === "connected" && hasCorrectInput(player, result.data, player.content, player.removed)) {
         socket.to(lobby.code).emit("race:boost", { id: user.id });
       }
       await updateProgress(lobby, live, user.id, result.data);

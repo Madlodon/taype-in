@@ -18,6 +18,10 @@ export type Racer = ProgressMessage & {
   durationMs: number;
   reachedAt: number;
   removed?: RemovedWord[];
+  // Son propre texte quand un bonus l'a changé (mots ajoutés, mot mélangé).
+  content?: string;
+  // Buts marqués, chacun un bonus (BON-3).
+  bonuses?: number;
   wpmSeries: number[];
 };
 
@@ -39,6 +43,7 @@ const STATUS_ORDER: RaceResult["status"][] = ["finished", "timeUp", "gaveUp"];
 export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMode): Placement[] {
   const scored = racers.map((racer) => ({
     racer,
+    content: racer.content ?? content,
     status: statusOf(racer),
     penaltyMs: errorMode === "tolerant" ? racer.errors * PENALTY_MS_PER_ERROR : 0,
   }));
@@ -47,10 +52,10 @@ export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMod
       STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) ||
       (a.racer.finished
         ? a.racer.durationMs + a.penaltyMs - (b.racer.durationMs + b.penaltyMs)
-        : b.racer.typed.length - a.racer.typed.length) ||
+        : b.racer.typed.length / b.content.length - a.racer.typed.length / a.content.length) ||
       a.racer.reachedAt - b.racer.reachedAt,
   );
-  return scored.map(({ racer, status, penaltyMs }, index) => ({
+  return scored.map(({ racer, content, status, penaltyMs }, index) => ({
     id: racer.id,
     username: racer.username,
     rank: index + 1,
@@ -62,7 +67,7 @@ export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMod
     errors: racer.errors,
     finished: racer.finished,
     status,
-    bonuses: racer.removed?.length ?? 0,
+    bonuses: racer.bonuses ?? 0,
     keyErrors: racer.keyErrors,
     wpmSeries: racer.wpmSeries,
   }));

@@ -125,6 +125,17 @@
   },
   "LobbyRoom": {
     "goalRemoved": "But ! « {word} » a été retiré de ton texte.",
+    "bonus": {
+      "sent": "But ! {name} reçoit : {effect}.",
+      "received": "{name} a marqué : {effect}.",
+      "effects": {
+        "addWords": "3 mots de plus",
+        "blur": "texte flou pendant 5 s",
+        "shrink": "texte réduit pendant 5 s",
+        "slowLetters": "1 s d'attente avant chacune des 3 prochaines lettres",
+        "shuffleWord": "prochain mot mélangé"
+      }
+    },
     "title": "Salle d'attente",
     "code": "Code de la course :",
     "participants": "Participants ({count})",

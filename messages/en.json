@@ -125,6 +125,17 @@
   },
   "LobbyRoom": {
     "goalRemoved": "Goal! “{word}” was removed from your text.",
+    "bonus": {
+      "sent": "Goal! {name} gets: {effect}.",
+      "received": "{name} scored: {effect}.",
+      "effects": {
+        "addWords": "3 extra words",
+        "blur": "blurred text for 5 s",
+        "shrink": "smaller text for 5 s",
+        "slowLetters": "1 s wait before each of the next 3 letters",
+        "shuffleWord": "next word shuffled"
+      }
+    },
     "title": "Waiting room",
     "code": "Race code:",
     "participants": "Participants ({count})",
