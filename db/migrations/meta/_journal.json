@@ -141,6 +141,20 @@
       "when": 1792102684552,
       "tag": "0019_advanced_text_options",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792103862809,
+      "tag": "0020_text_complexity",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792103863022,
+      "tag": "0021_textes_par_complexite",
+      "breakpoints": true
     }
   ]
 }

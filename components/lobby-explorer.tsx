@@ -8,12 +8,18 @@ import { io, type Socket } from "socket.io-client";
 import { createLobbyAction } from "@/app/actions/lobbies";
 import type { ExplorerLobby, LobbiesMessage, QuickRaceAck } from "@/lib/socket-messages";
 
-type Props = { language?: ExplorerLobby["textLanguage"]; canCreate: boolean };
+type Props = {
+  language?: ExplorerLobby["textLanguage"];
+  complexity?: ExplorerLobby["textComplexity"];
+  canCreate: boolean;
+};
+
+const COMPLEXITIES = ["easy", "medium", "hard"] as const;
 
 // Explorateur des courses publiques : la liste arrive par le socket et se met à jour
-// sans recharger ; le filtre de langue est dans l'URL (?lang=) (JOIN-02).
+// sans recharger ; les filtres de langue et de complexité sont dans l'URL (?lang=, ?complexity=) (JOIN-02).
 // « Course rapide » demande au serveur quel lobby rejoindre (JOIN-03).
-export function LobbyExplorer({ language, canCreate }: Props) {
+export function LobbyExplorer({ language, complexity, canCreate }: Props) {
   const t = useTranslations("Lobbies");
   const d = useTranslations("Design");
   const router = useRouter();
@@ -34,7 +40,19 @@ export function LobbyExplorer({ language, canCreate }: Props) {
     };
   }, []);
 
-  const shown = lobbies?.filter((lobby) => !language || lobby.textLanguage === language);
+  const shown = lobbies?.filter(
+    (lobby) =>
+      (!language || lobby.textLanguage === language) &&
+      (!complexity || lobby.textComplexity === complexity),
+  );
+
+  // Change un filtre en gardant l'autre ; une valeur vide le retire.
+  function setFilter(name: "lang" | "complexity", value: string) {
+    const filters = { lang: language ?? "", complexity: complexity ?? "", [name]: value };
+    const params = new URLSearchParams(Object.entries(filters).filter(([, v]) => v));
+    const query = params.toString();
+    router.replace(query ? `/lobbies?${query}` : "/lobbies");
+  }
 
   async function quickRace() {
     const ack: QuickRaceAck | undefined = await socketRef.current?.emitWithAck("lobbies:quick");
@@ -65,15 +83,19 @@ export function LobbyExplorer({ language, canCreate }: Props) {
       )}
       <label className="explorer-filter">
         {t("textLanguage")}
-        <select
-          value={language ?? ""}
-          onChange={(event) =>
-            router.replace(event.target.value ? `/lobbies?lang=${event.target.value}` : "/lobbies")
-          }
-        >
+        <select value={language ?? ""} onChange={(event) => setFilter("lang", event.target.value)}>
           <option value="">{t("allLanguages")}</option>
           <option value="fr">{t("languages.fr")}</option>
           <option value="en">{t("languages.en")}</option>
+        </select>
+      </label>
+      <label className="explorer-filter">
+        {t("complexity")}
+        <select value={complexity ?? ""} onChange={(event) => setFilter("complexity", event.target.value)}>
+          <option value="">{t("allLanguages")}</option>
+          {COMPLEXITIES.map((level) => (
+            <option key={level} value={level}>{t(`complexities.${level}`)}</option>
+          ))}
         </select>
       </label>
       {!shown ? (
@@ -94,6 +116,7 @@ export function LobbyExplorer({ language, canCreate }: Props) {
                   count: lobby.participantCount,
                   capacity: lobby.capacity,
                   language: t(`languages.${lobby.textLanguage}`),
+                  complexity: t(`complexities.${lobby.textComplexity}`),
                   state: t(`states.${lobby.state}`),
                 })}
               </span>

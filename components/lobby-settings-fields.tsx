@@ -6,7 +6,7 @@ import {
   TIMER_OPTIONS,
   type LobbySettings,
 } from "@/lib/lobbies";
-import { MAX_CUSTOM_TEXT, TEXT_LENGTHS, TEXT_TARGETS } from "@/lib/texts";
+import { COMPLEXITIES, MAX_CUSTOM_TEXT, TEXT_LENGTHS, TEXT_TARGETS } from "@/lib/texts";
 
 type Props = { settings?: LobbySettings; locale: string };
 
@@ -16,6 +16,7 @@ export function LobbySettingsFields({ settings, locale }: Props) {
   const t = useTranslations("NewLobby");
   const textLanguage = settings?.textLanguage ?? (locale === "en" ? "en" : "fr");
   const textLength = settings?.textLength ?? 100;
+  const textComplexity = settings?.textComplexity ?? "medium";
   const textType = settings?.textType ?? "sentences";
   const errorMode = settings?.errorMode ?? "blocking";
   const noTimer = settings !== undefined && settings.timeLimitSeconds === null;
@@ -39,6 +40,26 @@ export function LobbySettingsFields({ settings, locale }: Props) {
             <input type="radio" name="textLength" value={length} defaultChecked={length === textLength} />
             {t("words", { count: length })}</label>
         ))}
+      </fieldset>
+      <fieldset>
+        <legend className="text-sm font-semibold">{t("complexity")}</legend>
+        {COMPLEXITIES.map((complexity) => (
+          <label key={complexity} className="radio-option">
+            <input type="radio" name="textComplexity" value={complexity} defaultChecked={complexity === textComplexity} />
+            {t(`complexities.${complexity}`)}</label>
+        ))}
+      </fieldset>
+      {/* CONF-06 : décocher retire ce contenu du texte tiré. */}
+      <fieldset>
+        <legend className="text-sm font-semibold">{t("textContent")}</legend>
+        <label className="radio-option">
+          <input type="checkbox" name="textPunctuation" defaultChecked={settings?.textPunctuation ?? true} />{t("punctuation")}</label>
+        <label className="radio-option">
+          <input type="checkbox" name="textNumbers" defaultChecked={settings?.textNumbers ?? true} />{t("numbers")}</label>
+        <label className="radio-option">
+          <input type="checkbox" name="textCapitals" defaultChecked={settings?.textCapitals ?? true} />{t("capitals")}</label>
+        <label className="radio-option">
+          <input type="checkbox" name="textAccents" defaultChecked={settings?.textAccents ?? true} />{t("accents")}</label>
       </fieldset>
       <fieldset>
         <legend className="text-sm font-semibold">{t("textType")}</legend>

@@ -55,6 +55,7 @@ export type ExplorerLobby = {
   participantCount: number;
   capacity: number;
   textLanguage: "fr" | "en";
+  textComplexity: "easy" | "medium" | "hard";
   state: "waiting" | "racing" | "finished";
 };
 

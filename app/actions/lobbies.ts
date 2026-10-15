@@ -21,7 +21,7 @@ import {
 } from "@/lib/lobbies";
 import { codeAttempts } from "@/lib/rate-limit";
 import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
-import { MAX_CUSTOM_TEXT, normalizeLetters, TEXT_LENGTHS, TEXT_TARGETS } from "@/lib/texts";
+import { COMPLEXITIES, MAX_CUSTOM_TEXT, normalizeLetters, TEXT_LENGTHS, TEXT_TARGETS } from "@/lib/texts";
 
 // error est une clé de traduction (Lobbies.errors).
 export type JoinFormState = { error?: string; code?: string } | undefined;
@@ -35,6 +35,12 @@ function parseSettings(formData: FormData): LobbySettings {
     .pipe(z.union(TEXT_LENGTHS.map((length) => z.literal(length))))
     .catch(100)
     .parse(formData.get("textLength"));
+  // Complexité du texte, et contenu à garder : une case décochée retire ce contenu (CONF-05, CONF-06).
+  const textComplexity = z.enum(COMPLEXITIES).catch("medium").parse(formData.get("textComplexity"));
+  const textPunctuation = formData.has("textPunctuation");
+  const textNumbers = formData.has("textNumbers");
+  const textCapitals = formData.has("textCapitals");
+  const textAccents = formData.has("textAccents");
   // Phrases de la banque ou mots mélangés, avec les caractères cochés (TXT-4, TXT-5).
   const textType = z.enum(["sentences", "words"]).catch("sentences").parse(formData.get("textType"));
   const textTargets = TEXT_TARGETS.filter((target) => formData.getAll("textTargets").includes(target));
@@ -62,6 +68,11 @@ function parseSettings(formData: FormData): LobbySettings {
   return {
     textLanguage,
     textLength,
+    textComplexity,
+    textPunctuation,
+    textNumbers,
+    textCapitals,
+    textAccents,
     textType,
     textTargets,
     textLetters,

@@ -15,6 +15,11 @@ function fields(settings?: LobbySettings) {
 const settings: LobbySettings = {
   textLanguage: "en",
   textLength: 100,
+  textComplexity: "medium",
+  textPunctuation: true,
+  textNumbers: true,
+  textCapitals: true,
+  textAccents: true,
   textType: "sentences",
   textTargets: [],
   textLetters: "",
@@ -101,4 +106,28 @@ test("Should_ShowLobbyTextOptions_When_EditingSettings", () => {
   expect(checked("Accents")).toBe(false);
   expect(value("Specific letters")).toBe("qz");
   expect(value(/^Your own text/)).toBe("Mon texte.");
+});
+
+test("Should_SelectMediumAndTickEveryOption_When_CreatingLobby", () => {
+  fields();
+
+  expect((screen.getByRole("radio", { name: /^Medium/ }) as HTMLInputElement).checked).toBe(true);
+  expect(["Punctuation", "Numbers", "Capital letters", "Accents (French text)"].map(checked)).toEqual([
+    true,
+    true,
+    true,
+    true,
+  ]);
+});
+
+test("Should_ShowLobbyComplexityAndOptions_When_EditingSettings", () => {
+  fields({ ...settings, textComplexity: "hard", textNumbers: false, textAccents: false });
+
+  expect((screen.getByRole("radio", { name: /^Hard/ }) as HTMLInputElement).checked).toBe(true);
+  expect(["Punctuation", "Numbers", "Capital letters", "Accents (French text)"].map(checked)).toEqual([
+    true,
+    false,
+    true,
+    false,
+  ]);
 });

@@ -121,6 +121,11 @@ test("Should_KeepLobbyAndCodeWithNewSettings_When_HostChangesSettings", async ()
   const settings = {
     textLanguage: "en" as const,
     textLength: 200,
+    textComplexity: "medium" as const,
+    textPunctuation: true,
+    textNumbers: true,
+    textCapitals: true,
+    textAccents: true,
     textType: "words" as const,
     textTargets: ["accents", "digits"],
     textLetters: "qz",
@@ -229,7 +234,11 @@ test("Should_ListOnlyOpenPublicLobbiesWithParticipants_When_ListingPublicLobbies
 test("Should_ShowHostCountCapacityAndLanguage_When_ListingPublicLobbies", async () => {
   const host = await newUser();
   const guest = await newUser();
-  const lobby = await createLobby(host.id, "public", { capacity: 8, textLanguage: "en" });
+  const lobby = await createLobby(host.id, "public", {
+    capacity: 8,
+    textLanguage: "en",
+    textComplexity: "hard",
+  });
   await addParticipant(lobby.id, host.id);
   await addParticipant(lobby.id, guest.id);
 
@@ -241,6 +250,7 @@ test("Should_ShowHostCountCapacityAndLanguage_When_ListingPublicLobbies", async 
     capacity: 8,
     textLanguage: "en",
     createdAt: lobby.createdAt,
+    textComplexity: "hard",
     hostName: host.username,
     participantCount: 2,
   });

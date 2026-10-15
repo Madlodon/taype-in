@@ -31,6 +31,7 @@ const french: ExplorerLobby = {
   participantCount: 3,
   capacity: 8,
   textLanguage: "fr",
+  textComplexity: "easy",
   state: "waiting",
 };
 const english: ExplorerLobby = {
@@ -39,13 +40,19 @@ const english: ExplorerLobby = {
   participantCount: 2,
   capacity: 30,
   textLanguage: "en",
+  textComplexity: "hard",
   state: "racing",
 };
 
-function renderExplorer(language?: "fr" | "en", locale: "fr" | "en" = "fr", canCreate = true) {
+function renderExplorer(
+  language?: "fr" | "en",
+  locale: "fr" | "en" = "fr",
+  complexity?: ExplorerLobby["textComplexity"],
+  canCreate = true,
+) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
-      <LobbyExplorer language={language} canCreate={canCreate} />
+      <LobbyExplorer language={language} complexity={complexity} canCreate={canCreate} />
     </NextIntlClientProvider>,
   );
   act(() => handlers["connect"]());
@@ -79,14 +86,14 @@ test("Should_ShowLoading_When_ListNotReceivedYet", () => {
   expect(screen.getByText("Chargement des courses…")).toBeTruthy();
 });
 
-test("Should_ShowCountCapacityLanguageAndState_When_ListReceived", () => {
+test("Should_ShowCountCapacityLanguageComplexityAndState_When_ListReceived", () => {
   renderExplorer();
 
   sendList([french, english]);
 
   expect(rows()).toEqual([
-    "Course de alex3/8 · Français · En attente",
-    "Course de sam2/30 · Anglais · En course",
+    "Course de alex3/8 · Français · Facile · En attente",
+    "Course de sam2/30 · Anglais · Difficile · En course",
   ]);
 });
 
@@ -95,12 +102,12 @@ test("Should_ShowResultsState_When_RaceFinished", () => {
 
   sendList([{ ...english, state: "finished" }]);
 
-  expect(rows()).toEqual(["sam's race2/30 · English · Results"]);
+  expect(rows()).toEqual(["sam's race2/30 · English · Hard · Results"]);
 });
 
 test.each([
-  ["fr", ["Course de alex3/8 · Français · En attente"]],
-  ["en", ["Course de sam2/30 · Anglais · En course"]],
+  ["fr", ["Course de alex3/8 · Français · Facile · En attente"]],
+  ["en", ["Course de sam2/30 · Anglais · Difficile · En course"]],
 ] as const)("Should_ShowOnlyLanguage_When_FilterIs%s", (language, expected) => {
   renderExplorer(language);
 
@@ -115,7 +122,7 @@ test("Should_ReplaceList_When_ServerSendsUpdate", () => {
 
   sendList([{ ...french, participantCount: 4 }]);
 
-  expect(rows()).toEqual(["Course de alex4/8 · Français · En attente"]);
+  expect(rows()).toEqual(["Course de alex4/8 · Français · Facile · En attente"]);
 });
 
 test("Should_ShowEmptyState_When_NoLobbyMatchesFilter", () => {
@@ -135,6 +142,45 @@ test.each([
   fireEvent.change(screen.getByLabelText("Langue du texte"), { target: { value } });
 
   expect(router.replace).toHaveBeenCalledWith(url);
+});
+
+test.each([
+  ["easy", ["Course de alex3/8 · Français · Facile · En attente"]],
+  ["hard", ["Course de sam2/30 · Anglais · Difficile · En course"]],
+  ["medium", []],
+] as const)("Should_ShowOnlyComplexity_When_FilterIs_%s", (complexity, expected) => {
+  renderExplorer(undefined, "fr", complexity);
+
+  sendList([french, english]);
+
+  expect(rows()).toEqual(expected);
+});
+
+test("Should_CombineFilters_When_LanguageAndComplexityChosen", () => {
+  renderExplorer("en", "fr", "easy");
+
+  sendList([french, english, { ...english, code: "CCCCCC", hostName: "kim", textComplexity: "easy" }]);
+
+  expect(rows()).toEqual(["Course de kim2/30 · Anglais · Facile · En course"]);
+});
+
+test.each([
+  ["hard", "/lobbies?lang=fr&complexity=hard"],
+  ["", "/lobbies?lang=fr"],
+])("Should_KeepLanguageInUrl_When_ComplexityChosen (%s)", (value, url) => {
+  renderExplorer("fr", "fr", "easy");
+
+  fireEvent.change(screen.getByLabelText("Complexité"), { target: { value } });
+
+  expect(router.replace).toHaveBeenCalledWith(url);
+});
+
+test("Should_KeepComplexityInUrl_When_LanguageChosen", () => {
+  renderExplorer(undefined, "fr", "medium");
+
+  fireEvent.change(screen.getByLabelText("Langue du texte"), { target: { value: "en" } });
+
+  expect(router.replace).toHaveBeenCalledWith("/lobbies?lang=en&complexity=medium");
 });
 
 test("Should_GoToLobby_When_QuickRaceFindsOne", async () => {
@@ -161,7 +207,7 @@ test("Should_OfferPublicLobby_When_NoQuickLobbyForRegisteredUser", async () => {
 
 test("Should_ShowEmptyStateOnly_When_NoQuickLobbyForGuest", async () => {
   socket.emitWithAck.mockResolvedValue({ ok: false, error: "noQuickLobby" });
-  renderExplorer(undefined, "fr", false);
+  renderExplorer(undefined, "fr", undefined, false);
 
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Course rapide" })));
 

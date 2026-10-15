@@ -52,8 +52,14 @@
     "quickRace": "Race now",
     "noQuickLobby": "No public race to join right now.",
     "createPublic": "Create a public race",
+    "complexity": "Complexity",
+    "complexities": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
     "loading": "Loading races…",
-    "lobbyInfo": "{count}/{capacity} · {language} · {state}",
+    "lobbyInfo": "{count}/{capacity} · {language} · {complexity} · {state}",
     "states": {
       "waiting": "Waiting",
       "racing": "Racing",
@@ -79,6 +85,17 @@
     "english": "English",
     "textLength": "Text length",
     "words": "{count} words",
+    "complexity": "Complexity",
+    "complexities": {
+      "easy": "Easy: short words, no digits or special characters",
+      "medium": "Medium: longer words, few special characters",
+      "hard": "Hard: long words, digits and special characters"
+    },
+    "textContent": "Text content (untick to remove)",
+    "punctuation": "Punctuation",
+    "numbers": "Numbers",
+    "capitals": "Capital letters",
+    "accents": "Accents (French text)",
     "textType": "Text type",
     "sentences": "Sentences: a text from the bank",
     "scrambledWords": "Scrambled words: random words",

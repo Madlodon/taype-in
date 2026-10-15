@@ -52,6 +52,11 @@ export type LobbySettings = Pick<
   Lobby,
   | "textLanguage"
   | "textLength"
+  | "textComplexity"
+  | "textPunctuation"
+  | "textNumbers"
+  | "textCapitals"
+  | "textAccents"
   | "textType"
   | "textTargets"
   | "textLetters"
@@ -160,7 +165,7 @@ export async function claimInvite(
   return taken ? lobby : null;
 }
 
-export type PublicLobby = Pick<Lobby, "id" | "code" | "capacity" | "textLanguage" | "createdAt"> & {
+export type PublicLobby = Pick<Lobby, "id" | "code" | "capacity" | "textLanguage" | "textComplexity" | "createdAt"> & {
   hostName: string;
   participantCount: number;
 };
@@ -174,6 +179,7 @@ export async function listPublicLobbies(): Promise<PublicLobby[]> {
       capacity: lobbies.capacity,
       textLanguage: lobbies.textLanguage,
       createdAt: lobbies.createdAt,
+      textComplexity: lobbies.textComplexity,
       hostName: users.username,
       participantCount: count(lobbyParticipants.userId),
     })

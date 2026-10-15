@@ -196,12 +196,13 @@ export function createSocketServer(
   async function explorerLobbies(): Promise<LobbiesMessage> {
     return {
       lobbies: (await publicLobbies()).map(
-        ({ code, hostName, participantCount, capacity, textLanguage, state }) => ({
+        ({ code, hostName, participantCount, capacity, textLanguage, textComplexity, state }) => ({
           code,
           hostName,
           participantCount,
           capacity,
           textLanguage,
+          textComplexity,
           state,
         }),
       ),
