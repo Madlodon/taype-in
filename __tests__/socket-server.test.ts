@@ -19,6 +19,7 @@ import {
   updateLobbySettings,
 } from "../lib/lobbies";
 import { CODE_ATTEMPT_LIMIT } from "../lib/rate-limit";
+import { createRace } from "../lib/races";
 import { createSocketServer } from "../lib/socket-server";
 import type {
   Ack,
@@ -941,6 +942,30 @@ describe("race results", () => {
       [host.id, 100, 100],
       [guest.id, 20, 20],
     ]);
+  });
+
+  test("Should_MarkPersonalBest_When_RacerBeatsEarlierSpeed", async () => {
+    const { lobby, host, guest, hostClient, guestClient } = await lobbyWithTwo();
+    // Les tests tapent presque instantanément : seul un record démesuré tient.
+    const past = (await createRace(lobby))!;
+    const pastResult = { raceId: past.id, rank: 1, accuracy: 100, durationMs: 60_000, errorCount: 0, finished: true };
+    await db.insert(results).values([
+      { ...pastResult, userId: host.id, wpm: 1 },
+      { ...pastResult, userId: guest.id, wpm: 1e30 },
+    ]);
+    const { content } = await startRace(hostClient);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await progress(guestClient, typing(content, 0));
+
+    const { results: ranked } = await ended;
+
+    expect(ranked.map((result) => [result.id, result.personalBest])).toEqual(
+      expect.arrayContaining([
+        [host.id, true],
+        [guest.id, false],
+      ]),
+    );
   });
 
   test("Should_RecordWpmEverySampleUntilRacerFinishes_When_RaceRuns", async () => {
