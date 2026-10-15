@@ -49,6 +49,7 @@ erDiagram
         language language "fr | en"
         text title
         text content
+        text_complexity complexity "easy | medium | hard"
         timestamptz created_at
     }
 
@@ -59,6 +60,11 @@ erDiagram
         uuid host_id FK
         language text_language "fr | en"
         integer text_length "50 | 100 | 200 mots"
+        text_complexity text_complexity "easy | medium | hard"
+        boolean text_punctuation
+        boolean text_numbers
+        boolean text_capitals
+        boolean text_accents
         timestamptz created_at
         timestamptz closed_at "null : ouvert"
     }
@@ -110,6 +116,18 @@ erDiagram
 - **Lobby et course** : un lobby persiste entre plusieurs courses (LOB-9). Les paramètres choisis par l'hôte sont copiés dans chaque `races`, car ils peuvent changer d'une course à l'autre.
 - **Texte d'une course** : `races.content` garde le texte exact qui a été tapé (coupé à la longueur choisie ou écrit par l'hôte). `text_id` pointe vers la banque de textes quand il y a lieu ; supprimer un texte de la banque ne touche pas l'historique.
 - **Banque de textes** : la migration `0003_banque_de_textes` remplit `texts` avec des textes originaux pour les 12-16 ans (TXT-3). Le lobby garde la langue et la longueur choisies à sa création (`text_language`, `text_length`) ; au départ d'une course, un texte de cette langue est tiré au hasard et coupé à la fin de la phrase qui atteint le nombre de mots.
+- **Complexité des textes (CONF-05)** : chaque texte de la banque a un niveau (`texts.complexity`) calculé par `textComplexity` (`lib/texts.ts`) à partir de deux critères mesurables :
+  - la **longueur moyenne des mots** (lettres par mot) ;
+  - les **caractères spéciaux pour 100 mots** : tout sauf les lettres, les espaces, le point, la virgule et l'apostrophe (chiffres, `; : ! ? « » ( ) - $ %`…).
+
+  | Niveau | Français | Anglais |
+  | --- | --- | --- |
+  | Facile | mots < 4,7 lettres **et** ≤ 2 caractères spéciaux | mots < 4,3 lettres **et** ≤ 2 caractères spéciaux |
+  | Difficile | mots ≥ 5,5 lettres **ou** ≥ 8 caractères spéciaux | mots ≥ 5,2 lettres **ou** ≥ 8 caractères spéciaux |
+  | Moyen | le reste | le reste |
+
+  Les seuils diffèrent par langue parce que les mots français sont plus longs. La migration `0020_textes_par_complexite` donne trois textes par niveau et par langue ; un test vérifie que le niveau enregistré de chaque texte correspond au calcul. Le lobby garde la complexité choisie (`text_complexity`, moyen par défaut) et la course tire un texte de ce niveau.
+- **Options du texte (CONF-06)** : quatre cases (`text_punctuation`, `text_numbers`, `text_capitals`, `text_accents`), toutes cochées par défaut. Une case décochée retire ce contenu du texte coupé, avant qu'il soit copié dans `races.content` : la ponctuation est enlevée (l'apostrophe et le trait d'union à l'intérieur d'un mot restent : « l'école », « peut-être ») ; un mot qui contient un chiffre est enlevé au complet ; le texte passe en minuscules ; les accents et la cédille sont enlevés (« œ » devient « oe »). Une case cochée garde le texte tel qu'il est écrit ; elle n'ajoute pas de contenu.
 - **Garage** : `car`, `boost`, `hat` et `ball` sont du texte ; les valeurs permises sont dans `lib/garage-items.ts`, donc ajouter un objet ne demande pas de migration. Une valeur inconnue revient au choix par défaut. Seuls les inscrits enregistrent leur garage.
 - **Participants** : `lobby_participants` liste les membres d'un lobby. `joined_at` sert à passer le rôle d'hôte au plus ancien participant.
 - **Invitations** : une course privée se rejoint seulement par un lien `lobby_invites` (LOB-3). Le premier qui ouvre le lien le réserve (`used_by`) ; il peut le rouvrir, mais personne d'autre. Les liens ne marchent plus une fois le lobby fermé.
