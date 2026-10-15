@@ -899,6 +899,17 @@ function ranking() {
   return within(screen.getByRole("list", { name: "Classement" })).getAllByRole("listitem");
 }
 
+test("Should_ShowNoPlaceholderCarOrBall_When_RaceHasNoPositions", () => {
+  const { container } = renderRoom();
+  expect(container.querySelector('[data-car-id="preview"]')).not.toBeNull();
+  startRace(["u2"]);
+  sendPositions(0, 0);
+
+  expect(container.querySelectorAll("[data-car-id]")).toHaveLength(0);
+  expect(container.querySelectorAll("[data-field-ball]")).toHaveLength(0);
+  expect(typingBox()).not.toBeNull();
+});
+
 test("Should_ShowRankingWithProgress_When_ServerSendsPositions", () => {
   renderRoom();
   startRace(["u1", "u2"]);
@@ -964,13 +975,91 @@ test("Should_ShowAvatarOfEachPlayerButNotBots_When_ServerSendsPositions", () => 
   expect(images).toEqual(["/avatars/u1", undefined, "/avatars/u2"]);
 });
 
-test("Should_DrawOneCarTagPerShownPlayer_When_ServerSendsPositions", () => {
+test("Should_DrawOnlyTopFiveCarTags_When_UserIsFarBehind", () => {
   const { container } = renderRoom();
   startRace(["u2"]);
 
   sendPositions(30, 15);
 
-  expect(container.querySelectorAll(".car-tag")).toHaveLength(13);
+  expect(container.querySelectorAll(".car-tag")).toHaveLength(5);
+  expect(container.querySelector('[data-car-id="u2"]')).toBeNull();
+  expect(typingBox()).not.toBeNull();
+  expect(ranking()).toHaveLength(30);
+});
+
+test.each([[1, 1], [5, 3], [8, 2], [8, 6]])(
+  "Should_ShowOnlyAvailableTopFiveCarsAndBalls_With_%i_Racers_AndLocalRank_%i",
+  (count, userRank) => {
+    const { container } = renderRoom();
+    startRace(["u2"]);
+    sendPositions(count, userRank);
+
+    const expectedIds = Array.from({ length: Math.min(count, 5) }, (_, index) =>
+      index + 1 === userRank ? "u2" : `r${index + 1}`,
+    );
+    expect([...container.querySelectorAll("[data-car-id]")].map(car => car.getAttribute("data-car-id")).sort())
+      .toEqual(expectedIds.sort());
+    expect(container.querySelectorAll("[data-field-ball]")).toHaveLength(Math.min(count, 5));
+    expect(container.querySelectorAll(".car-tag")).toHaveLength(Math.min(count, 5));
+    fireEvent.change(typingBox()!, { target: { value: "Un" } });
+    expect((typingBox() as HTMLTextAreaElement).value).toBe("Un");
+    expect(screen.getByText(/MPM · Précision 100 %/)).toBeTruthy();
+  },
+);
+
+test("Should_UseServerOrderIncludingBots_When_RacersTieAtTheCutoff", () => {
+  const { container } = renderRoom();
+  startRace(["u2"]);
+  const ids = ["r3", "r1", "r4", "r2", "bot-1", "u2"];
+  act(() => handlers["race:positions"]({ positions: ids.map(id => ({
+    id, username: id, position: 0, bot: id === "bot-1" ? { level: "beginner", number: 1 } : undefined,
+  })) }));
+
+  expect([...container.querySelectorAll("[data-car-id]")].map(car => car.getAttribute("data-car-id")).sort())
+    .toEqual(ids.slice(0, 5).sort());
+  expect(ranking()).toHaveLength(6);
+  expect(ranking()[4].textContent).toContain("Bot");
+  expect(container.querySelector('[data-car-id="u2"]')).toBeNull();
+});
+
+test("Should_KeepMovingPosesAndRemoveDepartingCarEffects_When_TopFiveChanges", () => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const { container } = renderRoom();
+  startRace(["u2"]);
+  sendOrder("a", "b", "c", "d", "u2", "f");
+  const car = (id: string) => container.querySelector(`[data-car-id="${id}"]`);
+  const pose = () => car("a")!.querySelector("[clip-path] > g")!.getAttribute("transform");
+  const initial = pose();
+  act(() => tick(100));
+  act(() => tick(200));
+  expect(pose()).not.toBe(initial);
+  act(() => handlers["race:boost"]({ id: "u2" }));
+  expect(car("u2")!.querySelector(".car-boost")).not.toBeNull();
+  const moving = pose();
+  const ball = car("a")!.querySelector("[data-field-ball]")!.getAttribute("transform");
+  const departing = car("u2")!;
+
+  sendOrder("b", "a", "c", "d", "f", "u2");
+
+  expect(pose()).toBe(moving);
+  expect(car("a")!.querySelector("[data-field-ball]")!.getAttribute("transform")).toBe(ball);
+  expect(departing.isConnected).toBe(false);
+  expect(car("u2")).toBeNull();
+  expect(car("f")!.querySelector("[data-field-ball]")).not.toBeNull();
+  expect(container.querySelectorAll("[data-car-id]")).toHaveLength(5);
+  expect(container.querySelectorAll("[data-field-ball]")).toHaveLength(5);
+  expect(ranking()).toHaveLength(6);
+  expect(typingBox()).not.toBeNull();
+  act(() => tick(216));
+  expect(pose()).not.toBe(moving);
+  sendOrder("u2", "b", "a", "c", "d", "f");
+  expect(car("u2")).not.toBeNull();
+  expect(car("f")).toBeNull();
+  vi.restoreAllMocks();
 });
 
 test.each(STADIUMS)("Should_KeepPersonalStadium_When_LobbyRaceStarts_In_%s", stadium => {

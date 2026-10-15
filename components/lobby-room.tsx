@@ -17,7 +17,7 @@ import {
   type RaceGoalMessage,
   type RaceBoostMessage,
 } from "@/lib/socket-messages";
-import { detectOvertake, selectShown, type Overtake } from "@/lib/track";
+import { detectOvertake, type Overtake } from "@/lib/track";
 import { BOT_LEVELS, type Bot } from "@/lib/bots";
 import { Arena } from "@/components/arena";
 import { Avatar } from "@/components/avatar";
@@ -339,20 +339,20 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     (participant) => !(hostWatching && participant.id === hostId),
   ).length;
 
-  // Pendant et après la course : le top 10 et tes voisins sur la piste (CRS-2) ;
+  // Le terrain montre seulement le top 5 ;
   // le classement à droite liste tout le monde et défile (COURSE-05).
-  const shown = race ? selectShown(positions, userId) : [];
+  const field = race ? positions.slice(0, 5) : [];
   const percent = (position: number) => Math.round((position / race!.content.length) * 100);
   const track =
-    shown.length === 0 ? (
-      <Arena progress={0} stadium={stadium} />
+    field.length === 0 ? (
+      <Arena progress={0} cars={race ? [] : undefined} stadium={stadium} />
     ) : (
       <div className="race-board">
         <Arena
           stadium={stadium}
           shots={shots}
           boosts={boosts}
-          cars={shown.map((entry) => ({
+          cars={field.map((entry) => ({
             id: entry.id,
             name: entry.username,
             progress:
