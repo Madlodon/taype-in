@@ -27,6 +27,31 @@ test("Should_BounceOffAnotherCar_When_AKickReachesIt", () => {
   expect(next.id).toBe("a");
 });
 
+test("Should_DriveClearInsteadOfSpinning_When_TwoDriversPursueNearbyBalls", () => {
+  let cars = createFieldCars(["a", "b"]).map((car, index) => ({ ...car,
+    x: index ? 5 : -5, y: 0, heading: index * Math.PI,
+    targetHeading: index * Math.PI, decisionIn: .1, speed: 6,
+  }));
+  let balls = createFieldBalls(cars);
+  let travel = [0, 0], rotation = [0, 0];
+  for (let step = 0; step < 60 * 30; step++) {
+    const next = stepFieldCars(cars, 1 / 60, new Set(), new Map(balls.map(ball => [ball.id, ball])));
+    balls = stepFieldBalls(balls, next, 1 / 60);
+    next.forEach((car, index) => {
+      travel[index] += Math.hypot(car.x - cars[index].x, car.y - cars[index].y);
+      rotation[index] += Math.abs(car.heading - cars[index].heading);
+    });
+    cars = next;
+    if ((step + 1) % 180 === 0) {
+      for (let index = 0; index < cars.length; index++) {
+        expect(travel[index] > 2 || rotation[index] < Math.PI).toBe(true);
+      }
+      travel = [0, 0]; rotation = [0, 0];
+    }
+  }
+  for (const ball of balls) expect(ball.contacts).toBeGreaterThan(2);
+});
+
 test("Should_PreserveExistingPoses_When_RankingChangesAndCarsJoin", () => {
   const cars = stepFieldCars(createFieldCars(["you", "rival"]), 1 / 60);
   const changed = createFieldCars(["new", "rival", "you"], cars);

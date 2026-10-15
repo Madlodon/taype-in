@@ -63,7 +63,7 @@ export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boo
       const choice = random(next);
       const turn = choice < .25 ? 1 : choice < .5 ? -1 : 0;
       const target = car.heading + turn * (.6 + random(next) * .7);
-      if (!car.edgeTurn) next.targetHeading = target;
+      if (!car.edgeTurn && !next.detourIn) next.targetHeading = target;
       next.decisionIn += 2 + random(next) * 2;
     }
 
@@ -77,15 +77,18 @@ export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boo
     const forwardX = Math.cos(travelHeading), forwardY = Math.sin(travelHeading);
     let speed = car.speed * (boosting.has(car.id) ? 2 : 1);
     let nearest = Infinity;
+    let detourDuration = 2.5;
     for (const other of cars) {
       if (other.id === car.id) continue;
       const dx = other.x - car.x, dy = other.y - car.y;
       const distance = Math.hypot(dx, dy);
       const ahead = dx * forwardX + dy * forwardY;
       const side = forwardX * dy - forwardY * dx;
-      if ((ahead <= 0 && distance > clearance + 2) || distance > clearance + 5 || Math.abs(side) > clearance) continue;
+      if (ahead <= 0 || distance > clearance + 5 || Math.abs(side) > clearance) continue;
       if (distance < nearest && !next.detourIn) {
         nearest = distance;
+        // Stagger their return so two drivers do not resume the same chase together.
+        detourDuration = car.id < other.id ? 2.5 : 5;
         // Both drivers bear right in a head-on encounter.
         const bearing = Math.atan2(dy, dx);
         const turn = Math.PI / 2 + Math.max(0, (clearance + 3 - distance) / 3);
@@ -97,8 +100,9 @@ export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boo
       }
     }
 
-    // Hold the passing direction briefly so pursuit cannot reverse it every frame.
-    if (nearest < Infinity && ball && !ball.shot) next.detourIn = .8;
+    // Finish the turn and drive clear before pursuing again. A short timer expires
+    // mid-turn and makes nearby drivers repeatedly rotate toward each other.
+    if (nearest < Infinity && ball && !ball.shot) next.detourIn = detourDuration;
 
     // Finish an inward turn even when avoidance temporarily takes us away from a ball.
     const edgeMargin = ball && !ball.shot ? .5 : 2;
