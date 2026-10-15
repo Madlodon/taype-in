@@ -3,11 +3,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { lobbies, results, users } from "../db/schema";
+import { lobbies, races, results, users } from "../db/schema";
 import { createLobby } from "../lib/lobbies";
 import { createRace } from "../lib/races";
 import { xpForLevel } from "../lib/xp";
-import { awardXp, rankRacers, saveResults, type Racer } from "../lib/results";
+import { awardXp, findPersonalBests, rankRacers, saveResults, type Racer } from "../lib/results";
 import { accuracy, countCorrect, wordsPerMinute } from "../lib/typing";
 
 const TEXT = "chat";
@@ -448,4 +448,113 @@ describe("awardXp", () => {
 
 afterAll(async () => {
   await db.$client.end();
+});
+
+describe("findPersonalBests", () => {
+  const createdIds: string[] = [];
+
+  async function newUser() {
+    const [user] = await db
+      .insert(users)
+      .values({ username: `t_${Math.random().toString(36).slice(2, 12)}` })
+      .returning();
+    createdIds.push(user.id);
+    return user;
+  }
+
+  async function newRace(hostId: string, bonusesEnabled = false) {
+    const race = (await createRace(await createLobby(hostId, "unlisted")))!;
+    if (bonusesEnabled) await db.update(races).set({ bonusesEnabled }).where(eq(races.id, race.id));
+    return race;
+  }
+
+  // Une course déjà enregistrée ; « chat » en 60 s = 0,8 MPM, en 30 s = 1,6 MPM.
+  async function pastRace(userId: string, overrides: Partial<Racer> = {}, bonusesEnabled = false) {
+    const race = await newRace(userId, bonusesEnabled);
+    await saveResults(race.id, rankRacers([racer({ id: userId, ...overrides })], TEXT, "blocking"));
+  }
+
+  async function bests(userId: string, overrides: Partial<Racer> = {}, bonusesEnabled = false) {
+    const race = await newRace(userId, bonusesEnabled);
+    return findPersonalBests(race.id, rankRacers([racer({ id: userId, ...overrides })], TEXT, "blocking"));
+  }
+
+  beforeAll(async () => {
+    await migrate(db, { migrationsFolder: "db/migrations" });
+  });
+
+  afterEach(async () => {
+    const ids = createdIds.splice(0);
+    await db.delete(lobbies).where(inArray(lobbies.hostId, ids));
+    await db.delete(users).where(inArray(users.id, ids));
+  });
+
+  test("Should_FindPlayer_When_SpeedBeatsEveryEarlierRace", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+    await pastRace(user.id, { durationMs: 45_000 });
+
+    expect(await bests(user.id, { durationMs: 30_000 })).toEqual(new Set([user.id]));
+  });
+
+  test.each([
+    ["Equal", 60_000],
+    ["Slower", 90_000],
+  ])("Should_FindNobody_When_SpeedIs%s", async (_, durationMs) => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+
+    expect(await bests(user.id, { durationMs })).toEqual(new Set());
+  });
+
+  test("Should_FindNobody_When_ItIsTheFirstRace", async () => {
+    const user = await newUser();
+
+    expect(await bests(user.id)).toEqual(new Set());
+  });
+
+  test("Should_FindNobody_When_RacerDidNotFinish", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+
+    expect(await bests(user.id, { typed: "chat", finished: false, durationMs: 10_000 })).toEqual(new Set());
+  });
+
+  test("Should_IgnoreEarlierRace_When_ItWasNotFinished", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+    await pastRace(user.id, { finished: false, durationMs: 10_000 });
+
+    expect(await bests(user.id, { durationMs: 30_000 })).toEqual(new Set([user.id]));
+  });
+
+  test("Should_IgnoreEarlierRace_When_ItHadBonuses", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+    await pastRace(user.id, { durationMs: 10_000 }, true);
+
+    expect(await bests(user.id, { durationMs: 30_000 })).toEqual(new Set([user.id]));
+  });
+
+  test("Should_FindNobody_When_RaceHasBonuses", async () => {
+    const user = await newUser();
+    await pastRace(user.id, { durationMs: 60_000 });
+
+    expect(await bests(user.id, { durationMs: 30_000 }, true)).toEqual(new Set());
+  });
+
+  test("Should_CompareEachPlayerToTheirOwnBest_When_SeveralRaced", async () => {
+    const fast = await newUser();
+    const slow = await newUser();
+    await pastRace(fast.id, { durationMs: 10_000 });
+    await pastRace(slow.id, { durationMs: 60_000 });
+    const race = await newRace(fast.id);
+    const ranked = rankRacers(
+      [racer({ id: fast.id, durationMs: 20_000 }), racer({ id: slow.id, durationMs: 30_000 })],
+      TEXT,
+      "blocking",
+    );
+
+    expect(await findPersonalBests(race.id, ranked)).toEqual(new Set([slow.id]));
+  });
 });

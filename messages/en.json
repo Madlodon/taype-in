@@ -195,6 +195,7 @@
     "unlocked": "Unlocked: {items}.",
     "toGarage": "See in the garage",
     "you": "(you)",
+    "personalBest": "New best",
     "level": "Level",
     "rankName": "{tier} {subRank} · Div. {division}",
     "rankUp": "up a division",

@@ -25,6 +25,7 @@ function result(rank: number, wpmSeries: number[]): RaceResult {
     rankChange: 0,
     xp: 0,
     xpGained: 0,
+    personalBest: false,
     wpmSeries,
   };
 }

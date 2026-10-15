@@ -1,9 +1,9 @@
 import { withoutRemoved, type RemovedWord } from "./race-goals.ts";
 // Résultats d'une course : vitesse, précision, temps et classement (FIN-1, FIN-2, ERR-3),
 // enregistrés dans l'historique de chaque joueur, invités compris (FIN-4, PROF-5).
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, max, sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
-import { results, users } from "../db/schema.ts";
+import { races, results, users } from "../db/schema.ts";
 import { clampRankLevel, rankMoves } from "./ranks.ts";
 import { accuracy, countCorrect, wordsPerMinute, type ErrorMode } from "./typing.ts";
 import { raceXp } from "./xp.ts";
@@ -22,7 +22,7 @@ export type Racer = ProgressMessage & {
 };
 
 // Place d'un coureur avant la mise à jour des rangs (#99).
-export type Placement = Omit<RaceResult, "rankLevel" | "rankChange" | "xp" | "xpGained">;
+export type Placement = Omit<RaceResult, "rankLevel" | "rankChange" | "xp" | "xpGained" | "personalBest">;
 
 // Mode tolérant : chaque faute ajoute 1 s au temps (Q-7).
 export const PENALTY_MS_PER_ERROR = 1000;
@@ -86,6 +86,40 @@ export async function saveResults(raceId: string, ranked: Placement[]) {
     wpmSeries: result.wpmSeries,
   }));
   if (rows.length > 0) await db.insert(results).values(rows);
+}
+
+// Joueurs qui battent leur meilleure vitesse (RES-04) : mêmes courses que le profil
+// (terminées, sans bonus) ; une première course ne compte pas. À appeler avant saveResults.
+export async function findPersonalBests(raceId: string, ranked: Placement[]): Promise<Set<string>> {
+  const finished = ranked.filter((placement) => placement.finished);
+  if (finished.length === 0) return new Set();
+  const [race] = await db
+    .select({ bonusesEnabled: races.bonusesEnabled })
+    .from(races)
+    .where(eq(races.id, raceId));
+  if (!race || race.bonusesEnabled) return new Set();
+  const rows = await db
+    .select({ userId: results.userId, best: max(results.wpm) })
+    .from(results)
+    .innerJoin(races, eq(races.id, results.raceId))
+    .where(
+      and(
+        inArray(results.userId, finished.map((placement) => placement.id)),
+        eq(results.finished, true),
+        eq(races.bonusesEnabled, false),
+      ),
+    )
+    .groupBy(results.userId);
+  const bests = new Map(rows.map((row) => [row.userId, row.best]));
+  // wpm est un real en base : on compare à la même précision pour qu'une égalité ne compte pas.
+  return new Set(
+    finished
+      .filter((placement) => {
+        const best = bests.get(placement.id);
+        return best != null && Math.fround(placement.wpm) > Math.fround(best);
+      })
+      .map((placement) => placement.id),
+  );
 }
 
 export type RankUpdate = { rankLevel: number; rankChange: number };

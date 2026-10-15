@@ -25,6 +25,7 @@ function result(rank: number, overrides: Partial<RaceResult> = {}): RaceResult {
     rankChange: 0,
     xp: 0,
     xpGained: 0,
+    personalBest: false,
     wpmSeries: [],
     ...overrides,
   };
@@ -178,6 +179,19 @@ test("Should_MarkBotWithoutAvatarOrRank_When_BotRaced", () => {
   expect(rows()[1][9]).toBe("—");
   expect(podium()[1]).toBe("Bot Expert 1Bot58 MPM2");
   expect(document.querySelectorAll("img.avatar")).toHaveLength(2);
+});
+
+test("Should_ShowBadge_When_PlayerBeatTheirBestSpeed", () => {
+  renderResults([result(1, { personalBest: true }), result(2)]);
+
+  expect(rows()[0][1]).toBe("joueur1Nouveau record");
+});
+
+test("Should_ShowNoBadge_When_NobodyBeatTheirBestSpeed", () => {
+  renderResults([result(1), result(2)], "en");
+
+  expect(screen.queryByText("New best")).toBeNull();
+  expect(rows()[1][1]).toBe("joueur2 (you)");
 });
 
 test("Should_ShowXpGainedAndLevel_When_PlayerDidNotLevelUp", () => {
