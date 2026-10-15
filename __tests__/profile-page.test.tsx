@@ -5,6 +5,7 @@ import ProfilePage from "../app/profile/[username]/page";
 import { getAvatarVersion } from "../lib/avatars";
 import { findProfileUser, listRaceHistory, type HistoryEntry } from "../lib/profile";
 import { getCurrentUser } from "../lib/session-cookie";
+import { findRenamedUser } from "../lib/username";
 import fr from "../messages/fr.json";
 
 vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn() }));
@@ -13,6 +14,10 @@ vi.mock("../lib/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/profile")>()),
   findProfileUser: vi.fn(),
   listRaceHistory: vi.fn(),
+}));
+vi.mock("../lib/username", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/username")>()),
+  findRenamedUser: vi.fn(),
 }));
 
 const alex = {
@@ -70,6 +75,7 @@ beforeEach(() => {
   vi.mocked(listRaceHistory).mockResolvedValue([]);
   vi.mocked(getCurrentUser).mockResolvedValue(null);
   vi.mocked(getAvatarVersion).mockResolvedValue(null);
+  vi.mocked(findRenamedUser).mockResolvedValue(null);
 });
 
 test("Should_ShowYouBadge_When_OwnerViewsTheirProfile", async () => {
@@ -105,6 +111,63 @@ test("Should_ThrowNotFound_When_UsernameIsUnknown", async () => {
   await expect(renderProfile("inconnu")).rejects.toMatchObject({
     digest: expect.stringContaining("404"),
   });
+});
+
+test("Should_RedirectToNewName_When_UsernameWasLeftRecently", async () => {
+  vi.mocked(findProfileUser).mockResolvedValue(null);
+  vi.mocked(findRenamedUser).mockResolvedValue({ ...alex, username: "alex_2", previousUsername: "alex" });
+
+  await expect(renderProfile("alex")).rejects.toMatchObject({
+    digest: expect.stringContaining(";/profile/alex_2;"),
+  });
+});
+
+test("Should_ShowUsernameForm_When_OwnerCanRename", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(alex);
+
+  await renderProfile();
+
+  const input = screen.getByLabelText("Nom d'utilisateur") as HTMLInputElement;
+  expect([input.value, input.disabled]).toEqual(["alex", false]);
+  expect(screen.getByRole("button", { name: "Changer le nom" })).toBeDefined();
+  expect(screen.queryByRole("button", { name: /Revenir/ })).toBeNull();
+});
+
+test("Should_LockFormAndOfferRevert_When_OwnerRenamedRecently", async () => {
+  const renamed = {
+    ...alex,
+    username: "alex_2",
+    previousUsername: "alex",
+    renamedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+  };
+  vi.mocked(findProfileUser).mockResolvedValue(renamed);
+  vi.mocked(getCurrentUser).mockResolvedValue(renamed);
+
+  await renderProfile("alex_2");
+
+  expect((screen.getByLabelText("Nom d'utilisateur") as HTMLInputElement).disabled).toBe(true);
+  expect(screen.getByText(/^Prochain changement possible le /)).toBeDefined();
+  expect(screen.getByRole("button", { name: "Revenir à alex" })).toBeDefined();
+  expect(screen.getByText(/^alex t’est réservé jusqu’au /)).toBeDefined();
+});
+
+test("Should_HideRevert_When_OwnerAlreadyReverted", async () => {
+  const reverted = { ...alex, renamedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) };
+  vi.mocked(findProfileUser).mockResolvedValue(reverted);
+  vi.mocked(getCurrentUser).mockResolvedValue(reverted);
+
+  await renderProfile();
+
+  expect((screen.getByLabelText("Nom d'utilisateur") as HTMLInputElement).disabled).toBe(true);
+  expect(screen.queryByRole("button", { name: /Revenir/ })).toBeNull();
+});
+
+test("Should_HideUsernameForm_When_AnotherUserVisits", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(sam);
+
+  await renderProfile();
+
+  expect(screen.queryByLabelText("Nom d'utilisateur")).toBeNull();
 });
 
 test("Should_ShowEmptyState_When_UserHasNoRace", async () => {

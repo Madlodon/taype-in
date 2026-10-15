@@ -1346,6 +1346,11 @@ a, button, input {
   gap: 10px;
 }
 
+.username-form {
+  max-width: 480px;
+  margin-bottom: 20px;
+}
+
 .site-nav a .avatar {
   margin-right: 8px;
 }

@@ -427,6 +427,20 @@
         "missing": "Choisis une image.",
         "guest": "Crée un compte pour avoir une photo de profil."
       }
+    },
+    "username": {
+      "label": "Nom d'utilisateur",
+      "hint": "Tu peux changer ton nom une fois tous les 30 jours. Ton ancien nom te reste réservé pendant 30 jours.",
+      "cooldown": "Prochain changement possible le {date}.",
+      "submit": "Changer le nom",
+      "revert": "Revenir à {name}",
+      "reserved": "{name} t’est réservé jusqu’au {date}. Revenir ne relance pas l’attente de 30 jours.",
+      "errors": {
+        "cooldown": "Tu as déjà changé ton nom il y a moins de 30 jours.",
+        "same": "C’est déjà ton nom.",
+        "taken": "Ce nom d'utilisateur est déjà pris.",
+        "guest": "Crée un compte pour choisir ton nom."
+      }
     }
   },
   "PastRace": {
