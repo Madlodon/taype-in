@@ -16,10 +16,13 @@ import {
   isBanned,
   listParticipants,
   listPublicLobbies,
+  parseLobbySettings,
   pickQuickLobby,
   removeParticipant,
   setLobbyHost,
+  updateLobbySettings,
   type Lobby,
+  type LobbySettings,
 } from "./lobbies.ts";
 import { nextLobbyState, type LobbyState } from "./lobby-state.ts";
 import { nextPlayerState, type PlayerState } from "./player-state.ts";
@@ -41,6 +44,7 @@ import {
   type ParticipantsMessage,
   type QuickRaceAck,
   type ProgressMessage,
+  type SettingsMessage,
   type RaceEndedMessage,
   type RacePositionsMessage,
   type RaceResult,
@@ -147,6 +151,7 @@ export function createSocketServer(
       "lobby:left": () => void;
       "lobby:kicked": () => void;
       "lobby:restarted": () => void;
+      "lobby:settings": (message: SettingsMessage) => void;
       "lobbies:list": (message: LobbiesMessage) => void;
       "race:countdown": (message: CountdownMessage) => void;
       "race:started": (message: RaceStartedMessage) => void;
@@ -168,6 +173,26 @@ export function createSocketServer(
   // Les joueurs connectés, puis les bots : tous comptent comme participants (BOT-1).
   async function roomParticipants(lobby: Lobby): Promise<ParticipantsMessage["participants"]> {
     return [...(await listParticipants(lobby.id)), ...(lobbyBots.get(lobby.id) ?? [])];
+  }
+
+  // Seulement les réglages : le reste du lobby (id, invitations…) ne sort pas du serveur.
+  function publicSettings(settings: LobbySettings): SettingsMessage {
+    return {
+      textLanguage: settings.textLanguage,
+      textLength: settings.textLength,
+      textComplexity: settings.textComplexity,
+      textPunctuation: settings.textPunctuation,
+      textNumbers: settings.textNumbers,
+      textCapitals: settings.textCapitals,
+      textAccents: settings.textAccents,
+      textType: settings.textType,
+      textTargets: settings.textTargets,
+      textLetters: settings.textLetters,
+      customText: settings.customText !== null,
+      errorMode: settings.errorMode,
+      timeLimitSeconds: settings.timeLimitSeconds,
+      capacity: settings.capacity,
+    };
   }
 
   // Faux si la machine à états refuse l'événement (ex. fermer pendant la course).
@@ -558,6 +583,7 @@ export function createSocketServer(
       socket.data.lobby = lobby;
       await socket.join(lobby.code);
       await sendParticipants(lobby);
+      socket.emit("lobby:settings", publicSettings(lobby));
 
       // Un coureur qui revient reprend la course (CRS-6) ; l'hôte qui regarde la suit sans courir.
       const player = race?.players.get(socket.data.user.id);
@@ -932,6 +958,32 @@ export function createSocketServer(
       liveRaces.delete(lobby.id);
       io.to(lobby.code).emit("lobby:restarted");
       ack?.({ ok: true });
+      await updateExplorer();
+    });
+
+    // Dans la salle d'attente, l'hôte change les réglages de la prochaine course ;
+    // tout le monde voit la mise à jour (CONF-12).
+    socket.on("lobby:settings", async (payload: unknown, ack?: (response: Ack) => void) => {
+      const { lobby, user } = socket.data;
+      if (!lobby) {
+        ack?.({ ok: false, error: "lobbyNotFound" });
+        return;
+      }
+      if (lobby.hostId !== user.id) {
+        ack?.({ ok: false, error: "notHost" });
+        return;
+      }
+      // Pendant le compte à rebours, la course ou les résultats, on relance d'abord (LOB-9).
+      if (liveRaces.has(lobby.id)) {
+        ack?.({ ok: false, error: "raceInProgress" });
+        return;
+      }
+
+      const settings = parseLobbySettings(payload);
+      await updateLobbySettings(lobby.id, settings);
+      io.to(lobby.code).emit("lobby:settings", publicSettings(settings));
+      ack?.({ ok: true });
+      // La langue et la capacité sont affichées dans l'explorateur (JOIN-02).
       await updateExplorer();
     });
 

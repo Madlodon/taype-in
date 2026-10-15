@@ -824,6 +824,38 @@ a, button, input {
   background: var(--accent);
 }
 
+/* Réglages de la prochaine course, vus par tous (CONF-12) : un intitulé et sa valeur par case. */
+.lobby-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px 24px;
+}
+
+.lobby-settings dt {
+  color: var(--muted);
+  font: 10px var(--font-jetbrains-mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.lobby-settings dd {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.settings-editor {
+  margin-top: 20px;
+}
+
+.settings-editor summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.settings-editor form {
+  margin-top: 16px;
+}
+
 /* Ajout d'un bot par l'hôte (BOT-1) : le niveau et le bouton sur une ligne. */
 .bot-form {
   display: flex;

@@ -2,7 +2,7 @@
 
 import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { io, type Socket } from "socket.io-client";
 import {
   MIN_RACERS,
@@ -16,6 +16,8 @@ import {
   type RaceShotMessage,
   type RaceGoalMessage,
   type RaceBoostMessage,
+  settingsPayload,
+  type SettingsMessage,
 } from "@/lib/socket-messages";
 import { detectOvertake, type Overtake } from "@/lib/track";
 import { BOT_LEVELS, type Bot } from "@/lib/bots";
@@ -23,6 +25,7 @@ import { Arena } from "@/components/arena";
 import { Avatar } from "@/components/avatar";
 import { BotBadge } from "@/components/bot-badge";
 import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
+import { LobbySettingsSummary } from "@/components/lobby-settings-summary";
 import { RaceResults } from "@/components/race-results";
 import { WpmChart } from "@/components/wpm-chart";
 import { KeyboardNote } from "@/components/keyboard-note";
@@ -39,6 +42,8 @@ type Props = {
   userId: string;
   stadium?: Stadium;
   loadSessionStats: () => Promise<Stats | null>;
+  // Champs de réglages préremplis, rendus par la page pour l'hôte seulement (CONF-12).
+  settingsFields?: ReactNode;
 };
 
 function toProgress({ typed, errors, keys, keyErrors }: Typing) {
@@ -72,7 +77,14 @@ function formatTime(totalSeconds: number): string {
 // Salle d'attente : la liste des participants suit les arrivées et départs ;
 // l'hôte lance la course, tous voient le même compte à rebours puis le même texte (CRS-1).
 // Les coureurs tapent le texte ; ceux arrivés en cours de route le regardent.
-export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessionStats }: Props) {
+export function LobbyRoom({
+  code,
+  hostId: pageHostId,
+  userId,
+  stadium,
+  loadSessionStats,
+  settingsFields,
+}: Props) {
   const t = useTranslations("LobbyRoom");
   const format = useFormatter();
   const router = useRouter();
@@ -82,6 +94,8 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
   const [hostId, setHostId] = useState(pageHostId);
   const isHost = hostId === userId;
   const [error, setError] = useState<string>();
+  const [settings, setSettings] = useState<SettingsMessage>();
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const [countdown, setCountdown] = useState<number>();
   const [race, setRace] = useState<RaceStartedMessage>();
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
@@ -127,6 +141,8 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
       setParticipants(named(message.participants));
     });
     // Lobby fermé par l'hôte : tout le monde retourne à la liste avec un message (LOB-10).
+    // Réglages à l'arrivée, puis à chaque changement de l'hôte (CONF-12).
+    socket.on("lobby:settings", (message: SettingsMessage) => setSettings(message));
     socket.on("lobby:closed", () => router.replace("/lobbies?closed=1"));
     // Exclu par l'hôte : retour à la liste avec un message (SALLE-07).
     socket.on("lobby:kicked", () => {
@@ -316,10 +332,19 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     });
   }
 
-  // L'hôte choisit ensuite les réglages de la prochaine course (LOB-9).
+  // Tout le monde revient à la salle d'attente, où l'hôte change les réglages (LOB-9).
   function relaunch() {
     socketRef.current?.emit("lobby:restart", (ack: Ack) => {
-      if (ack.ok) router.push(`/lobbies/${encodeURIComponent(code)}/settings`);
+      if (!ack.ok) setError(ack.error);
+    });
+  }
+
+  // L'hôte enregistre les réglages ; le serveur les envoie à toute la salle (CONF-12).
+  function saveSettings(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload = settingsPayload(new FormData(event.currentTarget));
+    socketRef.current?.emit("lobby:settings", payload, (ack: Ack) => {
+      if (ack.ok) setSettingsSaved(true);
       else setError(ack.error);
     });
   }
@@ -506,6 +531,17 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
               </p>
             )}
           </>
+        )}
+        {settings && countdown === undefined && !race && <LobbySettingsSummary settings={settings} />}
+        {isHost && settingsFields && countdown === undefined && !race && (
+          <details className="settings-editor">
+            <summary>{t("editSettings")}</summary>
+            <form className="form-stack" onSubmit={saveSettings} onChange={() => setSettingsSaved(false)}>
+              {settingsFields}
+              <button type="submit" className="btn btn-secondary">{t("saveSettings")}</button>
+              {settingsSaved && <p role="status" className="form-note">{t("settingsSaved")}</p>}
+            </form>
+          </details>
         )}
         {isHost && countdown === undefined && !race && (
           <>

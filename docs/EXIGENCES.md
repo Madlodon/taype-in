@@ -87,7 +87,7 @@ Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et ch
 | CONF-09 | Bonus activés ou non | À faire | — | — | [#79][i79] | La colonne `races.bonuses_enabled` existe déjà. |
 | CONF-10 | Ajout et retrait de bots, avec leur niveau | Fait | [`lib/bots.ts`](../lib/bots.ts), [`lib/socket-server.ts`](../lib/socket-server.ts) | [bots.test.ts](../__tests__/bots.test.ts), [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#76][i76] | Quatre niveaux pour l'instant ; cinq avec #132. |
 | CONF-11 | Visibilité et capacité | Fait | [`app/actions/lobbies.ts`](../app/actions/lobbies.ts) | [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts) | [#9][i9], [#112][i112] |  |
-| CONF-12 | Tous voient la configuration en temps réel | À faire | — | — | [#122][i122] |  |
+| CONF-12 | Tous voient la configuration en temps réel | Fait | [`components/lobby-room.tsx`](../components/lobby-room.tsx), [`components/lobby-settings-summary.tsx`](../components/lobby-settings-summary.tsx), [`lib/socket-server.ts`](../lib/socket-server.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#122][i122] | L'hôte modifie les réglages dans la salle d'attente (aussi après une relance) ; `lobby:settings` les envoie à toute la salle. Un texte personnalisé reste caché jusqu'au départ. |
 
 ## 5.6 Déroulement d'une course (COURSE)
 

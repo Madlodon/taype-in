@@ -1,8 +1,10 @@
 // Création, réglages et fermeture des lobbys, invitations, participants connectés et exclusions (LOB-1 à LOB-5, LOB-7, LOB-10, SALLE-06 à SALLE-08).
 import { randomBytes, randomInt } from "node:crypto";
 import { and, asc, count, desc, eq, isNull, or } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "../db/index.ts";
 import { lobbies, lobbyBans, lobbyInvites, lobbyParticipants, users } from "../db/schema.ts";
+import { COMPLEXITIES, MAX_CUSTOM_TEXT, normalizeLetters, TEXT_LENGTHS, TEXT_TARGETS } from "./texts.ts";
 
 export type Lobby = typeof lobbies.$inferSelect;
 export type Participant = { id: string; username: string };
@@ -66,7 +68,67 @@ export type LobbySettings = Pick<
   | "capacity"
 >;
 
-// Nouveaux réglages avant de relancer le lobby ; copiés dans la prochaine course (LOB-9).
+// Champs du formulaire de réglages, à la création ou dans la salle d'attente (CONF-12).
+// Une valeur invalide prend la valeur par défaut.
+export function parseLobbySettings(input: unknown): LobbySettings {
+  const fields = z.record(z.string(), z.unknown()).catch({}).parse(input);
+  // Langue du texte indépendante de celle de l'interface (TXT-1, TXT-2).
+  const textLanguage = z.enum(["fr", "en"]).catch("fr").parse(fields.textLanguage);
+  const textLength = z.coerce
+    .number()
+    .pipe(z.union(TEXT_LENGTHS.map((length) => z.literal(length))))
+    .catch(100)
+    .parse(fields.textLength);
+  // Complexité du texte, et contenu à garder : une case décochée retire ce contenu (CONF-05, CONF-06).
+  const textComplexity = z.enum(COMPLEXITIES).catch("medium").parse(fields.textComplexity);
+  const textPunctuation = Boolean(fields.textPunctuation);
+  const textNumbers = Boolean(fields.textNumbers);
+  const textCapitals = Boolean(fields.textCapitals);
+  const textAccents = Boolean(fields.textAccents);
+  // Phrases de la banque ou mots mélangés, avec les caractères cochés (TXT-4, TXT-5).
+  const textType = z.enum(["sentences", "words"]).catch("sentences").parse(fields.textType);
+  const checked = Array.isArray(fields.textTargets) ? fields.textTargets : [];
+  const textTargets = TEXT_TARGETS.filter((target) => checked.includes(target));
+  const textLetters = normalizeLetters(String(fields.textLetters ?? ""));
+  // Texte de l'hôte sur une seule ligne, coupé à la taille maximale ; vide = banque (TXT-6).
+  const customText = String(fields.customText ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_CUSTOM_TEXT) || null;
+  // Bloquant : la saisie s'arrête jusqu'au bon caractère ; tolérant : on continue (ERR-1).
+  const errorMode = z.enum(["blocking", "tolerant"]).catch("blocking").parse(fields.errorMode);
+  // Durée parmi les choix proposés, ou aucune minuterie (CONF-01).
+  const timerSeconds = z.coerce
+    .number()
+    .pipe(z.union(TIMER_OPTIONS.map((seconds) => z.literal(seconds))))
+    .catch(DEFAULT_TIMER_SECONDS)
+    .parse(fields.timerSeconds);
+  const timeLimitSeconds = fields.noTimer ? null : timerSeconds;
+  // Capacité de 2 à 30 participants, 30 hors de ces bornes (SALLE-05).
+  const capacity = z.coerce
+    .number()
+    .pipe(z.union(CAPACITY_OPTIONS.map((count) => z.literal(count))))
+    .catch(MAX_CAPACITY)
+    .parse(fields.capacity);
+  return {
+    textLanguage,
+    textLength,
+    textComplexity,
+    textPunctuation,
+    textNumbers,
+    textCapitals,
+    textAccents,
+    textType,
+    textTargets,
+    textLetters,
+    customText,
+    errorMode,
+    timeLimitSeconds,
+    capacity,
+  };
+}
+
+// Nouveaux réglages choisis dans la salle d'attente ; copiés dans la prochaine course (LOB-9, CONF-12).
 export async function updateLobbySettings(lobbyId: string, settings: LobbySettings) {
   await db.update(lobbies).set(settings).where(eq(lobbies.id, lobbyId));
 }

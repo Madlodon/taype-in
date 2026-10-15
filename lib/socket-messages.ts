@@ -2,6 +2,7 @@ import type { RemovedWord } from "./race-goals.ts";
 // Messages Socket.IO envoyés par le client, validés avec Zod.
 import { z } from "zod";
 import { BOT_LEVELS, type Bot } from "./bots.ts";
+import type { LobbySettings } from "./lobbies.ts";
 
 // leave : la personne accepte de quitter le lobby où elle est déjà (SALLE-06).
 export const joinLobbySchema = z.object({
@@ -32,6 +33,15 @@ export const removeBotSchema = z.object({ id: z.string() });
 
 // L'hôte exclut un participant ou un spectateur (SALLE-07).
 export const kickSchema = z.object({ id: z.string() });
+
+// Champs du formulaire de réglages de l'hôte, validés par le serveur (CONF-12).
+export function settingsPayload(form: FormData): Record<string, unknown> {
+  return { ...Object.fromEntries(form), textTargets: form.getAll("textTargets") };
+}
+
+// Réglages envoyés à toute la salle à l'arrivée et à chaque changement (CONF-12).
+// Le texte de l'hôte reste caché jusqu'au « Go » : customText dit seulement s'il y en a un.
+export type SettingsMessage = Omit<LobbySettings, "customText"> & { customText: boolean };
 
 // LOB-6 : au moins 2 coureurs pour démarrer ; un hôte qui regarde ne compte pas (LOB-8), un bot compte (BOT-1).
 export const MIN_RACERS = 2;
