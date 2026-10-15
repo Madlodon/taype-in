@@ -57,6 +57,11 @@ const aLobby = {
   hostId: "user-1",
   textLanguage: "fr" as const,
   textLength: 100,
+  textComplexity: "medium" as const,
+  textPunctuation: true,
+  textNumbers: true,
+  textCapitals: true,
+  textAccents: true,
   textType: "sentences" as const,
   textTargets: [],
   textLetters: "",
@@ -138,17 +143,11 @@ test("Should_SaveTextSettings_When_HostPicksLanguageAndLength", async () => {
     createLobbyAction(form({ visibility: "public", textLanguage: "en", textLength: "200" })),
   ).rejects.toThrow("NEXT_REDIRECT");
 
-  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "public", {
-    textLanguage: "en",
-    textLength: 200,
-    textType: "sentences",
-    textTargets: [],
-    textLetters: "",
-    customText: null,
-    errorMode: "blocking",
-    timeLimitSeconds: 300,
-    capacity: 30,
-  });
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "public",
+    expect.objectContaining({ textLanguage: "en", textLength: 200 }),
+  );
 });
 
 test.each([
@@ -157,18 +156,72 @@ test.each([
 ])("Should_UseFrenchAndHundredWords_When_TextSettingsAre_%s", async (_, fields) => {
   await expect(createLobbyAction(form(fields))).rejects.toThrow("NEXT_REDIRECT");
 
-  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", {
-    textLanguage: "fr",
-    textLength: 100,
-    textType: "sentences",
-    textTargets: [],
-    textLetters: "",
-    customText: null,
-    errorMode: "blocking",
-    timeLimitSeconds: 300,
-    capacity: 30,
-  });
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ textLanguage: "fr", textLength: 100 }),
+  );
 });
+
+test.each(["easy", "medium", "hard"])("Should_SaveComplexity_When_HostPicks_%s", async (textComplexity) => {
+  await expect(createLobbyAction(form({ textComplexity }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ textComplexity }),
+  );
+});
+
+test.each([["missing", {}], ["unknown", { textComplexity: "extreme" }]])(
+  "Should_UseMediumComplexity_When_ComplexityIs_%s",
+  async (_, fields) => {
+    await expect(createLobbyAction(form(fields))).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.createLobby).toHaveBeenCalledWith(
+      "user-1",
+      "unlisted",
+      expect.objectContaining({ textComplexity: "medium" }),
+    );
+  },
+);
+
+test("Should_KeepEveryContent_When_AllTextOptionsAreTicked", async () => {
+  await expect(
+    createLobbyAction(
+      form({ textPunctuation: "on", textNumbers: "on", textCapitals: "on", textAccents: "on" }),
+    ),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
+    }),
+  );
+});
+
+test.each(["textPunctuation", "textNumbers", "textCapitals", "textAccents"])(
+  "Should_TurnOptionOff_When_%s_IsUnticked",
+  async (option) => {
+    const ticked = { textPunctuation: "on", textNumbers: "on", textCapitals: "on", textAccents: "on" };
+    delete ticked[option as keyof typeof ticked];
+
+    await expect(createLobbyAction(form(ticked))).rejects.toThrow("NEXT_REDIRECT");
+
+    const settings = vi.mocked(lobbies.createLobby).mock.calls[0][2]!;
+    expect(settings[option as keyof typeof settings]).toBe(false);
+    expect(
+      ["textPunctuation", "textNumbers", "textCapitals", "textAccents"].filter(
+        (key) => settings[key as keyof typeof settings] === true,
+      ),
+    ).toHaveLength(3);
+  },
+);
 
 test("Should_SaveScrambledWordsWithTargets_When_HostTicksCharacters", async () => {
   await expect(

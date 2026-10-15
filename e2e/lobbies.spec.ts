@@ -105,21 +105,29 @@ test("Should_JoinFromList_When_RaceIsPublic", async ({ browser }) => {
   await expect(participants(host.page)).toHaveText([`${host.name} (hôte)`, `${player.name}Exclure`]);
 });
 
-// JOIN-02 : la liste se met à jour sans recharger, et le filtre de langue cache les autres courses.
-test("Should_ShowNewRaceLiveAndFilterByLanguage_When_WatchingList", async ({ browser }) => {
+// JOIN-02 : la liste se met à jour sans recharger, et les filtres de langue et de complexité cachent les autres courses.
+test("Should_ShowNewRaceLiveAndFilterByLanguageAndComplexity_When_WatchingList", async ({ browser }) => {
   const player = await newGuest(browser);
   await player.page.getByRole("link", { name: "Démarrer une course" }).click();
   await expect(player.page.getByRole("heading", { name: "Courses publiques" })).toBeVisible();
 
   const host = await newHost(browser);
-  await createRace(host.page, /Publique/, (page) => page.getByLabel("Anglais").check());
+  await createRace(host.page, /Publique/, async (page) => {
+    await page.getByLabel("Anglais").check();
+    await page.getByLabel(/^Difficile/).check();
+  });
 
   const listed = player.page.getByRole("listitem").filter({ hasText: `Course de ${host.name}` });
-  await expect(listed).toContainText("1/30 · Anglais · En attente");
+  await expect(listed).toContainText("1/30 · Anglais · Difficile · En attente");
   await player.page.getByLabel("Langue du texte").selectOption("fr");
   await expect(player.page).toHaveURL(/\/lobbies\?lang=fr$/);
   await expect(listed).toHaveCount(0);
   await player.page.getByLabel("Langue du texte").selectOption("en");
+  await expect(listed).toBeVisible();
+  await player.page.getByLabel("Complexité").selectOption("easy");
+  await expect(player.page).toHaveURL(/\/lobbies\?lang=en&complexity=easy$/);
+  await expect(listed).toHaveCount(0);
+  await player.page.getByLabel("Complexité").selectOption("hard");
   await expect(listed).toBeVisible();
 });
 
@@ -349,6 +357,25 @@ test("Should_ShowNoTimeLeft_When_HostChoosesNoTimer", async ({ browser }) => {
 
   await expect(player.page.locator(".typing-text")).toBeVisible({ timeout: 8000 });
   await expect(player.page.getByRole("timer")).toHaveCount(0);
+});
+
+// CONF-06 : chaque case décochée retire ce contenu du texte de la course.
+test("Should_ShowPlainLowercaseText_When_HostUnticksEveryTextOption", async ({ browser }) => {
+  const host = await newHost(browser);
+  const code = await createRace(host.page, /Non répertoriée/, async (page) => {
+    await page.getByRole("radio", { name: "Français" }).check();
+    await page.getByLabel(/^Difficile/).check();
+    for (const option of ["Ponctuation", "Nombres", "Majuscules", "Accents (texte en français)"]) {
+      await page.getByLabel(option).uncheck();
+    }
+  });
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+
+  await expect(player.page.locator(".typing-text")).toHaveText(/^[a-z' -]+$/, { timeout: 8000 });
 });
 
 test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser }) => {

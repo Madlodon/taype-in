@@ -13,9 +13,11 @@ import {
   closeLobby,
   findOpenLobby,
   findParticipantLobby,
+  isBanned,
   listParticipants,
   listPublicLobbies,
   parseLobbySettings,
+  pickQuickLobby,
   removeParticipant,
   setLobbyHost,
   updateLobbySettings,
@@ -40,6 +42,7 @@ import {
   type CountdownMessage,
   type LobbiesMessage,
   type ParticipantsMessage,
+  type QuickRaceAck,
   type ProgressMessage,
   type SettingsMessage,
   type RaceEndedMessage,
@@ -177,6 +180,11 @@ export function createSocketServer(
     return {
       textLanguage: settings.textLanguage,
       textLength: settings.textLength,
+      textComplexity: settings.textComplexity,
+      textPunctuation: settings.textPunctuation,
+      textNumbers: settings.textNumbers,
+      textCapitals: settings.textCapitals,
+      textAccents: settings.textAccents,
       textType: settings.textType,
       textTargets: settings.textTargets,
       textLetters: settings.textLetters,
@@ -197,18 +205,32 @@ export function createSocketServer(
     }
   }
 
-  // Courses publiques avec leurs bots et leur état, pour l'explorateur (JOIN-02).
-  async function explorerLobbies(): Promise<LobbiesMessage> {
+  // Courses publiques avec leurs bots et leur état (JOIN-02, JOIN-03).
+  async function publicLobbies() {
     const lobbies = await listPublicLobbies();
+    return lobbies.map((lobby) => {
+      const state = liveRaces.get(lobby.id)?.state;
+      return {
+        ...lobby,
+        participantCount: lobby.participantCount + (lobbyBots.get(lobby.id)?.length ?? 0),
+        state: state === "finished" ? "finished" : state ? "racing" : "waiting",
+      } as const;
+    });
+  }
+
+  async function explorerLobbies(): Promise<LobbiesMessage> {
     return {
-      lobbies: lobbies.map(({ id, participantCount, ...lobby }) => {
-        const state = liveRaces.get(id)?.state;
-        return {
-          ...lobby,
-          participantCount: participantCount + (lobbyBots.get(id)?.length ?? 0),
-          state: state === "finished" ? "finished" : state ? "racing" : "waiting",
-        };
-      }),
+      lobbies: (await publicLobbies()).map(
+        ({ code, hostName, participantCount, capacity, textLanguage, textComplexity, state }) => ({
+          code,
+          hostName,
+          participantCount,
+          capacity,
+          textLanguage,
+          textComplexity,
+          state,
+        }),
+      ),
     };
   }
 
@@ -486,6 +508,16 @@ export function createSocketServer(
     socket.on("lobbies:watch", async () => {
       await socket.join(EXPLORER_ROOM);
       socket.emit("lobbies:list", await explorerLobbies());
+    });
+
+    // « Course rapide » : le code du lobby public à rejoindre, sauf là où on est exclu (JOIN-03, SALLE-07).
+    socket.on("lobbies:quick", async (ack?: (response: QuickRaceAck) => void) => {
+      const candidates = [];
+      for (const lobby of await publicLobbies()) {
+        if (!(await isBanned(lobby.id, socket.data.user.id))) candidates.push(lobby);
+      }
+      const lobby = pickQuickLobby(candidates);
+      ack?.(lobby ? { ok: true, code: lobby.code } : { ok: false, error: "noQuickLobby" });
     });
 
     // Un lobby = une salle Socket.IO nommée par son code.

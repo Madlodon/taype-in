@@ -23,6 +23,7 @@ export const lobbyVisibilityEnum = pgEnum("lobby_visibility", [
   "private",
 ]);
 export const errorModeEnum = pgEnum("error_mode", ["blocking", "tolerant"]);
+export const complexityEnum = pgEnum("text_complexity", ["easy", "medium", "hard"]);
 export const textTypeEnum = pgEnum("text_type", ["sentences", "words"]);
 
 export const users = pgTable(
@@ -98,6 +99,8 @@ export const texts = pgTable("texts", {
   language: languageEnum("language").notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),
+  // Niveau calculé par textComplexity (lib/texts.ts) ; un test vérifie la banque (CONF-05).
+  complexity: complexityEnum("complexity").notNull().default("medium"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -113,6 +116,12 @@ export const lobbies = pgTable("lobbies", {
   // Langue et nombre de mots du texte, choisis à la création (TXT-1, TXT-2).
   textLanguage: languageEnum("text_language").notNull().default("fr"),
   textLength: integer("text_length").notNull().default(100),
+  // Complexité et options du texte (CONF-05, CONF-06) ; une option désactivée retire ce contenu.
+  textComplexity: complexityEnum("text_complexity").notNull().default("medium"),
+  textPunctuation: boolean("text_punctuation").notNull().default(true),
+  textNumbers: boolean("text_numbers").notNull().default(true),
+  textCapitals: boolean("text_capitals").notNull().default(true),
+  textAccents: boolean("text_accents").notNull().default(true),
   // Phrases de la banque ou mots mélangés ; caractères ciblés en mode mots (TXT-4, TXT-5).
   textType: textTypeEnum("text_type").notNull().default("sentences"),
   textTargets: text("text_targets").array().notNull().default(sql`'{}'::text[]`),

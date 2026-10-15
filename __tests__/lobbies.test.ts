@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
@@ -19,6 +19,7 @@ import {
   listParticipants,
   listPublicLobbies,
   normalizeCode,
+  pickQuickLobby,
   removeParticipant,
   updateLobbySettings,
 } from "../lib/lobbies";
@@ -120,6 +121,11 @@ test("Should_KeepLobbyAndCodeWithNewSettings_When_HostChangesSettings", async ()
   const settings = {
     textLanguage: "en" as const,
     textLength: 200,
+    textComplexity: "medium" as const,
+    textPunctuation: true,
+    textNumbers: true,
+    textCapitals: true,
+    textAccents: true,
     textType: "words" as const,
     textTargets: ["accents", "digits"],
     textLetters: "qz",
@@ -228,7 +234,11 @@ test("Should_ListOnlyOpenPublicLobbiesWithParticipants_When_ListingPublicLobbies
 test("Should_ShowHostCountCapacityAndLanguage_When_ListingPublicLobbies", async () => {
   const host = await newUser();
   const guest = await newUser();
-  const lobby = await createLobby(host.id, "public", { capacity: 8, textLanguage: "en" });
+  const lobby = await createLobby(host.id, "public", {
+    capacity: 8,
+    textLanguage: "en",
+    textComplexity: "hard",
+  });
   await addParticipant(lobby.id, host.id);
   await addParticipant(lobby.id, guest.id);
 
@@ -239,6 +249,8 @@ test("Should_ShowHostCountCapacityAndLanguage_When_ListingPublicLobbies", async 
     code: lobby.code,
     capacity: 8,
     textLanguage: "en",
+    createdAt: lobby.createdAt,
+    textComplexity: "hard",
     hostName: host.username,
     participantCount: 2,
   });
@@ -421,4 +433,67 @@ test("Should_RefuseLink_When_LobbyIsClosed", async () => {
 test("Should_ReturnNull_When_LinkDoesNotExist", async () => {
   expect(await findInviteLobby("inconnu", IP)).toBeNull();
   expect(await claimInvite("inconnu", (await newUser()).id, IP)).toBeNull();
+});
+
+describe("pickQuickLobby", () => {
+  // Lobby candidat : 30 places, en attente, créé à la minute donnée.
+  function candidate(code: string, participantCount: number, minute: number, extra = {}) {
+    return {
+      code,
+      capacity: 30,
+      participantCount,
+      state: "waiting" as const,
+      createdAt: new Date(2026, 9, 15, 12, minute),
+      ...extra,
+    };
+  }
+
+  test("Should_PickLobbyWithFewestFreePlaces_When_SeveralAreOpen", () => {
+    const picked = pickQuickLobby([
+      candidate("AAAAAA", 3, 0),
+      candidate("BBBBBB", 2, 1, { capacity: 4 }),
+      candidate("CCCCCC", 20, 2),
+    ]);
+
+    expect(picked?.code).toBe("BBBBBB");
+  });
+
+  test("Should_PickOldest_When_FreePlacesAreTied", () => {
+    const picked = pickQuickLobby([
+      candidate("NEWEST", 5, 30),
+      candidate("OLDEST", 5, 10),
+      candidate("MIDDLE", 5, 20),
+    ]);
+
+    expect(picked?.code).toBe("OLDEST");
+  });
+
+  test("Should_SkipLobby_When_Full", () => {
+    const picked = pickQuickLobby([
+      candidate("FULLLL", 4, 0, { capacity: 4 }),
+      candidate("OPENNN", 1, 1),
+    ]);
+
+    expect(picked?.code).toBe("OPENNN");
+  });
+
+  test("Should_SkipLobby_When_Racing", () => {
+    const picked = pickQuickLobby([
+      candidate("RACING", 29, 0, { state: "racing" }),
+      candidate("WAITNG", 1, 1),
+    ]);
+
+    expect(picked?.code).toBe("WAITNG");
+  });
+
+  test("Should_PickLobby_When_ShowingResults", () => {
+    expect(pickQuickLobby([candidate("RESULT", 2, 0, { state: "finished" })])?.code).toBe("RESULT");
+  });
+
+  test.each([
+    ["no lobby", []],
+    ["only full or racing lobbies", [candidate("FULLLL", 30, 0), candidate("RACING", 1, 1, { state: "racing" })]],
+  ])("Should_ReturnNull_When_%s", (_name, candidates) => {
+    expect(pickQuickLobby(candidates)).toBeNull();
+  });
 });

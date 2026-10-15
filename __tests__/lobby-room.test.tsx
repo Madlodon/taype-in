@@ -1379,6 +1379,11 @@ test("Should_NameBotInRankingAndOvertake_When_BotPassesUser", () => {
 const settings: SettingsMessage = {
   textLanguage: "en",
   textLength: 50,
+  textComplexity: "hard",
+  textPunctuation: true,
+  textNumbers: true,
+  textCapitals: true,
+  textAccents: true,
   textType: "words",
   textTargets: ["digits"],
   textLetters: "qz",
@@ -1431,6 +1436,23 @@ test("Should_UpdateSettings_When_HostChangesThem", () => {
     "TexteTexte personnalisé",
     "Erreurs de frappeTolérant",
     "MinuteriePas de minuterie",
+    "Capacité maximale4 participants",
+  ]);
+});
+
+test("Should_ShowComplexityAndRemovedContent_When_TextComesFromBankSentences", () => {
+  renderRoom();
+  sendParticipants();
+
+  sendSettings({ ...settings, textType: "sentences", textNumbers: false, textAccents: false });
+
+  expect(summary()).toEqual([
+    "Langue du texteAnglais",
+    "Texte50 mots · Phrases",
+    "ComplexitéDifficile",
+    "Contenu retiréNombres, Accents (texte en français)",
+    "Erreurs de frappeTolérant",
+    "Minuterie1 min 30",
     "Capacité maximale4 participants",
   ]);
 });

@@ -49,8 +49,17 @@
       "fr": "Français",
       "en": "Anglais"
     },
+    "quickRace": "Course rapide",
+    "noQuickLobby": "Aucune course publique à rejoindre pour le moment.",
+    "createPublic": "Créer une course publique",
+    "complexity": "Complexité",
+    "complexities": {
+      "easy": "Facile",
+      "medium": "Moyen",
+      "hard": "Difficile"
+    },
     "loading": "Chargement des courses…",
-    "lobbyInfo": "{count}/{capacity} · {language} · {state}",
+    "lobbyInfo": "{count}/{capacity} · {language} · {complexity} · {state}",
     "states": {
       "waiting": "En attente",
       "racing": "En course",
@@ -76,6 +85,17 @@
     "english": "Anglais",
     "textLength": "Longueur du texte",
     "words": "{count} mots",
+    "complexity": "Complexité",
+    "complexities": {
+      "easy": "Facile : mots courts, sans chiffres ni caractères spéciaux",
+      "medium": "Moyen : mots plus longs, peu de caractères spéciaux",
+      "hard": "Difficile : mots longs, chiffres et caractères spéciaux"
+    },
+    "textContent": "Contenu du texte (décocher pour retirer)",
+    "punctuation": "Ponctuation",
+    "numbers": "Nombres",
+    "capitals": "Majuscules",
+    "accents": "Accents (texte en français)",
     "textType": "Type de texte",
     "sentences": "Phrases : un texte de la banque",
     "scrambledWords": "Mots mélangés : des mots tirés au hasard",
@@ -186,7 +206,8 @@
       "targets": "Caractères ciblés",
       "letters": "lettres « {letters} »",
       "blocking": "Bloquant",
-      "tolerant": "Tolérant"
+      "tolerant": "Tolérant",
+      "removed": "Contenu retiré"
     }
   },
   "RaceResults": {

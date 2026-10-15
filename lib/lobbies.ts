@@ -4,7 +4,7 @@ import { and, asc, count, desc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/index.ts";
 import { lobbies, lobbyBans, lobbyInvites, lobbyParticipants, users } from "../db/schema.ts";
-import { MAX_CUSTOM_TEXT, normalizeLetters, TEXT_LENGTHS, TEXT_TARGETS } from "./texts.ts";
+import { COMPLEXITIES, MAX_CUSTOM_TEXT, normalizeLetters, TEXT_LENGTHS, TEXT_TARGETS } from "./texts.ts";
 
 export type Lobby = typeof lobbies.$inferSelect;
 export type Participant = { id: string; username: string };
@@ -54,6 +54,11 @@ export type LobbySettings = Pick<
   Lobby,
   | "textLanguage"
   | "textLength"
+  | "textComplexity"
+  | "textPunctuation"
+  | "textNumbers"
+  | "textCapitals"
+  | "textAccents"
   | "textType"
   | "textTargets"
   | "textLetters"
@@ -74,6 +79,12 @@ export function parseLobbySettings(input: unknown): LobbySettings {
     .pipe(z.union(TEXT_LENGTHS.map((length) => z.literal(length))))
     .catch(100)
     .parse(fields.textLength);
+  // Complexité du texte, et contenu à garder : une case décochée retire ce contenu (CONF-05, CONF-06).
+  const textComplexity = z.enum(COMPLEXITIES).catch("medium").parse(fields.textComplexity);
+  const textPunctuation = Boolean(fields.textPunctuation);
+  const textNumbers = Boolean(fields.textNumbers);
+  const textCapitals = Boolean(fields.textCapitals);
+  const textAccents = Boolean(fields.textAccents);
   // Phrases de la banque ou mots mélangés, avec les caractères cochés (TXT-4, TXT-5).
   const textType = z.enum(["sentences", "words"]).catch("sentences").parse(fields.textType);
   const checked = Array.isArray(fields.textTargets) ? fields.textTargets : [];
@@ -102,6 +113,11 @@ export function parseLobbySettings(input: unknown): LobbySettings {
   return {
     textLanguage,
     textLength,
+    textComplexity,
+    textPunctuation,
+    textNumbers,
+    textCapitals,
+    textAccents,
     textType,
     textTargets,
     textLetters,
@@ -211,7 +227,7 @@ export async function claimInvite(
   return taken ? lobby : null;
 }
 
-export type PublicLobby = Pick<Lobby, "id" | "code" | "capacity" | "textLanguage"> & {
+export type PublicLobby = Pick<Lobby, "id" | "code" | "capacity" | "textLanguage" | "textComplexity" | "createdAt"> & {
   hostName: string;
   participantCount: number;
 };
@@ -224,6 +240,8 @@ export async function listPublicLobbies(): Promise<PublicLobby[]> {
       code: lobbies.code,
       capacity: lobbies.capacity,
       textLanguage: lobbies.textLanguage,
+      createdAt: lobbies.createdAt,
+      textComplexity: lobbies.textComplexity,
       hostName: users.username,
       participantCount: count(lobbyParticipants.userId),
     })
@@ -233,6 +251,21 @@ export async function listPublicLobbies(): Promise<PublicLobby[]> {
     .where(and(eq(lobbies.visibility, "public"), isNull(lobbies.closedAt)))
     .groupBy(lobbies.id, users.username)
     .orderBy(desc(lobbies.createdAt));
+}
+
+export type QuickRaceCandidate = Pick<Lobby, "code" | "capacity" | "createdAt"> & {
+  participantCount: number;
+  state: "waiting" | "racing" | "finished";
+};
+
+// JOIN-03 : « Course rapide » prend le lobby non plein le plus proche de sa capacité (le moins
+// de places libres) ; à égalité, le plus ancien. Pendant le compte à rebours ou la course
+// (racing), on n'entre pas (SALLE-09). null s'il n'y en a aucun.
+export function pickQuickLobby<T extends QuickRaceCandidate>(candidates: T[]): T | null {
+  const free = (lobby: T) => lobby.capacity - lobby.participantCount;
+  const open = candidates.filter((lobby) => lobby.state !== "racing" && free(lobby) > 0);
+  open.sort((a, b) => free(a) - free(b) || a.createdAt.getTime() - b.createdAt.getTime());
+  return open[0] ?? null;
 }
 
 // Le lobby où la personne est déjà, s'il y en a un (SALLE-06).

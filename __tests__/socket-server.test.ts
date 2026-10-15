@@ -11,6 +11,7 @@ import { db } from "../db";
 import { lobbies, lobbyParticipants, races, results, users } from "../db/schema";
 import { createSession } from "../lib/auth";
 import {
+  banParticipant,
   claimInvite,
   createInvites,
   createLobby,
@@ -27,6 +28,7 @@ import type {
   ExplorerLobby,
   LobbiesMessage,
   ParticipantsMessage,
+  QuickRaceAck,
   RaceEndedMessage,
   RacePositionsMessage,
   RaceStartedMessage,
@@ -262,6 +264,11 @@ describe("lobby:join", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "fr",
       textLength: 100,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -283,6 +290,11 @@ describe("lobby:join", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "fr",
       textLength: 100,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -1554,6 +1566,8 @@ describe("lobby:settings", () => {
   const newSettings = {
     textLanguage: "en",
     textLength: "50",
+    textComplexity: "hard",
+    textPunctuation: "on",
     textType: "words",
     textTargets: ["digits", "comma"],
     textLetters: "QZ",
@@ -1572,6 +1586,11 @@ describe("lobby:settings", () => {
     expect(await guestSees).toEqual({
       textLanguage: "en",
       textLength: 50,
+      textComplexity: "hard",
+      textPunctuation: true,
+      textNumbers: false,
+      textCapitals: false,
+      textAccents: false,
       textType: "words",
       textTargets: ["comma", "digits"],
       textLetters: "qz",
@@ -2149,6 +2168,11 @@ describe("bots", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "fr",
       textLength: 100,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -2166,6 +2190,11 @@ describe("bots", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "fr",
       textLength: 100,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -2319,6 +2348,7 @@ describe("lobbies explorer", () => {
       participantCount: 1,
       capacity: 4,
       textLanguage: "en",
+      textComplexity: "medium",
       state: "waiting",
     });
   });
@@ -2382,5 +2412,52 @@ describe("lobbies explorer", () => {
     await hostClient.emitWithAck("lobby:close");
 
     expect(await removed).toBeUndefined();
+  });
+});
+
+describe("lobbies:quick", () => {
+  // Lobby public avec son hôte connecté ; daté de l'an 2000 pour passer avant ceux des autres
+  // fichiers de tests qui tournent en même temps (à égalité, le plus ancien gagne).
+  async function openLobby(capacity: number, createdAt = new Date("2000-01-01")) {
+    const host = await newUser();
+    const lobby = await createLobby(host.id, "public", { capacity });
+    await db.update(lobbies).set({ createdAt }).where(eq(lobbies.id, lobby.id));
+    await join(await newClient(host), { code: lobby.code });
+    return lobby;
+  }
+
+  function quickRace(client: Socket): Promise<QuickRaceAck> {
+    return client.emitWithAck("lobbies:quick");
+  }
+
+  test("Should_GiveLobbyClosestToCapacity_When_SeveralAreOpen", async () => {
+    await openLobby(30);
+    const nearlyFull = await openLobby(2);
+
+    expect(await quickRace(await newClient())).toEqual({ ok: true, code: nearlyFull.code });
+  });
+
+  test("Should_GiveOldestLobby_When_Tied", async () => {
+    await openLobby(2, new Date("2000-01-02"));
+    const oldest = await openLobby(2, new Date("1999-01-01"));
+
+    expect(await quickRace(await newClient())).toEqual({ ok: true, code: oldest.code });
+  });
+
+  test("Should_SkipLobby_When_Full", async () => {
+    const full = await openLobby(2, new Date("1999-01-01"));
+    await fillLobby(full.id, 1);
+    const open = await openLobby(2);
+
+    expect(await quickRace(await newClient())).toEqual({ ok: true, code: open.code });
+  });
+
+  test("Should_SkipLobby_When_UserIsBanned", async () => {
+    const user = await newUser();
+    const banned = await openLobby(2, new Date("1999-01-01"));
+    await banParticipant(banned.id, user.id);
+    const open = await openLobby(2);
+
+    expect(await quickRace(await newClient(user))).toEqual({ ok: true, code: open.code });
   });
 });
