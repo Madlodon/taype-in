@@ -2278,6 +2278,29 @@ describe("bots", () => {
     expect(positions[0].position).toBeGreaterThan(0);
   });
 
+  test("Should_GiveBotsGoalBonuses_When_BotCompletesASentence", async () => {
+    await io.close();
+    await startServer({ shotMs: 1, shotRandom: () => 0 });
+    const { hostClient } = await hostAlone();
+    await addBot(hostClient, "impossible");
+    let length = Infinity;
+    const botFinished = new Promise<void>((resolve) => {
+      hostClient.on("race:positions", ({ positions }: RacePositionsMessage) => {
+        if (positions.some((racer) => racer.bot && racer.position === length)) resolve();
+      });
+    });
+    const { content } = await startRace(hostClient);
+    length = content.length;
+    await botFinished;
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+
+    await progress(hostClient, typing(content, 0));
+
+    const bot = (await ended).results.find((result) => result.bot);
+    expect(bot).toMatchObject({ finished: true });
+    expect(bot!.bonuses).toBeGreaterThan(0);
+  });
+
   test("Should_KeepBots_When_HostRelaunches", async () => {
     const { hostClient } = await hostAlone();
     await addBot(hostClient, "expert");
