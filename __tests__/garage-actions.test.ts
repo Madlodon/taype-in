@@ -30,6 +30,8 @@ const aUser = {
   rankLevel: 0,
   // Tout est débloqué au niveau 15 (#35).
   xp: xpForLevel(15),
+  previousUsername: null,
+  renamedAt: null,
   createdAt: new Date(),
 };
 const aGuest = { ...aUser, username: "Invité-123456", passwordHash: null, isGuest: true };

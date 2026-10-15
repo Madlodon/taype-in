@@ -439,6 +439,20 @@
         "missing": "Choose an image.",
         "guest": "Create an account to have a profile photo."
       }
+    },
+    "username": {
+      "label": "Username",
+      "hint": "You can change your username once every 30 days. Your old name stays reserved for you for 30 days.",
+      "cooldown": "Next change possible on {date}.",
+      "submit": "Change username",
+      "revert": "Reverse back to {name}",
+      "reserved": "{name} is reserved for you until {date}. Reversing back doesn't restart the 30-day wait.",
+      "errors": {
+        "cooldown": "You already changed your username less than 30 days ago.",
+        "same": "That's already your username.",
+        "taken": "This username is already taken.",
+        "guest": "Create an account to choose your username."
+      }
     }
   },
   "PastRace": {

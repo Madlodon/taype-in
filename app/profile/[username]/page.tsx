@@ -1,9 +1,11 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { removeAvatarAction, uploadAvatarAction } from "@/app/actions/avatar";
+import { changeUsernameAction, revertUsernameAction } from "@/app/actions/username";
 import { Avatar } from "@/components/avatar";
 import { AvatarForm } from "@/components/avatar-form";
+import { UsernameForm } from "@/components/username-form";
 import { ProgressionChart } from "@/components/progression-chart";
 import { getAvatarVersion, MAX_AVATAR_BYTES } from "@/lib/avatars";
 import {
@@ -15,6 +17,7 @@ import {
   textLabel,
 } from "@/lib/profile";
 import { getCurrentUser } from "@/lib/session-cookie";
+import { findRenamedUser, nextRenameAt, revertUntil } from "@/lib/username";
 import { levelProgress } from "@/lib/xp";
 
 // Page publique : visiteurs, invités et propriétaire voient les mêmes données (PROF-2, PROF-3).
@@ -25,8 +28,14 @@ export default async function ProfilePage({
   params: Promise<{ username: string }>;
   searchParams: Promise<{ page?: string }>;
 }) {
-  const profile = await findProfileUser((await params).username);
-  if (!profile) notFound();
+  const { username } = await params;
+  const profile = await findProfileUser(username);
+  if (!profile) {
+    // Un nom quitté il y a moins de 30 jours mène encore au profil (#67).
+    const renamed = await findRenamedUser(username);
+    if (renamed) redirect(`/profile/${encodeURIComponent(renamed.username)}`);
+    notFound();
+  }
   const isOwner = (await getCurrentUser())?.id === profile.id;
   const history = await listRaceHistory(profile.id);
   const avatarVersion = await getAvatarVersion(profile.id);
@@ -41,6 +50,7 @@ export default async function ProfilePage({
   const percent = (value: number | null) =>
     value === null ? "—" : t("percent", { value: Math.round(value) });
   const chartDate = (date: Date) => format.dateTime(date, { day: "numeric", month: "short" });
+  const longDate = (date: Date | null) => date && format.dateTime(date, { dateStyle: "long" });
 
   return (
     <main id="main" className="page-shell">
@@ -70,6 +80,16 @@ export default async function ProfilePage({
           remove={removeAvatarAction}
           hasPhoto={avatarVersion !== null}
           maxBytes={MAX_AVATAR_BYTES}
+        />
+      )}
+      {isOwner && (
+        <UsernameForm
+          change={changeUsernameAction}
+          revert={revertUsernameAction}
+          username={profile.username}
+          nextChange={longDate(nextRenameAt(profile))}
+          previousUsername={profile.previousUsername}
+          reservedUntil={longDate(revertUntil(profile))}
         />
       )}
       <dl className="race-stats" aria-label={t("stats")}>

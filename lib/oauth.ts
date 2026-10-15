@@ -6,6 +6,7 @@ import { db } from "../db/index.ts";
 import { oauthAccounts, users } from "../db/schema.ts";
 import type { User } from "./auth.ts";
 import { saveAvatar } from "./avatars.ts";
+import { isUsernameReserved } from "./username.ts";
 
 export const OAUTH_PROVIDERS = ["discord", "github"] as const;
 export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
@@ -135,6 +136,7 @@ export async function signUpWithOAuth(
   username: string,
   guestId?: string,
 ): Promise<User | "taken"> {
+  if (await isUsernameReserved(username)) return "taken";
   let user: User;
   try {
     user = await db.transaction(async (tx) => {

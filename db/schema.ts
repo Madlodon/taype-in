@@ -44,6 +44,9 @@ export const users = pgTable(
     rankLevel: integer("rank_level").notNull().default(0),
     // XP cumulée (#35) ; le niveau en découle, voir lib/xp.ts.
     xp: integer("xp").notNull().default(0),
+    // Changement de nom (#67) : l'ancien nom reste réservé 30 jours après renamedAt, voir lib/username.ts.
+    previousUsername: text("previous_username"),
+    renamedAt: timestamp("renamed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
