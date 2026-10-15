@@ -60,6 +60,9 @@ export type ExplorerLobby = {
 
 export type LobbiesMessage = { lobbies: ExplorerLobby[] };
 
+// Réponse à « Course rapide » (JOIN-03) : le code du lobby à rejoindre, ou aucun disponible.
+export type QuickRaceAck = { ok: true; code: string } | { ok: false; error: "noQuickLobby" };
+
 // Envoyé à toute la salle quand l'hôte lance la course ; le texte reste caché jusqu'au « Go ».
 export type CountdownMessage = { seconds: number };
 
