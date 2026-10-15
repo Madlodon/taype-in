@@ -189,10 +189,11 @@
     "kick": "Exclure",
     "confirmKick": "Exclure {username} ? Cette personne ne pourra plus revenir dans cette course.",
     "botLevels": {
+      "noob": "Noob",
       "beginner": "Débutant",
       "intermediate": "Intermédiaire",
-      "advanced": "Avancé",
-      "expert": "Expert"
+      "expert": "Expert",
+      "impossible": "Impossible"
     },
     "editSettings": "Modifier les réglages",
     "saveSettings": "Enregistrer les réglages",
