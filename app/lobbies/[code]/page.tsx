@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { sessionStatsAction } from "@/app/actions/session-stats";
 import { InviteLinks } from "@/components/invite-links";
 import { LobbyRoom } from "@/components/lobby-room";
+import { LobbySettingsFields } from "@/components/lobby-settings-fields";
 import { canEnterLobby, findOpenLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 import { DEFAULT_LOADOUT, loadoutSchema } from "@/lib/garage-items";
@@ -17,6 +18,7 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
   if (!lobby || !(await canEnterLobby(lobby, user.id))) notFound();
   // Seul l'hôte invite, par le code ou par des liens (LOB-7).
   const isHost = lobby.hostId === user.id;
+  const locale = await getLocale();
   const t = await getTranslations("LobbyRoom");
   const d = await getTranslations("Design");
   return (
@@ -34,7 +36,8 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
         <div className="side-stack">
           <LobbyRoom code={lobby.code} hostId={lobby.hostId} userId={user.id}
             stadium={loadoutSchema.shape.stadium.catch(DEFAULT_LOADOUT.stadium).parse(user.stadium)}
-            loadSessionStats={sessionStatsAction} />
+            loadSessionStats={sessionStatsAction}
+            settingsFields={isHost && <LobbySettingsFields settings={lobby} locale={locale} />} />
         </div>
         <aside className="side-stack">
           {isHost && lobby.visibility !== "private" &&

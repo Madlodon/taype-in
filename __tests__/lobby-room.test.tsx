@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
+import type { ReactNode } from "react";
 import { LobbyRoom } from "../components/lobby-room";
 import en from "../messages/en.json";
 import fr from "../messages/fr.json";
 import { STADIUMS, type Stadium } from "../lib/garage-items";
+import type { SettingsMessage } from "../lib/socket-messages";
 
 type Handler = (...args: unknown[]) => void;
 
@@ -26,11 +28,16 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 // u1 est l'hôte ; l'utilisateur courant est u1 s'il est hôte, sinon u2.
 // Le socket se connecte aussitôt rendu.
-function renderRoom(locale: "fr" | "en" = "fr", isHost = false, stadium?: Stadium) {
+function renderRoom(
+  locale: "fr" | "en" = "fr",
+  isHost = false,
+  stadium?: Stadium,
+  settingsFields?: ReactNode,
+) {
   const result = render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
       <LobbyRoom code="K7P3XM" hostId="u1" userId={isHost ? "u1" : "u2"} stadium={stadium}
-        loadSessionStats={loadSessionStats} />
+        loadSessionStats={loadSessionStats} settingsFields={settingsFields} />
     </NextIntlClientProvider>,
   );
   act(() => handlers["connect"]());
@@ -600,12 +607,13 @@ function endRaceAsHost() {
   return call[1] as Handler;
 }
 
-test("Should_OpenSettingsPage_When_HostRelaunches", () => {
+// Le serveur renvoie l'hôte à la salle d'attente avec tout le monde (lobby:restarted).
+test("Should_StayInRoom_When_HostRelaunches", () => {
   const ack = endRaceAsHost();
 
   act(() => ack({ ok: true }));
 
-  expect(router.push).toHaveBeenCalledWith("/lobbies/K7P3XM/settings");
+  expect(router.push).not.toHaveBeenCalled();
 });
 
 test("Should_ShowErrorAndStay_When_RelaunchIsRefused", () => {
@@ -1365,4 +1373,103 @@ test("Should_NameBotInRankingAndOvertake_When_BotPassesUser", () => {
 
   expect(ranking()[0].textContent).toBe("Bot Expert 1Bot50 MPM · 20 %");
   expect(overtakeText(container)).toBe("▼ Bot Expert 1 t'a dépassé · 2e");
+});
+
+// CONF-12 : réglages vus par tous et modifiés par l'hôte dans la salle d'attente.
+const settings: SettingsMessage = {
+  textLanguage: "en",
+  textLength: 50,
+  textType: "words",
+  textTargets: ["digits"],
+  textLetters: "qz",
+  customText: false,
+  errorMode: "tolerant",
+  timeLimitSeconds: 90,
+  capacity: 4,
+};
+
+function sendSettings(message = settings) {
+  act(() => handlers["lobby:settings"](message));
+}
+
+function summary() {
+  const list = screen.getByRole("heading", { name: "Réglages de la course" }).nextElementSibling!;
+  return [...list.querySelectorAll("div")].map((row) => row.textContent);
+}
+
+// Un champ suffit : la page fournit les vrais champs (LobbySettingsFields).
+function renderHostWithFields() {
+  renderRoom("fr", true, undefined, <input name="textLanguage" defaultValue="en" aria-label="Langue" />);
+  sendParticipants();
+}
+
+test("Should_ShowSettingsToEveryone_When_ServerSendsThem", () => {
+  renderRoom();
+  sendParticipants();
+
+  sendSettings();
+
+  expect(summary()).toEqual([
+    "Langue du texteAnglais",
+    "Texte50 mots · Mots mélangés",
+    "Caractères ciblésChiffres, lettres « qz »",
+    "Erreurs de frappeTolérant",
+    "Minuterie1 min 30",
+    "Capacité maximale4 participants",
+  ]);
+});
+
+test("Should_UpdateSettings_When_HostChangesThem", () => {
+  renderRoom();
+  sendParticipants();
+  sendSettings();
+
+  sendSettings({ ...settings, customText: true, timeLimitSeconds: null });
+
+  expect(summary()).toEqual([
+    "Langue du texteAnglais",
+    "TexteTexte personnalisé",
+    "Erreurs de frappeTolérant",
+    "MinuteriePas de minuterie",
+    "Capacité maximale4 participants",
+  ]);
+});
+
+test("Should_HideSettings_When_RaceStarts", () => {
+  renderRoom();
+  sendParticipants();
+  sendSettings();
+
+  startRace(["u1", "u2"]);
+
+  expect(screen.queryByRole("heading", { name: "Réglages de la course" })).toBeNull();
+});
+
+test("Should_SendFormFields_When_HostSavesSettings", () => {
+  renderHostWithFields();
+  sendSettings();
+
+  fireEvent.click(screen.getByRole("button", { name: "Enregistrer les réglages" }));
+
+  const call = socket.emit.mock.calls.find(([event]) => event === "lobby:settings")!;
+  expect(call[1]).toEqual({ textLanguage: "en", textTargets: [] });
+  act(() => (call[2] as Handler)({ ok: true }));
+  expect(screen.getByRole("status").textContent).toBe("Réglages enregistrés : tout le monde les voit.");
+});
+
+test("Should_ShowError_When_SavingSettingsIsRefused", () => {
+  renderHostWithFields();
+
+  fireEvent.click(screen.getByRole("button", { name: "Enregistrer les réglages" }));
+  const call = socket.emit.mock.calls.find(([event]) => event === "lobby:settings")!;
+  act(() => (call[2] as Handler)({ ok: false, error: "raceInProgress" }));
+
+  expect(screen.getByRole("alert").textContent).toBe("Une course est déjà en cours");
+});
+
+test("Should_NotShowSettingsForm_When_PlayerIsNotHost", () => {
+  renderRoom("fr", false, undefined, <input name="textLanguage" />);
+  sendParticipants();
+
+  expect(screen.queryByRole("button", { name: "Enregistrer les réglages" })).toBeNull();
 });

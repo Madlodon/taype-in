@@ -581,7 +581,7 @@ test("Should_RaceWithoutHost_When_HostStartsAndWatches", async ({ browser }) => 
   await expect(host.page.getByRole("heading", { name: "Participants (2)" })).toBeVisible();
 });
 
-test("Should_SendEveryoneToWaitingRoomAndKeepCode_When_HostRelaunchesWithNewSettings", async ({
+test("Should_SendEveryoneToWaitingRoomAndShowNewSettings_When_HostRelaunchesAndChangesThem", async ({
   browser,
 }) => {
   const host = await newHost(browser);
@@ -599,13 +599,16 @@ test("Should_SendEveryoneToWaitingRoomAndKeepCode_When_HostRelaunchesWithNewSett
 
   await host.page.getByRole("button", { name: "Relancer la course" }).click();
 
-  await expect(host.page).toHaveURL(`/lobbies/${code}/settings`);
+  await expect(host.page).toHaveURL(`/lobbies/${code}`);
   await expect(player.page.getByRole("heading", { name: "Résultats" })).toHaveCount(0);
   await expect(player.page.getByText(/En attente de l'hôte/)).toBeVisible();
 
+  // Le joueur voit les nouveaux réglages sans recharger (CONF-12).
+  await expect(player.page.getByText("Bloquant", { exact: true })).toBeVisible();
+  await host.page.getByText("Modifier les réglages").click();
   await host.page.getByLabel(/Tolérant/).check();
-  await host.page.getByRole("button", { name: "Enregistrer et retourner à la salle" }).click();
-  await expect(host.page).toHaveURL(`/lobbies/${code}`);
+  await host.page.getByRole("button", { name: "Enregistrer les réglages" }).click();
+  await expect(player.page.getByText("Tolérant", { exact: true })).toBeVisible();
   await expect(participants(player.page)).toHaveCount(2);
   await host.page.getByRole("button", { name: "Lancer et courir" }).click();
 

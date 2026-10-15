@@ -173,13 +173,21 @@
       "intermediate": "Intermédiaire",
       "advanced": "Avancé",
       "expert": "Expert"
+    },
+    "editSettings": "Modifier les réglages",
+    "saveSettings": "Enregistrer les réglages",
+    "settingsSaved": "Réglages enregistrés : tout le monde les voit.",
+    "settings": {
+      "title": "Réglages de la course",
+      "text": "Texte",
+      "sentences": "Phrases",
+      "words": "Mots mélangés",
+      "custom": "Texte personnalisé",
+      "targets": "Caractères ciblés",
+      "letters": "lettres « {letters} »",
+      "blocking": "Bloquant",
+      "tolerant": "Tolérant"
     }
-  },
-  "LobbySettings": {
-    "title": "Réglages de la prochaine course",
-    "description": "Change les réglages, puis lance la course depuis la salle d'attente.",
-    "back": "Retour à la salle d'attente",
-    "submit": "Enregistrer et retourner à la salle"
   },
   "RaceResults": {
     "title": "Résultats",
