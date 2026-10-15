@@ -6,7 +6,7 @@ import { db } from "../db";
 import { lobbies, races, texts, users } from "../db/schema";
 import { createLobby } from "../lib/lobbies";
 import { createRace, markRaceEnded, markRaceStarted } from "../lib/races";
-import { cutText } from "../lib/texts";
+import { applyTextOptions, cutText } from "../lib/texts";
 
 // Utilisateurs créés par un test, supprimés après (avec leurs lobbys et courses).
 const createdIds: string[] = [];
@@ -51,6 +51,41 @@ test.each([
     expect(race!.content).toBe(cutText(source.content, textLength));
   },
 );
+
+test.each(["easy", "medium", "hard"] as const)(
+  "Should_PickTextOfLobbyComplexity_When_ComplexityIs_%s",
+  async (textComplexity) => {
+    const race = await createRace(await newLobby({ textComplexity }));
+
+    const [source] = await db.select().from(texts).where(eq(texts.id, race!.textId!));
+    expect(source.complexity).toBe(textComplexity);
+  },
+);
+
+test("Should_RemoveUntickedContent_When_LobbyTurnsOptionsOff", async () => {
+  const lobby = await newLobby({
+    textLanguage: "fr",
+    textLength: 50,
+    textComplexity: "hard",
+    textPunctuation: false,
+    textNumbers: false,
+    textCapitals: false,
+    textAccents: false,
+  });
+
+  const race = await createRace(lobby);
+
+  const [source] = await db.select().from(texts).where(eq(texts.id, race!.textId!));
+  expect(race!.content).toBe(
+    applyTextOptions(cutText(source.content, 50), {
+      punctuation: false,
+      numbers: false,
+      capitals: false,
+      accents: false,
+    }),
+  );
+  expect(race!.content).toMatch(/^[a-z' -]+$/);
+});
 
 test("Should_UseHostText_When_LobbyHasCustomText", async () => {
   const race = await createRace(await newLobby({ customText: "Mon texte à moi.", textType: "words" }));

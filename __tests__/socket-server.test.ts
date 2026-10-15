@@ -261,6 +261,11 @@ describe("lobby:join", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "fr",
       textLength: 100,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -282,6 +287,11 @@ describe("lobby:join", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "fr",
       textLength: 100,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -1488,6 +1498,11 @@ describe("lobby:restart", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "en",
       textLength: 50,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -2061,6 +2076,11 @@ describe("bots", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "fr",
       textLength: 100,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -2078,6 +2098,11 @@ describe("bots", () => {
     await updateLobbySettings(lobby.id, {
       textLanguage: "fr",
       textLength: 100,
+      textComplexity: "medium",
+      textPunctuation: true,
+      textNumbers: true,
+      textCapitals: true,
+      textAccents: true,
       textType: "sentences",
       textTargets: [],
       textLetters: "",
@@ -2231,6 +2256,7 @@ describe("lobbies explorer", () => {
       participantCount: 1,
       capacity: 4,
       textLanguage: "en",
+      textComplexity: "medium",
       state: "waiting",
     });
   });
