@@ -6,7 +6,7 @@ import {
   TIMER_OPTIONS,
   type LobbySettings,
 } from "@/lib/lobbies";
-import { COMPLEXITIES, TEXT_LENGTHS } from "@/lib/texts";
+import { COMPLEXITIES, MAX_CUSTOM_TEXT, TEXT_LENGTHS, TEXT_TARGETS } from "@/lib/texts";
 
 type Props = { settings?: LobbySettings; locale: string };
 
@@ -17,6 +17,7 @@ export function LobbySettingsFields({ settings, locale }: Props) {
   const textLanguage = settings?.textLanguage ?? (locale === "en" ? "en" : "fr");
   const textLength = settings?.textLength ?? 100;
   const textComplexity = settings?.textComplexity ?? "medium";
+  const textType = settings?.textType ?? "sentences";
   const errorMode = settings?.errorMode ?? "blocking";
   const noTimer = settings !== undefined && settings.timeLimitSeconds === null;
   // Une ancienne durée hors des choix revient à la valeur par défaut.
@@ -60,6 +61,29 @@ export function LobbySettingsFields({ settings, locale }: Props) {
         <label className="radio-option">
           <input type="checkbox" name="textAccents" defaultChecked={settings?.textAccents ?? true} />{t("accents")}</label>
       </fieldset>
+      <fieldset>
+        <legend className="text-sm font-semibold">{t("textType")}</legend>
+        <label className="radio-option">
+          <input type="radio" name="textType" value="sentences" defaultChecked={textType === "sentences"} />{t("sentences")}</label>
+        <label className="radio-option">
+          <input type="radio" name="textType" value="words" defaultChecked={textType === "words"} />{t("scrambledWords")}</label>
+      </fieldset>
+      <fieldset>
+        <legend className="text-sm font-semibold">{t("textTargets")}</legend>
+        {TEXT_TARGETS.map((target) => (
+          <label key={target} className="radio-option">
+            <input type="checkbox" name="textTargets" value={target}
+              defaultChecked={settings?.textTargets.includes(target)} />{t(`targets.${target}`)}</label>
+        ))}
+        <label className="field">
+          {t("textLetters")}
+          <input name="textLetters" defaultValue={settings?.textLetters} maxLength={26} autoComplete="off" />
+        </label>
+      </fieldset>
+      <label className="field">
+        {t("customText")}
+        <textarea name="customText" defaultValue={settings?.customText ?? ""} maxLength={MAX_CUSTOM_TEXT} rows={4} />
+      </label>
       <fieldset>
         <legend className="text-sm font-semibold">{t("errorMode")}</legend>
         <label className="radio-option">

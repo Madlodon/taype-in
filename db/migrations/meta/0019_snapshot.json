@@ -1,5 +1,5 @@
 {
-  "id": "cbe1096f-1e10-4185-9229-07d5d1118a52",
+  "id": "77b6ee76-9ad8-46d0-aee9-2e26463de85f",
   "prevId": "85e26ad9-d650-4e7e-ac62-1ed3173cc845",
   "version": "7",
   "dialect": "postgresql",
@@ -101,41 +101,33 @@
           "notNull": true,
           "default": 100
         },
-        "text_complexity": {
-          "name": "text_complexity",
-          "type": "text_complexity",
+        "text_type": {
+          "name": "text_type",
+          "type": "text_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'medium'"
+          "default": "'sentences'"
         },
-        "text_punctuation": {
-          "name": "text_punctuation",
-          "type": "boolean",
+        "text_targets": {
+          "name": "text_targets",
+          "type": "text[]",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": "'{}'::text[]"
         },
-        "text_numbers": {
-          "name": "text_numbers",
-          "type": "boolean",
+        "text_letters": {
+          "name": "text_letters",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": "''"
         },
-        "text_capitals": {
-          "name": "text_capitals",
-          "type": "boolean",
+        "custom_text": {
+          "name": "custom_text",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "text_accents": {
-          "name": "text_accents",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
+          "notNull": false
         },
         "error_mode": {
           "name": "error_mode",
@@ -843,14 +835,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "complexity": {
-          "name": "complexity",
-          "type": "text_complexity",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'medium'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -980,15 +964,6 @@
     }
   },
   "enums": {
-    "public.text_complexity": {
-      "name": "text_complexity",
-      "schema": "public",
-      "values": [
-        "easy",
-        "medium",
-        "hard"
-      ]
-    },
     "public.error_mode": {
       "name": "error_mode",
       "schema": "public",
@@ -1020,6 +995,14 @@
       "values": [
         "discord",
         "github"
+      ]
+    },
+    "public.text_type": {
+      "name": "text_type",
+      "schema": "public",
+      "values": [
+        "sentences",
+        "words"
       ]
     }
   },

@@ -87,6 +87,21 @@ test("Should_RemoveUntickedContent_When_LobbyTurnsOptionsOff", async () => {
   expect(race!.content).toMatch(/^[a-z' -]+$/);
 });
 
+test("Should_UseHostText_When_LobbyHasCustomText", async () => {
+  const race = await createRace(await newLobby({ customText: "Mon texte à moi.", textType: "words" }));
+
+  expect(race).toMatchObject({ textId: null, content: "Mon texte à moi." });
+});
+
+test("Should_UseScrambledWords_When_LobbyTextTypeIsWords", async () => {
+  const lobby = await newLobby({ textType: "words", textLength: 50, textTargets: ["digits"] });
+
+  const race = await createRace(lobby);
+
+  expect(race!.textId).toBeNull();
+  expect(race!.content.split(" ")).toHaveLength(50);
+});
+
 test.each(["blocking", "tolerant"] as const)(
   "Should_CopyLobbyErrorMode_When_LobbyIs_%s",
   async (errorMode) => {

@@ -24,6 +24,7 @@ export const lobbyVisibilityEnum = pgEnum("lobby_visibility", [
 ]);
 export const errorModeEnum = pgEnum("error_mode", ["blocking", "tolerant"]);
 export const complexityEnum = pgEnum("text_complexity", ["easy", "medium", "hard"]);
+export const textTypeEnum = pgEnum("text_type", ["sentences", "words"]);
 
 export const users = pgTable(
   "users",
@@ -121,6 +122,12 @@ export const lobbies = pgTable("lobbies", {
   textNumbers: boolean("text_numbers").notNull().default(true),
   textCapitals: boolean("text_capitals").notNull().default(true),
   textAccents: boolean("text_accents").notNull().default(true),
+  // Phrases de la banque ou mots mélangés ; caractères ciblés en mode mots (TXT-4, TXT-5).
+  textType: textTypeEnum("text_type").notNull().default("sentences"),
+  textTargets: text("text_targets").array().notNull().default(sql`'{}'::text[]`),
+  textLetters: text("text_letters").notNull().default(""),
+  // Texte écrit par l'hôte ; remplace la banque quand il est présent (TXT-6).
+  customText: text("custom_text"),
   // Mode d'erreur choisi à la création, copié dans chaque course (ERR-1).
   errorMode: errorModeEnum("error_mode").notNull().default("blocking"),
   // Minuterie de la course, 5 min par défaut ; null = pas de minuterie (CRS-4).

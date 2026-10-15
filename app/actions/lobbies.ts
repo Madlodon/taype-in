@@ -21,7 +21,7 @@ import {
 } from "@/lib/lobbies";
 import { codeAttempts } from "@/lib/rate-limit";
 import { getCurrentUser, setSessionCookie } from "@/lib/session-cookie";
-import { COMPLEXITIES, TEXT_LENGTHS } from "@/lib/texts";
+import { COMPLEXITIES, MAX_CUSTOM_TEXT, normalizeLetters, TEXT_LENGTHS, TEXT_TARGETS } from "@/lib/texts";
 
 // error est une clé de traduction (Lobbies.errors).
 export type JoinFormState = { error?: string; code?: string } | undefined;
@@ -41,6 +41,15 @@ function parseSettings(formData: FormData): LobbySettings {
   const textNumbers = formData.has("textNumbers");
   const textCapitals = formData.has("textCapitals");
   const textAccents = formData.has("textAccents");
+  // Phrases de la banque ou mots mélangés, avec les caractères cochés (TXT-4, TXT-5).
+  const textType = z.enum(["sentences", "words"]).catch("sentences").parse(formData.get("textType"));
+  const textTargets = TEXT_TARGETS.filter((target) => formData.getAll("textTargets").includes(target));
+  const textLetters = normalizeLetters(String(formData.get("textLetters") ?? ""));
+  // Texte de l'hôte sur une seule ligne, coupé à la taille maximale ; vide = banque (TXT-6).
+  const customText = String(formData.get("customText") ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_CUSTOM_TEXT) || null;
   // Bloquant : la saisie s'arrête jusqu'au bon caractère ; tolérant : on continue (ERR-1).
   const errorMode = z.enum(["blocking", "tolerant"]).catch("blocking").parse(formData.get("errorMode"));
   // Durée parmi les choix proposés, ou aucune minuterie (CONF-01).
@@ -64,6 +73,10 @@ function parseSettings(formData: FormData): LobbySettings {
     textNumbers,
     textCapitals,
     textAccents,
+    textType,
+    textTargets,
+    textLetters,
+    customText,
     errorMode,
     timeLimitSeconds,
     capacity,
