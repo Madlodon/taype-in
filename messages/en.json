@@ -397,6 +397,11 @@
       }
     }
   },
+  "PastRace": {
+    "eyebrow": "Past race",
+    "title": "Race results",
+    "summary": "{text} · {date}"
+  },
   "Garage": {
     "tag": "Your ride. Your style.",
     "title": "Garage",

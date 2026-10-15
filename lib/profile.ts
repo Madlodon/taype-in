@@ -29,6 +29,13 @@ export type ProfileStats = {
 
 export const HARDEST_KEYS_COUNT = 5;
 
+// Titre du texte de la banque, sinon ses premiers mots : un texte écrit par l'hôte n'a pas de titre.
+export function textLabel(textTitle: string | null, content: string): string {
+  if (textTitle !== null) return textTitle;
+  const words = content.split(/\s+/);
+  return words.length > 6 ? `${words.slice(0, 6).join(" ")}…` : content;
+}
+
 // Les invités n'ont pas de profil.
 export async function findProfileUser(username: string): Promise<User | null> {
   const [user] = await db

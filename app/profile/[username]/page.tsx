@@ -12,16 +12,10 @@ import {
   listRaceHistory,
   paginateHistory,
   progressionPoints,
-  type HistoryEntry,
+  textLabel,
 } from "@/lib/profile";
 import { getCurrentUser } from "@/lib/session-cookie";
 import { levelProgress } from "@/lib/xp";
-
-// Premiers mots d'un texte écrit par l'hôte, qui n'a pas de titre.
-function excerpt(content: string): string {
-  const words = content.split(/\s+/);
-  return words.length > 6 ? `${words.slice(0, 6).join(" ")}…` : content;
-}
 
 // Page publique : visiteurs, invités et propriétaire voient les mêmes données (PROF-2, PROF-3).
 export default async function ProfilePage({
@@ -46,7 +40,6 @@ export default async function ProfilePage({
   const wpm = (value: number | null) => (value === null ? "—" : Math.round(value));
   const percent = (value: number | null) =>
     value === null ? "—" : t("percent", { value: Math.round(value) });
-  const text = (entry: HistoryEntry) => entry.textTitle ?? excerpt(entry.content);
   const chartDate = (date: Date) => format.dateTime(date, { day: "numeric", month: "short" });
 
   return (
@@ -152,7 +145,10 @@ export default async function ProfilePage({
                   {entries.map((entry) => (
                     <tr key={entry.raceId}>
                       <td>{format.dateTime(entry.date, { dateStyle: "medium" })}</td>
-                      <th scope="row">{text(entry)}</th>
+                      {/* Rouvre les résultats complets de la course (HIST-02). */}
+                      <th scope="row">
+                        <Link href={`/races/${entry.raceId}`}>{textLabel(entry.textTitle, entry.content)}</Link>
+                      </th>
                       <td>{entry.rank}</td>
                       <td>{Math.round(entry.wpm)}</td>
                       <td>{percent(entry.accuracy)}</td>

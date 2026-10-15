@@ -397,6 +397,11 @@
       }
     }
   },
+  "PastRace": {
+    "eyebrow": "Course passée",
+    "title": "Résultats de la course",
+    "summary": "{text} · {date}"
+  },
   "Garage": {
     "tag": "Ton bolide. Ton style.",
     "title": "Garage",

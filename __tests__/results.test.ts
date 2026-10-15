@@ -3,11 +3,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { lobbies, results, users } from "../db/schema";
+import { lobbies, races, results, users } from "../db/schema";
 import { createLobby } from "../lib/lobbies";
 import { createRace } from "../lib/races";
 import { xpForLevel } from "../lib/xp";
-import { awardXp, rankRacers, saveResults, type Racer } from "../lib/results";
+import { awardXp, findPastRace, rankRacers, saveResults, type Racer } from "../lib/results";
 import { accuracy, countCorrect, wordsPerMinute } from "../lib/typing";
 
 const TEXT = "chat";
@@ -443,6 +443,68 @@ describe("awardXp", () => {
     const updates = await awardXp(rankRacers([racer({ id: user.id })], TEXT, "blocking"));
 
     expect(updates.get(user.id)).toEqual({ xp: 0, xpGained: 0 });
+  });
+});
+
+describe("findPastRace", () => {
+  const createdIds: string[] = [];
+
+  async function newUser() {
+    const [user] = await db
+      .insert(users)
+      .values({ username: `t_${Math.random().toString(36).slice(2, 12)}` })
+      .returning();
+    createdIds.push(user.id);
+    return user;
+  }
+
+  async function newRace(hostId: string) {
+    return (await createRace(await createLobby(hostId, "unlisted")))!;
+  }
+
+  afterEach(async () => {
+    const ids = createdIds.splice(0);
+    await db.delete(lobbies).where(inArray(lobbies.hostId, ids));
+    await db.delete(users).where(inArray(users.id, ids));
+  });
+
+  test("Should_ReturnSavedResultsByRank_When_RaceIsOver", async () => {
+    const winner = await newUser();
+    const quitter = await newUser();
+    const race = await newRace(winner.id);
+    const endedAt = new Date("2026-03-01T10:00:00Z");
+    await db.update(races).set({ endedAt, errorMode: "tolerant" }).where(eq(races.id, race.id));
+    const ranked = rankRacers(
+      [
+        racer({ id: quitter.id, username: quitter.username, typed: "c", finished: false, gaveUp: true, errors: 2 }),
+        racer({ id: winner.id, username: winner.username, keyErrors: { h: 1 }, wpmSeries: [10, 20] }),
+      ],
+      TEXT,
+      "tolerant",
+    );
+    await saveResults(race.id, ranked);
+
+    const past = await findPastRace(race.id);
+
+    expect(past).toMatchObject({ date: endedAt, textTitle: expect.any(String), content: race.content });
+    expect(past?.results).toEqual(ranked);
+    expect(past?.results.map((result) => [result.username, result.status, result.penaltyMs])).toEqual([
+      [winner.username, "finished", 0],
+      [quitter.username, "gaveUp", 2000],
+    ]);
+  });
+
+  test("Should_ReturnNull_When_RaceHasNoSavedResult", async () => {
+    const race = await newRace((await newUser()).id);
+
+    expect(await findPastRace(race.id)).toBeNull();
+  });
+
+  test.each([
+    ["race is unknown", crypto.randomUUID()],
+    ["id is not a uuid", "pas-un-id"],
+  ])("Should_ReturnNull_When_%s", async (_name, id) => {
+    expect(await findPastRace(id)).toBeNull();
   });
 });
 

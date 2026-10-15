@@ -3,7 +3,7 @@ import { withoutRemoved, type RemovedWord } from "./race-goals.ts";
 // enregistrés dans l'historique de chaque joueur, invités compris (FIN-4, PROF-5).
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
-import { results, users } from "../db/schema.ts";
+import { races, results, texts, users } from "../db/schema.ts";
 import { clampRankLevel, rankMoves } from "./ranks.ts";
 import { accuracy, countCorrect, wordsPerMinute, type ErrorMode } from "./typing.ts";
 import { raceXp } from "./xp.ts";
@@ -147,4 +147,55 @@ export async function awardXp(ranked: Placement[], multiplier = 1): Promise<Map<
     }
   });
   return updates;
+}
+
+export type PastRace = {
+  date: Date;
+  // Titre du texte de la banque ; null pour un texte écrit par l'hôte.
+  textTitle: string | null;
+  content: string;
+  results: Placement[];
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Résultats enregistrés d'une course finie, pour les réafficher depuis l'historique (HIST-02).
+// Les bots ne sont pas enregistrés ; null si la course est inconnue ou sans résultat.
+export async function findPastRace(raceId: string): Promise<PastRace | null> {
+  if (!UUID.test(raceId)) return null;
+  const date = sql<Date>`coalesce(${races.endedAt}, ${races.createdAt})`.mapWith(races.createdAt);
+  const [race] = await db
+    .select({ date, textTitle: texts.title, content: races.content, errorMode: races.errorMode })
+    .from(races)
+    .leftJoin(texts, eq(texts.id, races.textId))
+    .where(eq(races.id, raceId));
+  if (!race) return null;
+  const rows = await db
+    .select({ result: results, username: users.username })
+    .from(results)
+    .innerJoin(users, eq(users.id, results.userId))
+    .where(eq(results.raceId, raceId))
+    .orderBy(results.rank);
+  if (rows.length === 0) return null;
+  return {
+    date: race.date,
+    textTitle: race.textTitle,
+    content: race.content,
+    results: rows.map(({ result, username }) => ({
+      id: result.userId,
+      username,
+      rank: result.rank,
+      wpm: result.wpm,
+      rawWpm: result.rawWpm,
+      accuracy: result.accuracy,
+      durationMs: result.durationMs,
+      penaltyMs: race.errorMode === "tolerant" ? result.errorCount * PENALTY_MS_PER_ERROR : 0,
+      errors: result.errorCount,
+      finished: result.finished,
+      status: result.finished ? "finished" : result.gaveUp ? "gaveUp" : "timeUp",
+      bonuses: result.bonuses,
+      keyErrors: result.keyErrors,
+      wpmSeries: result.wpmSeries,
+    })),
+  };
 }

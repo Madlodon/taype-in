@@ -245,6 +245,14 @@ test("Should_ShowWinsCount_When_UserWonRaces", async () => {
   expect(screen.getByText("Victoires").nextSibling?.textContent).toBe("2");
 });
 
+test("Should_LinkToRaceResults_When_ListingARace", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue([entry({ raceId: "abc" })]);
+
+  await renderProfile();
+
+  expect(screen.getByRole("link", { name: "Le hockey" }).getAttribute("href")).toBe("/races/abc");
+});
+
 function races(count: number) {
   return Array.from({ length: count }, (_, index) => entry({ raceId: String(index), textTitle: `Course ${index}` }));
 }
