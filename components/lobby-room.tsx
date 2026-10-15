@@ -336,8 +336,9 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
     (participant) => !(hostWatching && participant.id === hostId),
   ).length;
 
-  // Pendant et après la course : le top 10 et tes voisins, sur la piste et dans le classement (CRS-2).
+  // Le classement garde le top 10 et tes voisins ; le terrain montre seulement le top 5.
   const shown = race ? selectShown(positions, userId) : [];
+  const field = race ? positions.slice(0, 5) : [];
   const percent = (position: number) => Math.round((position / race!.content.length) * 100);
   const track =
     shown.length === 0 ? (
@@ -348,7 +349,7 @@ export function LobbyRoom({ code, hostId: pageHostId, userId, stadium, loadSessi
           stadium={stadium}
           shots={shots}
           boosts={boosts}
-          cars={shown.map((entry) => ({
+          cars={field.map((entry) => ({
             id: entry.id,
             name: entry.username,
             progress:
