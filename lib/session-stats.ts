@@ -4,7 +4,7 @@ import { computeStats, listRaceHistory, type HistoryEntry, type ProfileStats } f
 
 export const SESSION_GAP_MS = 30 * 60 * 1000;
 
-export type SessionStats = Omit<ProfileStats, "hardestKeys"> & { races: number };
+export type SessionStats = Omit<ProfileStats, "hardestKeys" | "wins"> & { races: number };
 
 // history va de la plus récente à la plus ancienne ; une session finie depuis 30 min ne compte plus.
 export function currentSession(history: HistoryEntry[], now: number): HistoryEntry[] {

@@ -47,10 +47,10 @@ function entry(overrides: Partial<HistoryEntry> = {}): HistoryEntry {
   };
 }
 
-async function renderProfile(username = "alex") {
+async function renderProfile(username = "alex", page?: string) {
   render(
     <NextIntlClientProvider locale="fr" messages={fr}>
-      {await ProfilePage({ params: Promise.resolve({ username }) })}
+      {await ProfilePage({ params: Promise.resolve({ username }), searchParams: Promise.resolve({ page }) })}
     </NextIntlClientProvider>,
   );
 }
@@ -235,4 +235,70 @@ test("Should_HideLevel_When_ProfileIsGuest", async () => {
   await renderProfile();
 
   expect(screen.queryByRole("progressbar")).toBeNull();
+});
+
+test("Should_ShowWinsCount_When_UserWonRaces", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue([entry({ rank: 1 }), entry({ rank: 2 }), entry({ rank: 1 })]);
+
+  await renderProfile();
+
+  expect(screen.getByText("Victoires").nextSibling?.textContent).toBe("2");
+});
+
+test("Should_LinkToRaceResults_When_ListingARace", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue([entry({ raceId: "abc" })]);
+
+  await renderProfile();
+
+  expect(screen.getByRole("link", { name: "Le hockey" }).getAttribute("href")).toBe("/races/abc");
+});
+
+function races(count: number) {
+  return Array.from({ length: count }, (_, index) => entry({ raceId: String(index), textTitle: `Course ${index}` }));
+}
+
+function pagination() {
+  return screen.queryByRole("navigation", { name: "Pages de l’historique" });
+}
+
+test("Should_ShowFirstPageWithNextLink_When_HistoryHasMoreThanTenRaces", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue(races(12));
+
+  await renderProfile();
+
+  expect(historyRows()).toHaveLength(10);
+  expect(within(pagination()!).getByText("Page 1 sur 2")).toBeDefined();
+  expect(within(pagination()!).getByRole("link", { name: "Suivante" }).getAttribute("href")).toBe(
+    "/profile/alex?page=2",
+  );
+  expect(within(pagination()!).queryByRole("link", { name: "Précédente" })).toBeNull();
+});
+
+test("Should_ShowLastRacesWithPreviousLink_When_OnLastPage", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue(races(12));
+
+  await renderProfile("alex", "2");
+
+  expect(historyRows().map((row) => row[1])).toEqual(["Course 10", "Course 11"]);
+  expect(within(pagination()!).getByRole("link", { name: "Précédente" }).getAttribute("href")).toBe(
+    "/profile/alex?page=1",
+  );
+  expect(within(pagination()!).queryByRole("link", { name: "Suivante" })).toBeNull();
+});
+
+test("Should_ShowFirstPage_When_PageParamIsInvalid", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue(races(12));
+
+  await renderProfile("alex", "abc");
+
+  expect(historyRows()[0][1]).toBe("Course 0");
+});
+
+test("Should_HidePagination_When_HistoryFitsOnePage", async () => {
+  vi.mocked(listRaceHistory).mockResolvedValue(races(10));
+
+  await renderProfile();
+
+  expect(historyRows()).toHaveLength(10);
+  expect(pagination()).toBeNull();
 });

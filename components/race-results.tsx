@@ -9,12 +9,13 @@ import { rankFromLevel } from "@/lib/ranks";
 import type { RaceResult } from "@/lib/socket-messages";
 import { levelFromXp } from "@/lib/xp";
 
-type Props = { results: RaceResult[]; userId: string };
+// showLevel = false pour une course passée : le rang gagné ou perdu n'est pas enregistré (HIST-02).
+type Props = { results: RaceResult[]; userId: string; showLevel?: boolean };
 
 const ROMAN = ["I", "II", "III", "IV"];
 
 // Fin de course : podium du top 3 (FIN-1), puis le classement complet avec les statistiques de chacun (FIN-2).
-export function RaceResults({ results, userId }: Props) {
+export function RaceResults({ results, userId, showLevel = true }: Props) {
   const t = useTranslations("RaceResults");
   const format = useFormatter();
   const decimal = (value: number) => format.number(value, { maximumFractionDigits: 1 });
@@ -65,7 +66,7 @@ export function RaceResults({ results, userId }: Props) {
               <th scope="col">{t("errors")}</th>
               <th scope="col">{t("status")}</th>
               <th scope="col">{t("bonuses")}</th>
-              <th scope="col">{t("level")}</th>
+              {showLevel && <th scope="col">{t("level")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -97,15 +98,17 @@ export function RaceResults({ results, userId }: Props) {
                 <td>{t(`statuses.${result.status}`)}</td>
                 <td>{result.bonuses}</td>
                 {/* Un bot n'a pas de rang (BOT-3). */}
-                <td>
-                  {result.bot ? (
-                    "—"
-                  ) : (
-                    <>
-                      {rankName(result.rankLevel)} <RankChange change={result.rankChange} />
-                    </>
-                  )}
-                </td>
+                {showLevel && (
+                  <td>
+                    {result.bot ? (
+                      "—"
+                    ) : (
+                      <>
+                        {rankName(result.rankLevel)} <RankChange change={result.rankChange} />
+                      </>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

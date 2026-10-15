@@ -365,11 +365,16 @@
     "bestWpm": "Best speed (WPM)",
     "averageWpm": "Average speed (WPM)",
     "averageAccuracy": "Average accuracy",
+    "wins": "Wins",
     "progression": "Progression",
     "progressionHint": "{count, plural, one {Last race} other {Last # races}}, without bonuses.",
     "noProgression": "Finish a race without bonuses to see your progress.",
     "history": "Race history",
     "noRaces": "No races yet.",
+    "pagination": "History pages",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {count}",
     "date": "Date",
     "text": "Text",
     "rank": "Rank",
@@ -392,6 +397,11 @@
         "guest": "Create an account to have a profile photo."
       }
     }
+  },
+  "PastRace": {
+    "eyebrow": "Past race",
+    "title": "Race results",
+    "summary": "{text} · {date}"
   },
   "Garage": {
     "tag": "Your ride. Your style.",

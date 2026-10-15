@@ -365,11 +365,16 @@
     "bestWpm": "Meilleure vitesse (MPM)",
     "averageWpm": "Vitesse moyenne (MPM)",
     "averageAccuracy": "Précision moyenne",
+    "wins": "Victoires",
     "progression": "Progression",
     "progressionHint": "{count, plural, one {Dernière course} other {# dernières courses}}, sans bonus.",
     "noProgression": "Termine une course sans bonus pour voir ta progression.",
     "history": "Historique des courses",
     "noRaces": "Aucune course pour l’instant.",
+    "pagination": "Pages de l’historique",
+    "previous": "Précédente",
+    "next": "Suivante",
+    "pageOf": "Page {page} sur {count}",
     "date": "Date",
     "text": "Texte",
     "rank": "Rang",
@@ -392,6 +397,11 @@
         "guest": "Crée un compte pour avoir une photo de profil."
       }
     }
+  },
+  "PastRace": {
+    "eyebrow": "Course passée",
+    "title": "Résultats de la course",
+    "summary": "{text} · {date}"
   },
   "Garage": {
     "tag": "Ton bolide. Ton style.",
