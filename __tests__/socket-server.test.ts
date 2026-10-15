@@ -2099,14 +2099,14 @@ describe("bots", () => {
 
   test("Should_SendBotsToPlayer_When_PlayerJoinsLater", async () => {
     const { lobby, hostClient } = await hostAlone();
-    await addBot(hostClient, "advanced");
+    await addBot(hostClient, "intermediate");
     const late = await newClient();
     const lateSees = nextParticipants(late);
 
     await join(late, { code: lobby.code });
 
     // Les joueurs d'abord, puis les bots.
-    expect((await lateSees).participants[2]).toMatchObject({ bot: { level: "advanced" } });
+    expect((await lateSees).participants[2]).toMatchObject({ bot: { level: "intermediate" } });
   });
 
   test("Should_RemoveBot_When_HostRemovesIt", async () => {
