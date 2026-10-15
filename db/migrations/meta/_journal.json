@@ -134,6 +134,20 @@
       "when": 1791597478526,
       "tag": "0018_wpm_series",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792102872899,
+      "tag": "0019_text_complexity",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792102989297,
+      "tag": "0020_textes_par_complexite",
+      "breakpoints": true
     }
   ]
 }
