@@ -26,6 +26,8 @@ const aUser = {
   stadium: "diorama",
   rankLevel: 0,
   xp: 0,
+  previousUsername: null,
+  renamedAt: null,
   createdAt: new Date(),
 };
 

@@ -27,6 +27,8 @@ const alex = {
   stadium: "diorama",
   rankLevel: 0,
   xp: 0,
+  previousUsername: null,
+  renamedAt: null,
   createdAt: new Date(),
 };
 const sam = { ...alex, id: "2", username: "sam" };

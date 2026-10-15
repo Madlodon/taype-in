@@ -51,6 +51,8 @@ const aGuest = {
   stadium: "diorama",
   rankLevel: 0,
   xp: 0,
+  previousUsername: null,
+  renamedAt: null,
   createdAt: new Date(),
 };
 const aMember = { ...aGuest, username: "pilote", passwordHash: "hash", isGuest: false };
