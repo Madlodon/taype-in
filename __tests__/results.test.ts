@@ -204,14 +204,28 @@ describe("rankRacers", () => {
     expect(result.wpm).toBe(8);
   });
 
-  test("Should_CountGoalsAsBonuses_When_WordsWereRemoved", () => {
+  test("Should_CountGoalsScoredAsBonuses_When_RacerScored", () => {
     const [result] = rankRacers(
-      [racer({ removed: [{ start: 0, end: 1 }, { start: 2, end: 3 }] })],
+      [racer({ bonuses: 2, removed: [{ start: 0, end: 1 }] })],
       TEXT,
       "blocking",
     );
 
     expect(result.bonuses).toBe(2);
+  });
+
+  test("Should_UseRacerOwnText_When_BonusAddedWords", () => {
+    // Le texte du coureur a grandi : il a tapé la moitié du sien, l'autre tout le texte de départ à moitié.
+    const [first, second] = rankRacers(
+      [
+        racer({ id: "a", typed: TEXT.slice(0, 2), content: TEXT + TEXT, finished: false, reachedAt: 1 }),
+        racer({ id: "b", typed: TEXT.slice(0, 2), finished: false, reachedAt: 2 }),
+      ],
+      TEXT,
+      "blocking",
+    );
+
+    expect([first.id, second.id]).toEqual(["b", "a"]);
   });
 
   test("Should_GiveEachRacerTheirStats_When_RaceEnds", () => {
@@ -325,7 +339,7 @@ describe("saveResults", () => {
     const user = await newUser();
     const race = await newRace(user.id);
     const ranked = rankRacers(
-      [racer({ id: user.id, typed: "ch", finished: false, gaveUp: true, removed: [{ start: 3, end: 4 }] })],
+      [racer({ id: user.id, typed: "ch", finished: false, gaveUp: true, bonuses: 1 })],
       TEXT,
       "blocking",
     );

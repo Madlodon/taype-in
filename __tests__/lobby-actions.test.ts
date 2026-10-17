@@ -71,6 +71,7 @@ const aLobby = {
   errorMode: "blocking" as const,
   timeLimitSeconds: 300,
   capacity: 30,
+  bonusesEnabled: false,
   createdAt: new Date(),
   closedAt: null,
 };

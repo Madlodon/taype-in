@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
@@ -1114,13 +1114,96 @@ test("Should_ApplyServerGoalWithoutLosingInput_When_RewardArrives", () => {
   const input = screen.getByRole("textbox") as HTMLTextAreaElement;
   fireEvent.change(input, { target: { value: "Go. O" } });
   act(() => handlers["race:shot"]({ id: "u2", sequence: 3, scored: true }));
-  act(() => handlers["race:goal"]({ removed: [{ start: 17, end: 22 }], word: "four" }));
+  act(() => handlers["race:bonus"]({ effect: "removeWords", from: "u2", to: "u2", removed: [{ start: 17, end: 22 }], word: "four" }));
   expect(input.value).toBe("Go. O");
   expect(screen.getByLabelText("Go. One two three five.")).toBeTruthy();
   expect(screen.getByText('Goal! “four” was removed from your text.')).toBeTruthy();
   fireEvent.change(input, { target: { value: "Go. One two three five." } });
   expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: content, keys: content.length - 5 }));
   expect(input.readOnly).toBe(true);
+});
+
+describe("bonuses", () => {
+  const content = "Go. One two three four five.";
+
+  function bonusRace() {
+    renderRoom("en");
+    act(() => handlers["race:started"]({ content, errorMode: "blocking", racerIds: ["u1", "u2"], secondsLeft: null }));
+    act(() => handlers["race:positions"]({
+      positions: [
+        { id: "u1", username: "rival", position: 10, wpm: 50 },
+        { id: "u2", username: "moi", position: 0, wpm: 0 },
+      ],
+    }));
+    return screen.getByRole("textbox") as HTMLTextAreaElement;
+  }
+
+  const text = () => document.querySelector(".typing-text")!;
+
+  test.each([
+    ["blur", "typing-blur", "rival scored: blurred text for 5 s."],
+    ["shrink", "typing-shrink", "rival scored: smaller text for 5 s."],
+  ])("Should_ChangeTextForFiveSeconds_When_HitBy_%s", (effect, className, note) => {
+    vi.useFakeTimers();
+    bonusRace();
+
+    act(() => handlers["race:bonus"]({ effect, from: "u1", to: "u2" }));
+
+    expect(text().classList.contains(className)).toBe(true);
+    expect(screen.getByText(note)).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(text().classList.contains(className)).toBe(false);
+  });
+
+  test("Should_AnnounceTargetAndKeepText_When_YouScored", () => {
+    bonusRace();
+
+    act(() => handlers["race:bonus"]({ effect: "blur", from: "u2", to: "u1" }));
+
+    expect(screen.getByText("Goal! rival gets: blurred text for 5 s.")).toBeTruthy();
+    expect(text().classList.contains("typing-blur")).toBe(false);
+  });
+
+  test("Should_KeepInputAndFinishLongerText_When_WordsAreAdded", () => {
+    const input = bonusRace();
+    fireEvent.change(input, { target: { value: "Go. O" } });
+    const longer = "Go. One Go Go Go two three four five.";
+
+    act(() => handlers["race:bonus"]({ effect: "addWords", from: "u1", to: "u2", content: longer, removed: [] }));
+
+    expect(input.value).toBe("Go. O");
+    expect(screen.getByLabelText(longer)).toBeTruthy();
+    fireEvent.change(input, { target: { value: longer } });
+    expect(input.readOnly).toBe(true);
+  });
+
+  test("Should_CutInputBackToChangedWord_When_WordIsShuffled", () => {
+    const input = bonusRace();
+    fireEvent.change(input, { target: { value: "Go. One t" } });
+
+    act(() => handlers["race:bonus"]({ effect: "shuffleWord", from: "u1", to: "u2", content: "Go. One wot three four five." }));
+
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Go. One ");
+    expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: "Go. One " }));
+  });
+
+  test("Should_WaitOneSecondBetweenLetters_When_HitBySlowLetters", () => {
+    vi.useFakeTimers();
+    const input = bonusRace();
+    fireEvent.change(input, { target: { value: "G" } });
+
+    act(() => handlers["race:bonus"]({ effect: "slowLetters", from: "u1", to: "u2" }));
+    fireEvent.change(input, { target: { value: "Go" } });
+
+    expect(input.value).toBe("G");
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    fireEvent.change(input, { target: { value: "Go" } });
+    expect(input.value).toBe("Go");
+  });
 });
 
 test("Should_RestoreRemovedWords_When_RejoiningRace", () => {
@@ -1391,6 +1474,7 @@ const settings: SettingsMessage = {
   errorMode: "tolerant",
   timeLimitSeconds: 90,
   capacity: 4,
+  bonusesEnabled: false,
 };
 
 function sendSettings(message = settings) {
@@ -1421,6 +1505,7 @@ test("Should_ShowSettingsToEveryone_When_ServerSendsThem", () => {
     "Erreurs de frappeTolérant",
     "Minuterie1 min 30",
     "Capacité maximale4 participants",
+    "BonusDésactivés",
   ]);
 });
 
@@ -1437,6 +1522,7 @@ test("Should_UpdateSettings_When_HostChangesThem", () => {
     "Erreurs de frappeTolérant",
     "MinuteriePas de minuterie",
     "Capacité maximale4 participants",
+    "BonusDésactivés",
   ]);
 });
 
@@ -1454,6 +1540,7 @@ test("Should_ShowComplexityAndRemovedContent_When_TextComesFromBankSentences", (
     "Erreurs de frappeTolérant",
     "Minuterie1 min 30",
     "Capacité maximale4 participants",
+    "BonusDésactivés",
   ]);
 });
 

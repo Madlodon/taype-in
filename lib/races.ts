@@ -37,6 +37,7 @@ export async function createRace(lobby: Lobby): Promise<Race | null> {
       language: lobby.textLanguage,
       timeLimitSeconds: lobby.timeLimitSeconds,
       errorMode: lobby.errorMode,
+      bonusesEnabled: lobby.bonusesEnabled,
     })
     .returning();
   return race;

@@ -119,10 +119,23 @@
     "noTimer": "Pas de minuterie",
     "capacity": "Capacité maximale",
     "participants": "{count} participants",
+    "bonuses": "Bonus",
+    "bonusesEnabled": "Activer les bonus : les buts donnent un effet aux joueurs en retard (ces courses ne comptent pas dans les meilleures vitesses)",
     "submit": "Créer la course"
   },
   "LobbyRoom": {
     "goalRemoved": "But ! « {word} » a été retiré de ton texte.",
+    "bonus": {
+      "sent": "But ! {name} reçoit : {effect}.",
+      "received": "{name} a marqué : {effect}.",
+      "effects": {
+        "addWords": "3 mots de plus",
+        "blur": "texte flou pendant 5 s",
+        "shrink": "texte réduit pendant 5 s",
+        "slowLetters": "1 s d'attente avant chacune des 3 prochaines lettres",
+        "shuffleWord": "prochain mot mélangé"
+      }
+    },
     "title": "Salle d'attente",
     "code": "Code de la course :",
     "participants": "Participants ({count})",
@@ -208,7 +221,10 @@
       "letters": "lettres « {letters} »",
       "blocking": "Bloquant",
       "tolerant": "Tolérant",
-      "removed": "Contenu retiré"
+      "removed": "Contenu retiré",
+      "bonuses": "Bonus",
+      "on": "Activés",
+      "off": "Désactivés"
     }
   },
   "RaceResults": {

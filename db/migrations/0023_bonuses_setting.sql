@@ -1,0 +1,1 @@
+ALTER TABLE "lobbies" ADD COLUMN "bonuses_enabled" boolean DEFAULT false NOT NULL;

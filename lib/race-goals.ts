@@ -2,6 +2,8 @@
 export type RemovedWord = { start: number; end: number };
 export const SHOT_MS = 1200;
 export const GOAL_CHANCE = .5;
+// A word, with French apostrophes and hyphens kept inside it.
+export const WORD_PATTERN = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu;
 
 export function withoutRemoved(text: string, removed: RemovedWord[]) {
   return text.split("").filter((_, index) => !removed.some(range => index >= range.start && index < range.end)).join("");
@@ -18,7 +20,7 @@ export function restoreRemoved(value: string, content: string, removed: RemovedW
 }
 
 export function thirdWordAhead(content: string, cursor: number, removed: RemovedWord[]): RemovedWord | undefined {
-  const words = [...content.matchAll(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)]
+  const words = [...content.matchAll(WORD_PATTERN)]
     .filter(word => !removed.some(range => word.index >= range.start && word.index < range.end));
   let current = -1;
   for (let index = 0; index < words.length; index++) {

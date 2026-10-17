@@ -14,7 +14,7 @@ import {
   type RaceResult,
   type RaceStartedMessage,
   type RaceShotMessage,
-  type RaceGoalMessage,
+  type RaceBonusMessage,
   type RaceBoostMessage,
   settingsPayload,
   type SettingsMessage,
@@ -31,6 +31,7 @@ import { WpmChart } from "@/components/wpm-chart";
 import { KeyboardNote } from "@/components/keyboard-note";
 import { RaceTyping } from "@/components/race-typing";
 import type { RemovedWord } from "@/lib/race-goals";
+import { BONUS_MS, SLOW_LETTERS } from "@/lib/race-bonuses";
 import { SessionStats } from "@/components/session-stats";
 import type { SessionStats as Stats } from "@/lib/session-stats";
 import { EMPTY_TYPING, hasCorrectInput, type Typing } from "@/lib/typing";
@@ -120,7 +121,15 @@ export function LobbyRoom({
   const [removed, setRemoved] = useState<RemovedWord[]>([]);
   const [boosts, setBoosts] = useState<Record<string, number>>({});
   const [shots, setShots] = useState<Record<string, RaceShotMessage & { receivedAt: number }>>({});
-  const [goalWord, setGoalWord] = useState<string>();
+  // Dernier bonus marqué ou reçu, pour l'annoncer (BON-3).
+  const [bonus, setBonus] = useState<RaceBonusMessage>();
+  // Ton texte : celui de la course, changé par les bonus reçus (mots ajoutés, mot mélangé).
+  const [myContent, setMyContent] = useState<string>();
+  // Change pour repartir la zone de frappe sur une saisie raccourcie par un bonus.
+  const [typingKey, setTypingKey] = useState(0);
+  const [hits, setHits] = useState<{ blur?: boolean; shrink?: boolean }>({});
+  const hitTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [slowLetters, setSlowLetters] = useState(0);
   const [finished, setFinished] = useState(false);
   // Lu par les gestionnaires du socket, branchés une seule fois.
   const botNameRef = useRef<(bot: Bot) => string>(null);
@@ -167,6 +176,10 @@ export function LobbyRoom({
       pendingRef.current = undefined;
       setResumed(undefined);
       setFinished(false);
+      setBonus(undefined);
+      setMyContent(undefined);
+      setHits({});
+      setSlowLetters(0);
     });
     socket.on("race:countdown", (message: CountdownMessage) => setCountdown(message.seconds));
     socket.on("race:started", (message: RaceStartedMessage) => {
@@ -174,6 +187,8 @@ export function LobbyRoom({
       setRace(message);
       setStartedAt(Date.now() - message.elapsedMs);
       setRemoved(message.mine?.removed ?? []);
+      const content = message.mine?.content ?? message.content;
+      setMyContent(content);
       setSecondsLeft(message.secondsLeft);
       if (message.mine?.gaveUp) setGaveUp(true);
       // Retour après un rechargement : on reprend la saisie gardée par le serveur.
@@ -181,8 +196,8 @@ export function LobbyRoom({
       if (message.mine && !typingRef.current) {
         typingRef.current = { ...message.mine, blocked: false };
         setResumed(typingRef.current);
-        setMyPosition(message.mine.typed.length);
-        setFinished(message.mine.typed.length === message.content.length);
+        setMyPosition(Math.round((message.mine.typed.length / content.length) * message.content.length));
+        setFinished(message.mine.typed.length === content.length);
       }
     });
     socket.on("race:boost", (message: RaceBoostMessage) => {
@@ -191,9 +206,34 @@ export function LobbyRoom({
     socket.on("race:shot", (message: RaceShotMessage) => {
       setShots(previous => ({ ...previous, [message.id]: { ...message, receivedAt: performance.now() } }));
     });
-    socket.on("race:goal", (message: RaceGoalMessage) => {
-      setRemoved(message.removed);
-      setGoalWord(message.word);
+    socket.on("race:bonus", (message: RaceBonusMessage) => {
+      setBonus(message);
+      if (message.to !== userId) return;
+      if (message.removed) setRemoved(message.removed);
+      if (message.content) {
+        const content = message.content;
+        setMyContent(content);
+        // Saisie partie dans un mot qui a changé : on la coupe là où elle ne suit plus le texte.
+        const typing = typingRef.current;
+        let common = 0;
+        while (typing && common < typing.typed.length && typing.typed[common] === content[common]) common++;
+        if (typing && common < typing.typed.length) {
+          typingRef.current = { ...typing, typed: typing.typed.slice(0, common), blocked: false };
+          setResumed(typingRef.current);
+          setTypingKey((key) => key + 1);
+          socket.emit("race:progress", toProgress(typingRef.current));
+        }
+      }
+      if (message.effect === "blur" || message.effect === "shrink") {
+        const effect = message.effect;
+        clearTimeout(hitTimersRef.current[effect]);
+        setHits((previous) => ({ ...previous, [effect]: true }));
+        hitTimersRef.current[effect] = setTimeout(
+          () => setHits((previous) => ({ ...previous, [effect]: false })),
+          BONUS_MS,
+        );
+      }
+      if (message.effect === "slowLetters") setSlowLetters(SLOW_LETTERS);
     });
     socket.on("race:positions", (message: RacePositionsMessage) => {
       const positions = named(message.positions);
@@ -312,12 +352,14 @@ export function LobbyRoom({
   // tape encore (CRS-5), et garde la saisie pour une reprise après une coupure (CRS-6).
   // La fin du texte part aussitôt pour ne pas retarder l'arrivée.
   function progress(typing: Typing) {
-    if (race && hasCorrectInput(typingRef.current ?? EMPTY_TYPING, typing, race.content, removed)) {
+    const content = myContent ?? race!.content;
+    if (hasCorrectInput(typingRef.current ?? EMPTY_TYPING, typing, content, removed)) {
       setBoosts(previous => ({ ...previous, [userId]: performance.now() }));
     }
     typingRef.current = typing;
-    const done = typing.typed.length === race?.content.length;
-    setMyPosition(typing.typed.length);
+    const done = typing.typed.length === content.length;
+    // Sur la longueur du texte de départ, comme les positions du serveur.
+    setMyPosition(Math.round((typing.typed.length / content.length) * race!.content.length));
     setFinished(done);
     const wait = sentAtRef.current + PROGRESS_MS - Date.now();
     if (done || wait <= 0) sendProgress();
@@ -354,6 +396,16 @@ export function LobbyRoom({
     socketRef.current?.emit("lobby:close", (ack: Ack) => {
       if (!ack.ok) setError(ack.error);
     });
+  }
+
+  // Annonce d'un bonus à celui qui marque et à sa cible (BON-3).
+  function bonusNote(message: RaceBonusMessage) {
+    if (message.effect === "removeWords") return t("goalRemoved", { word: message.word ?? "" });
+    const name = (id: string) => positions.find((entry) => entry.id === id)?.username ?? "";
+    const effect = t(`bonus.effects.${message.effect}`);
+    return message.from === userId
+      ? t("bonus.sent", { name: name(message.to), effect })
+      : t("bonus.received", { name: name(message.from), effect });
   }
 
   // Un hôte qui regarde ne compte pas parmi les participants (LOB-8).
@@ -435,11 +487,15 @@ export function LobbyRoom({
           {/* Sur téléphone, seuls le temps restant et « Abandonner » restent (DES-06). */}
           <div className="phone-hidden">
             <RaceTyping
-              content={race.content}
+              key={typingKey}
+              content={myContent ?? race.content}
               errorMode={race.errorMode}
               initial={resumed}
               startedAt={startedAt}
               removed={removed}
+              textClassName={[hits.blur && "typing-blur", hits.shrink && "typing-shrink"].filter(Boolean).join(" ")}
+              slowLetters={slowLetters}
+              onSlowLetter={() => setSlowLetters((count) => count - 1)}
               onProgress={progress}
             >
               {/* Toujours là, même vide : le champ ne bouge pas quand un dépassement s'affiche. */}
@@ -456,7 +512,7 @@ export function LobbyRoom({
                 )}
               </p>
             </RaceTyping>
-            {goalWord && <p role="status" className="form-note">{t("goalRemoved", { word: goalWord })}</p>}
+            {bonus && <p role="status" className="form-note">{bonusNote(bonus)}</p>}
           </div>
           {timeLeft}
           {!finished && (

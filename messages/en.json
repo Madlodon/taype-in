@@ -119,10 +119,23 @@
     "noTimer": "No timer",
     "capacity": "Maximum capacity",
     "participants": "{count} participants",
+    "bonuses": "Bonuses",
+    "bonusesEnabled": "Turn on bonuses: goals give the players behind an effect (these races don't count in best speeds)",
     "submit": "Create the race"
   },
   "LobbyRoom": {
     "goalRemoved": "Goal! “{word}” was removed from your text.",
+    "bonus": {
+      "sent": "Goal! {name} gets: {effect}.",
+      "received": "{name} scored: {effect}.",
+      "effects": {
+        "addWords": "3 extra words",
+        "blur": "blurred text for 5 s",
+        "shrink": "smaller text for 5 s",
+        "slowLetters": "1 s wait before each of the next 3 letters",
+        "shuffleWord": "next word shuffled"
+      }
+    },
     "title": "Waiting room",
     "code": "Race code:",
     "participants": "Participants ({count})",
@@ -208,7 +221,10 @@
       "letters": "letters “{letters}”",
       "blocking": "Blocking",
       "tolerant": "Tolerant",
-      "removed": "Removed content"
+      "removed": "Removed content",
+      "bonuses": "Bonuses",
+      "on": "On",
+      "off": "Off"
     }
   },
   "RaceResults": {

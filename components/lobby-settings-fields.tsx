@@ -114,6 +114,13 @@ export function LobbySettingsFields({ settings, locale }: Props) {
           ))}
         </select>
       </label>
+      <fieldset>
+        <legend className="text-sm font-semibold">{t("bonuses")}</legend>
+        <label className="radio-option">
+          <input type="checkbox" name="bonusesEnabled" defaultChecked={settings?.bonusesEnabled ?? false} />
+          {t("bonusesEnabled")}
+        </label>
+      </fieldset>
     </>
   );
 }

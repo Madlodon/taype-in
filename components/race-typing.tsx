@@ -1,8 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { withoutRemoved, restoreRemoved, type RemovedWord } from "@/lib/race-goals";
+import { SLOW_LETTER_MS } from "@/lib/race-bonuses";
 import {
   accuracy,
   applyInput,
@@ -16,15 +17,25 @@ import {
 // onProgress reçoit la saisie après chaque frappe ; initial = saisie reprise après une reconnexion (CRS-6).
 // startedAt = moment du « Go » (Date.now()), pour le MPM en direct (COURSE-04).
 // children s'affiche entre le texte et le champ, là où les yeux restent pendant la frappe.
+// Bonus reçus (BON-3) : textClassName floute ou réduit le texte ; slowLetters = lettres qui
+// attendent chacune 1 s après la frappe précédente, onSlowLetter appelé à chacune.
 type Props = {
   content: string;
   errorMode: ErrorMode;
   initial?: Typing;
   startedAt: number;
   removed?: RemovedWord[];
+  textClassName?: string;
+  slowLetters?: number;
+  onSlowLetter?: () => void;
   onProgress?: (typing: Typing) => void;
   children?: ReactNode;
 };
+
+// Lue seulement dans les gestionnaires de frappe, pas pendant le rendu.
+function clock() {
+  return Date.now();
+}
 
 // Zone de frappe pendant la course : seulement le texte, le champ et les fautes (CRS-8).
 // Le caractère fautif est mis en évidence (ERR-2).
@@ -34,6 +45,9 @@ export function RaceTyping({
   initial = EMPTY_TYPING,
   startedAt,
   removed = [],
+  textClassName,
+  slowLetters = 0,
+  onSlowLetter,
   onProgress,
   children,
 }: Props) {
@@ -41,6 +55,7 @@ export function RaceTyping({
   const [typing, setTyping] = useState(initial);
   // Pendant une composition (accent circonflexe, tréma…), le champ garde la saisie en cours.
   const [draft, setDraft] = useState<string>();
+  const lastKeyAtRef = useRef(0);
   const visibleContent = withoutRemoved(content, removed);
   const visibleTyped = withoutRemoved(typing.typed, removed);
   const finished = visibleTyped.length === visibleContent.length;
@@ -56,6 +71,12 @@ export function RaceTyping({
 
   function update(value: string) {
     setDraft(undefined);
+    // Lettre trop tôt pendant le bonus « attente » : refusée, le champ garde l'ancienne saisie.
+    if (slowLetters > 0 && value.length > visibleTyped.length) {
+      if (clock() - lastKeyAtRef.current < SLOW_LETTER_MS) return;
+      onSlowLetter?.();
+    }
+    lastKeyAtRef.current = clock();
     const edited = applyInput({ ...typing, typed: visibleTyped }, visibleContent, errorMode, value);
     const next = { ...edited, typed: restoreRemoved(edited.typed, content, removed) };
     setTyping(next);
@@ -75,7 +96,7 @@ export function RaceTyping({
 
   return (
     <>
-      <p className="typing-text" aria-label={visibleContent}>
+      <p className={textClassName ? `typing-text ${textClassName}` : "typing-text"} aria-label={visibleContent}>
         {content.split("").map((character, index) => removed.some(range => index >= range.start && index < range.end) ? null : (
           <span aria-hidden="true" key={index} className={letterClass(index)}>
             {character}

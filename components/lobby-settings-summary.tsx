@@ -73,6 +73,10 @@ export function LobbySettingsSummary({ settings }: { settings: SettingsMessage }
           <dt>{n("capacity")}</dt>
           <dd>{n("participants", { count: settings.capacity })}</dd>
         </div>
+        <div>
+          <dt>{t("bonuses")}</dt>
+          <dd>{t(settings.bonusesEnabled ? "on" : "off")}</dd>
+        </div>
       </dl>
     </section>
   );
