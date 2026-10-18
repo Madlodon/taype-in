@@ -96,9 +96,11 @@ export function RaceTyping({
 
   return (
     <>
-      <p className={textClassName ? `typing-text ${textClassName}` : "typing-text"} aria-label={visibleContent}>
+      {/* aria-label est interdit sur un <p> : le texte lu reste dans une copie invisible (A11Y-03). */}
+      <p className="sr-only">{visibleContent}</p>
+      <p className={textClassName ? `typing-text ${textClassName}` : "typing-text"} aria-hidden="true">
         {content.split("").map((character, index) => removed.some(range => index >= range.start && index < range.end) ? null : (
-          <span aria-hidden="true" key={index} className={letterClass(index)}>
+          <span key={index} className={letterClass(index)}>
             {character}
           </span>
         ))}

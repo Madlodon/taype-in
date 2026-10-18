@@ -457,7 +457,7 @@ test("Should_ShowOnlyTextToTypeAndHideCountdown_When_RaceStarts", () => {
   startRace(["u1", "u2"]);
 
   expect(screen.queryByRole("timer")).toBeNull();
-  expect(screen.getByLabelText("Un texte court.")).toBeTruthy();
+  expect(screen.getByText("Un texte court.")).toBeTruthy();
   expect(screen.getByRole("textbox", { name: "Tape le texte" })).toBeTruthy();
   expect(screen.queryByRole("list", { name: "Participants" })).toBeNull();
   expect(screen.queryByText(/tu la regardes/)).toBeNull();
@@ -1116,7 +1116,7 @@ test("Should_ApplyServerGoalWithoutLosingInput_When_RewardArrives", () => {
   act(() => handlers["race:shot"]({ id: "u2", sequence: 3, scored: true }));
   act(() => handlers["race:bonus"]({ effect: "removeWords", from: "u2", to: "u2", removed: [{ start: 17, end: 22 }], word: "four" }));
   expect(input.value).toBe("Go. O");
-  expect(screen.getByLabelText("Go. One two three five.")).toBeTruthy();
+  expect(screen.getByText("Go. One two three five.")).toBeTruthy();
   expect(screen.getByText('Goal! “four” was removed from your text.')).toBeTruthy();
   fireEvent.change(input, { target: { value: "Go. One two three five." } });
   expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: content, keys: content.length - 5 }));
@@ -1174,7 +1174,7 @@ describe("bonuses", () => {
     act(() => handlers["race:bonus"]({ effect: "addWords", from: "u1", to: "u2", content: longer, removed: [] }));
 
     expect(input.value).toBe("Go. O");
-    expect(screen.getByLabelText(longer)).toBeTruthy();
+    expect(screen.getByText(longer)).toBeTruthy();
     fireEvent.change(input, { target: { value: longer } });
     expect(input.readOnly).toBe(true);
   });
@@ -1212,7 +1212,7 @@ test("Should_RestoreRemovedWords_When_RejoiningRace", () => {
     content: "Go. One two three four five.", errorMode: "blocking", racerIds: ["u2"], secondsLeft: null,
     mine: { typed: "Go. O", errors: 0, keys: 5, keyErrors: {}, gaveUp: false, removed: [{ start: 17, end: 22 }] },
   }));
-  expect(screen.getByLabelText("Go. One two three five.")).toBeTruthy();
+  expect(screen.getByText("Go. One two three five.")).toBeTruthy();
   expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Go. O");
 });
 

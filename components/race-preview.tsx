@@ -71,7 +71,8 @@ export function RacePreview({ stadium }: { stadium?: Stadium } = {}) {
         <span className="eyebrow">{complete ? t("goal") : typed ? t("typing") : t("ready")}</span>
         <button type="button" className="text-link" onClick={restart}>{t("restart")} ↻</button>
       </div>
-      <p className="typing-text" aria-label={prompt}>{[...prompt].map((character, index) => <span aria-hidden="true" key={index} className={index < typed.length ? (character === typed[index] ? "typed-correct" : "typed-wrong") : index === typed.length ? "typing-cursor" : undefined}>{character}</span>)}</p>
+      <p className="sr-only">{prompt}</p>
+      <p className="typing-text" aria-hidden="true">{[...prompt].map((character, index) => <span key={index} className={index < typed.length ? (character === typed[index] ? "typed-correct" : "typed-wrong") : index === typed.length ? "typing-cursor" : undefined}>{character}</span>)}</p>
       <label htmlFor="race-input" className="field mb-3">{t("label")}</label>
       <textarea ref={input} id="race-input" className="typing-input" value={typed} onChange={event => update(event.target.value)} readOnly={complete} maxLength={prompt.length} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} aria-describedby="typing-help" onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} />
       <p id="typing-help" className="form-note">{t("help")}</p>
