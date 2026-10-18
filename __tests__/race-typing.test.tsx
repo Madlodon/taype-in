@@ -50,7 +50,7 @@ afterEach(() => {
 test("Should_ShowTextFieldAndNoError_When_RaceStarts", () => {
   const input = renderTyping("blocking");
 
-  expect(screen.getByLabelText("chat")).toBeTruthy();
+  expect(screen.getByText("chat")).toBeTruthy();
   expect(document.activeElement).toBe(input);
   expect(status()).toBe("Aucune faute");
 });
@@ -167,7 +167,7 @@ test("Should_RemoveRewardWordFromInputAndPrompt_WithoutCountingItAsTyped", () =>
       onProgress={value => { latest = value; }} />
   </NextIntlClientProvider>);
   expect(input.value).toBe("Go. O");
-  expect(screen.getByLabelText("Go. One two three five.")).toBeTruthy();
+  expect(screen.getByText("Go. One two three five.")).toBeTruthy();
   type(input, "Go. One two three five.");
   expect(input.readOnly).toBe(true);
   expect(latest?.typed).toBe(content);

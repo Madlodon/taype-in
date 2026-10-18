@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { saveLoadout } from "@/lib/garage";
-import { CATEGORIES, loadoutSchema, unlockLevel } from "@/lib/garage-items";
+import { loadoutSchema, saveLoadout } from "@/lib/garage";
+import { CATEGORIES, unlockLevel } from "@/lib/garage-items";
 import { getCurrentUser } from "@/lib/session-cookie";
 import { levelFromXp } from "@/lib/xp";
 

@@ -1,9 +1,19 @@
 // Garage : voiture et objets choisis par le joueur, purement esthétiques (#34).
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "../db/index.ts";
 import { users } from "../db/schema.ts";
-import { DEFAULT_LOADOUT, loadoutSchema, lockLoadout, type Loadout } from "./garage-items.ts";
+import { BALLS, BOOSTS, CARS, DEFAULT_LOADOUT, HATS, STADIUMS, lockLoadout, type Loadout } from "./garage-items.ts";
 import { levelFromXp } from "./xp.ts";
+
+// Ici plutôt que dans garage-items.ts : zod resterait sinon dans le bundle client de l'accueil (#138).
+export const loadoutSchema = z.object({
+  car: z.enum(CARS),
+  boost: z.enum(BOOSTS),
+  hat: z.enum(HATS),
+  ball: z.enum(BALLS),
+  stadium: z.enum(STADIUMS).default(DEFAULT_LOADOUT.stadium),
+});
 
 // Une valeur inconnue en base (objet retiré) ou un objet trop haut pour le niveau (#35)
 // revient au choix par défaut.

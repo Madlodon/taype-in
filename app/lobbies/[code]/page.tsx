@@ -7,7 +7,8 @@ import { LobbyRoom } from "@/components/lobby-room";
 import { LobbySettingsFields } from "@/components/lobby-settings-fields";
 import { canEnterLobby, findOpenLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
-import { DEFAULT_LOADOUT, loadoutSchema } from "@/lib/garage-items";
+import { DEFAULT_LOADOUT } from "@/lib/garage-items";
+import { loadoutSchema } from "@/lib/garage";
 
 export default async function LobbyPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;

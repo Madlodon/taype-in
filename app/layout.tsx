@@ -21,6 +21,7 @@ const geistSans = Geist({
 const jetBrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 // Titres : style arcade sportif.

@@ -14,7 +14,10 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 vi.mock("../lib/session-cookie", () => ({ getCurrentUser: vi.fn() }));
-vi.mock("../lib/garage", () => ({ saveLoadout: vi.fn() }));
+vi.mock("../lib/garage", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../lib/garage")>(),
+  saveLoadout: vi.fn(),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const aUser = {

@@ -11,13 +11,13 @@ beforeEach(() => {
 test("Should_OfferFrenchAndEnglish_When_Rendered", async () => {
   render(await LocaleSwitcher());
 
-  expect(screen.getByRole("button", { name: "Français" }).getAttribute("value")).toBe("fr");
-  expect(screen.getByRole("button", { name: "English" }).getAttribute("value")).toBe("en");
+  expect(screen.getByRole("button", { name: "fr Français" }).getAttribute("value")).toBe("fr");
+  expect(screen.getByRole("button", { name: "en English" }).getAttribute("value")).toBe("en");
 });
 
 test("Should_MarkCurrentLocaleAsPressed_When_Rendered", async () => {
   render(await LocaleSwitcher());
 
-  expect(screen.getByRole("button", { name: "Français", pressed: true })).toBeDefined();
-  expect(screen.getByRole("button", { name: "English", pressed: false })).toBeDefined();
+  expect(screen.getByRole("button", { name: "fr Français", pressed: true })).toBeDefined();
+  expect(screen.getByRole("button", { name: "en English", pressed: false })).toBeDefined();
 });

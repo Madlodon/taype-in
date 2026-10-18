@@ -4,8 +4,8 @@ import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
 import { users } from "../db/schema";
-import { getLoadout, saveLoadout } from "../lib/garage";
-import { BALLS, BOOSTS, HATS, STADIUMS, DEFAULT_LOADOUT, loadoutSchema } from "../lib/garage-items";
+import { getLoadout, loadoutSchema, saveLoadout } from "../lib/garage";
+import { BALLS, BOOSTS, HATS, STADIUMS, DEFAULT_LOADOUT } from "../lib/garage-items";
 import { xpForLevel } from "../lib/xp";
 
 const createdIds: string[] = [];

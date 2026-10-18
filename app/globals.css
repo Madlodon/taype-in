@@ -183,6 +183,9 @@ a, button, input {
 }
 
 .segmented-control button {
+  /* Cible d'au moins 24 px (WCAG 2.5.8). */
+  min-width: 24px;
+  min-height: 24px;
   font-size: 10px;
   padding: 7px 8px;
   color: var(--muted);
@@ -1668,8 +1671,13 @@ a, button, input {
   .feature h2 {
     font-size: 14px;
   }
+  /* Lighthouse veut la majorité du texte à 12 px ou plus sur téléphone. */
   .feature p {
     max-width: none;
+    font-size: 12px;
+  }
+  .site-footer {
+    font-size: 12px;
   }
   .section-heading {
     align-items: flex-start;

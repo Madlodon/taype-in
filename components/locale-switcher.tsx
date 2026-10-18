@@ -18,11 +18,11 @@ export async function LocaleSwitcher() {
           name="locale"
           value={locale}
           lang={locale}
-          aria-label={names[locale]}
           aria-pressed={locale === current}
           className="uppercase"
         >
-          {locale}
+          {/* Le nom lu commence par le code affiché (WCAG 2.5.3). */}
+          {locale} <span className="sr-only">{names[locale]}</span>
         </button>
       ))}
     </form>

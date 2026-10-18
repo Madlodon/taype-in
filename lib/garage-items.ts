@@ -1,5 +1,4 @@
 // Catalogue du garage, sans accès à la base : utilisable côté client (#34).
-import { z } from "zod";
 
 // Le premier de chaque liste est le choix par défaut.
 export const CARS = ["octane", "fennec", "dominus", "merc"] as const;
@@ -20,14 +19,6 @@ export type Car = (typeof CARS)[number];
 export type Loadout = { car: Car; boost: (typeof BOOSTS)[number]; hat: (typeof HATS)[number]; ball: (typeof BALLS)[number]; stadium: Stadium };
 
 export const DEFAULT_LOADOUT: Loadout = { car: CARS[0], boost: BOOSTS[0], hat: HATS[0], ball: BALLS[0], stadium: STADIUMS[0] };
-
-export const loadoutSchema = z.object({
-  car: z.enum(CARS),
-  boost: z.enum(BOOSTS),
-  hat: z.enum(HATS),
-  ball: z.enum(BALLS),
-  stadium: z.enum(STADIUMS).default(DEFAULT_LOADOUT.stadium),
-});
 
 export type Category = "car" | "boost" | "hat" | "ball";
 export const CATEGORIES = ["car", "boost", "hat", "ball"] as const satisfies Category[];
