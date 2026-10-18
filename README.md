@@ -24,11 +24,11 @@ Live: https://laniproject.dev
 
 ### Demo account
 
-To come with the seed script ([#135](https://github.com/Madlodon/taype-in/issues/135)).
+Created locally by `bun run db:seed`, with five rivals and 24 past races (profile, history, progression chart).
 
 | Username | Password |
 | --- | --- |
-| _TODO_ | _TODO_ |
+| `demo` | `taype-in-demo` |
 
 ### Local setup
 
@@ -44,7 +44,8 @@ To come with the seed script ([#135](https://github.com/Madlodon/taype-in/issues
 bun install
 cp .env.example .env        # then adjust the values (PASSWORD_PEPPER: openssl rand -hex 32)
 docker compose up -d        # PostgreSQL 17 on port POSTGRES_PORT
-bun run db:migrate          # applies the migrations
+bun run db:migrate          # applies the migrations (includes the text corpus)
+bun run db:seed             # optional: demo account and race history
 bun run dev                 # http://localhost:3000
 ```
 
@@ -61,6 +62,7 @@ bun run dev                 # http://localhost:3000
 | `bun run test:load`   | Load test: 300 participants in one race                  |
 | `bun run db:generate` | Generates a migration after a schema change              |
 | `bun run db:migrate`  | Applies the migrations                                   |
+| `bun run db:seed`     | Demo data; re-running resets it                          |
 
 The first time, install the Playwright browser: `bunx playwright install chromium`.
 
@@ -177,11 +179,11 @@ En ligne : https://laniproject.dev
 
 ### Compte de démonstration
 
-À venir avec le script de seed ([#135](https://github.com/Madlodon/taype-in/issues/135)).
+Créé en local par `bun run db:seed`, avec cinq adversaires et 24 courses passées (profil, historique, graphique de progression).
 
 | Nom d'utilisateur | Mot de passe |
 | --- | --- |
-| _À faire_ | _À faire_ |
+| `demo` | `taype-in-demo` |
 
 ### Installation locale
 
@@ -197,7 +199,8 @@ En ligne : https://laniproject.dev
 bun install
 cp .env.example .env        # puis ajuster les valeurs (PASSWORD_PEPPER : openssl rand -hex 32)
 docker compose up -d        # PostgreSQL 17 sur le port POSTGRES_PORT
-bun run db:migrate          # applique les migrations
+bun run db:migrate          # applique les migrations (dont le corpus de textes)
+bun run db:seed             # optionnel : compte de démo et historique de courses
 bun run dev                 # http://localhost:3000
 ```
 
@@ -214,6 +217,7 @@ bun run dev                 # http://localhost:3000
 | `bun run test:load`   | Test de charge : 300 participants dans une course       |
 | `bun run db:generate` | Génère une migration après un changement du schéma     |
 | `bun run db:migrate`  | Applique les migrations                                 |
+| `bun run db:seed`     | Données de démo ; relancer les réinitialise             |
 
 La première fois, installer le navigateur de Playwright : `bunx playwright install chromium`.
 
