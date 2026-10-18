@@ -8,7 +8,7 @@ Statut :
 - **Partiel** : une partie est livrée ; la note dit ce qui manque.
 - **À faire** : rien n'est livré ; une issue est ouverte.
 
-Bilan : 90 exigences, 39 faites, 32 partielles, 19 à faire.
+Bilan : 90 exigences, 40 faites, 31 partielles, 19 à faire.
 
 Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et choix ».
 
@@ -19,7 +19,7 @@ Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et ch
 | TECH-01 | Next.js (App Router) avec React | Fait | [`app/layout.tsx`](../app/layout.tsx), [`server.ts`](../server.ts) | Toute la suite ; build dans la CI | [#7][i7] | Next.js 16, serveur personnalisé pour Socket.IO sur le même port. |
 | TECH-02 | TypeScript à 100 % | Fait | [`tsconfig.json`](../tsconfig.json), [`eslint.config.mjs`](../eslint.config.mjs) | [typescript-only.test.ts](../__tests__/typescript-only.test.ts) | [#137][i137] | `strict`, `allowJs` désactivé, `no-explicit-any` en erreur, `@ts-expect-error` seulement avec une description. |
 | TECH-03 | Tailwind CSS | Fait | [`app/globals.css`](../app/globals.css) | — | [#7][i7] | Tailwind v4 ; jetons de couleur dans `globals.css`. |
-| TECH-04 | PostgreSQL, migrations versionnées, script de seed | Partiel | [`db/schema.ts`](../db/schema.ts), [`db/migrations`](../db/migrations) | [db/schema.test.ts](../__tests__/db/schema.test.ts), [db/migrate.test.ts](../__tests__/db/migrate.test.ts) | [#5][i5], [#2][i2], [#135][i135] | Drizzle. Il manque le script de seed (corpus, utilisateurs, historique) : #135. |
+| TECH-04 | PostgreSQL, migrations versionnées, script de seed | Fait | [`db/schema.ts`](../db/schema.ts), [`db/migrations`](../db/migrations), [`scripts/seed.ts`](../scripts/seed.ts) | [db/schema.test.ts](../__tests__/db/schema.test.ts), [db/migrate.test.ts](../__tests__/db/migrate.test.ts), [seed.test.ts](../__tests__/seed.test.ts) | [#5][i5], [#2][i2], [#135][i135] | Drizzle. Le corpus de textes est dans les migrations ; `bun run db:seed` crée le compte de démo, cinq adversaires et 24 courses. Relancer le script réinitialise ces données ; en local seulement. |
 | TECH-05 | Déployé sur un VPS, public en HTTPS | Fait | [`compose.prod.yml`](../compose.prod.yml), [`Caddyfile`](../Caddyfile) | Vérifié à la main sur https://laniproject.dev | [#13][i13], [#38][i38] | AWS EC2 + Docker Compose ; Caddy obtient le certificat Let's Encrypt. |
 | TECH-06 | Progression en temps réel | Fait | [`lib/socket-server.ts`](../lib/socket-server.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-room.test.tsx](../__tests__/lobby-room.test.tsx), [e2e/lobbies.spec.ts](../e2e/lobbies.spec.ts) | [#4][i4], [#7][i7], [#57][i57] | Socket.IO auto-hébergé ; voir l'[ADR 0001](adr/0001-realtime.md). |
 | TECH-07 | Entrées serveur validées par un schéma | Fait | [`lib/socket-messages.ts`](../lib/socket-messages.ts), [`app/actions/lobbies.ts`](../app/actions/lobbies.ts), [`app/actions/auth.ts`](../app/actions/auth.ts) | [socket-server.test.ts](../__tests__/socket-server.test.ts), [lobby-actions.test.ts](../__tests__/lobby-actions.test.ts), [auth-actions.test.ts](../__tests__/auth-actions.test.ts), [avatar-actions.test.ts](../__tests__/avatar-actions.test.ts) | [#7][i7], [#8][i8], [#9][i9] | Zod pour les actions serveur, les routes et chaque message Socket.IO avec des données. La photo est vérifiée par son contenu réel (octets) et sa taille. |

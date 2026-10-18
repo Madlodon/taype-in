@@ -328,7 +328,7 @@ describe("saveResults", () => {
 
     await saveResults(race.id, ranked);
 
-    const saved = await db.select().from(results).where(eq(results.raceId, race.id));
+    const saved = await db.select().from(results).where(eq(results.raceId, race.id)).orderBy(results.rank);
     expect(saved.map((row) => [row.userId, row.rank, row.finished])).toEqual([
       [guest.id, 1, true],
       [user.id, 2, false],
