@@ -181,6 +181,7 @@
       "cannotGiveUp": "Tu ne peux plus abandonner",
       "raceNotFinished": "La course n'est pas terminée",
       "botNotFound": "Bot introuvable",
+      "tooManyBots": "Une course peut avoir au plus 10 bots",
       "cannotKickSelf": "Vous ne pouvez pas vous exclure",
       "participantNotFound": "Cette personne n'est plus dans la course",
       "noHumanRacer": "Il faut au moins un joueur humain qui court",
