@@ -48,25 +48,36 @@ test('uses the current diorama and preserves car and ball positions when switchi
   assert.ok(sources.includes('/stadiums/diorama.webp'));
   assert.ok(sources.includes('assets/arena-preview/field-blue.png'));
   assert.ok(sources.includes('assets/arena-preview/field-orange.png'));
+  assert.ok(sources.includes('assets/arena-preview/field-ball.png'));
+  assert.equal(await page.locator('[data-sprite-ball]').count(), 4);
   await page.evaluate(async sources => {
     for (const src of sources) { const image = new Image(); image.src = src; await image.decode(); }
   }, sources);
   const pose = await page.locator(`${player} > g > g`).first().getAttribute('transform');
   const ball = await page.locator(`${player} [data-field-ball]`).getAttribute('transform');
+  const spin = await page.locator(`${player} [data-field-ball] > g`).getAttribute('transform');
   await page.getByRole('button', { name: 'Actuelles', exact: true }).click();
   assert.equal(await page.locator('[data-sprite-car]').count(), 0);
+  assert.equal(await page.locator('[data-sprite-ball]').count(), 0);
+  assert.equal(await page.locator('[data-ball]').count(), 4);
   assert.equal(await page.locator('[data-field-body]').count(), 4);
   await page.getByRole('button', { name: 'Blender', exact: true }).click();
   assert.equal(await page.locator(`${player} > g > g`).first().getAttribute('transform'), pose);
   assert.equal(await page.locator(`${player} [data-field-ball]`).getAttribute('transform'), ball);
+  assert.equal(await page.locator(`${player} [data-field-ball] > g`).getAttribute('transform'), spin);
+  assert.equal(await page.locator('[data-sprite-ball]').count(), 4);
+  const size = await page.locator('[data-sprite-ball] image').first().getAttribute('width');
+  assert.ok(Math.abs(Number(size) * 1.8 / 2.4 - 32) < .001);
 });
 
 test('keeps free driving, ball contact, boost, shots and the finish celebration', async t => {
   const page = await openPreview(t);
   const ball = page.locator(`${player} [data-field-ball]`);
   const start = await ball.getAttribute('transform');
+  const initialSpin = await ball.locator(':scope > g').getAttribute('transform');
   await page.clock.runFor(2000);
   assert.notEqual(await ball.getAttribute('transform'), start);
+  assert.notEqual(await ball.locator(':scope > g').getAttribute('transform'), initialSpin);
   // Observe the real contact effect while the existing simulation runs.
   await page.evaluate(() => {
     window.contactCount = 0;

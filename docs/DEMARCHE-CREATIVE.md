@@ -173,14 +173,16 @@ Le [modèle Blender](mockups/assets/arena.blend) et les deux rendus se régénè
 La [maquette comparative](mockups/7-arena-sprite-preview.html) réutilise le composant
 `Arena`, le diorama et la simulation actuels : conduite libre, poursuite et contacts
 avec le ballon, boost, tirs et célébration finale. Le bouton **Actuelles / Blender**
-change seulement le rendu des voitures, sans réinitialiser leurs positions.
-Les ballons et leurs animations restent ceux de l’application.
+change le rendu des voitures et des ballons, sans réinitialiser leurs positions.
+Le ballon Blender conserve la taille, la rotation, les ombres et les animations
+de contact et de tir de l’application.
 
-**Choix en attente de validation visuelle.** Le build autonome remplace `FieldCar`
-uniquement dans l’aperçu ; aucun composant de l’application n’est modifié.
+**Voitures Blender préférées après comparaison ; ballons Blender à valider.**
+Le build autonome remplace `FieldCar` et `CarBall` uniquement dans l’aperçu ;
+aucun composant de l’application n’est modifié.
 Les voitures Blender disposent de 32 orientations, rendues avec la caméra du diorama.
 
-Régénérer les deux planches de sprites :
+Régénérer les deux planches de voitures et le sprite du ballon :
 
 ```bash
 /Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/field-preview.py

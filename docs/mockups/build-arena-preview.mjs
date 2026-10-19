@@ -14,9 +14,10 @@ export async function buildPreview() {
     outfile: join(previewDirectory, "arena-preview.js"), jsx: "automatic",
     define: { "process.env.NODE_ENV": '"production"' },
     plugins: [{
-      name: "preview-car-only",
+      name: "preview-sprites-only",
       setup(build) {
         build.onResolve({ filter: /^@\/components\/field-car$/ }, () => ({ path: join(source, "arena-preview-car.tsx") }));
+        build.onResolve({ filter: /^@\/components\/car-ball$/ }, () => ({ path: join(source, "arena-preview-ball.tsx") }));
       },
     }],
   });

@@ -30,9 +30,9 @@ function Preview() {
     setTyped(""); setBoosts({}); setShots({}); setRound(value => value + 1);
   }
   return <main>
-    <header><div><p className="eyebrow">APERÇU VISUEL · #36</p><h1>La même arène. Deux styles de voitures.</h1></div></header>
+    <header><div><p className="eyebrow">APERÇU VISUEL · #36</p><h1>La même arène. Voitures et ballons.</h1></div></header>
     <div className="toolbar">
-      <div role="group" aria-label="Style des voitures" className="toggle">
+      <div role="group" aria-label="Style des voitures et ballons" className="toggle">
         <button aria-pressed={!sprites} onClick={() => setSprites(false)}>Actuelles</button>
         <button aria-pressed={sprites} onClick={() => setSprites(true)}>Blender</button>
       </div>
