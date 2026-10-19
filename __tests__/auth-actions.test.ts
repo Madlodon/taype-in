@@ -131,17 +131,36 @@ test("Should_ReturnGenericError_When_LogInFails", async () => {
   expect(cookieStore.set).not.toHaveBeenCalled();
 });
 
-test("Should_SetSessionCookie_When_LogInSucceeds", async () => {
+test("Should_SetThirtyDayCookie_When_LogInWithRememberMe", async () => {
+  vi.mocked(auth.logIn).mockResolvedValue(aUser);
+  const data = form("alex", "motdepasse123");
+  data.set("remember", "on");
+
+  await expect(logInAction(undefined, data)).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(cookieStore.set).toHaveBeenCalledWith(
+    "session",
+    "jeton",
+    expect.objectContaining({ httpOnly: true, expires: expiresAt }),
+  );
+  expect(cookieStore.delete).toHaveBeenCalledWith("session_temp");
+});
+
+test("Should_SetBrowserSessionCookie_When_LogInWithoutRememberMe", async () => {
   vi.mocked(auth.logIn).mockResolvedValue(aUser);
 
   await expect(
     logInAction(undefined, form("alex", "motdepasse123")),
   ).rejects.toThrow("NEXT_REDIRECT");
 
+  const [, , options] = cookieStore.set.mock.calls.find(([name]) => name === "session")!;
+  expect(options).toMatchObject({ httpOnly: true });
+  expect(options).not.toHaveProperty("expires");
+  expect(options).not.toHaveProperty("maxAge");
   expect(cookieStore.set).toHaveBeenCalledWith(
-    "session",
-    "jeton",
-    expect.objectContaining({ httpOnly: true }),
+    "session_temp",
+    "1",
+    expect.not.objectContaining({ expires: expect.anything() }),
   );
 });
 
@@ -185,6 +204,7 @@ test("Should_InvalidateSessionAndDeleteCookie_When_LoggingOut", async () => {
 
   expect(auth.invalidateSession).toHaveBeenCalledWith("jeton");
   expect(cookieStore.delete).toHaveBeenCalledWith("session");
+  expect(cookieStore.delete).toHaveBeenCalledWith("session_temp");
 });
 
 test("Should_ReturnToInvite_When_LogInComesFromInviteLink", async () => {

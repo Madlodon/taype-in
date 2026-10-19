@@ -19,6 +19,7 @@
     "username": "Username",
     "signInToContinue": "Log in or play as guest to continue.",
     "password": "Password",
+    "rememberMe": "Remember me",
     "continueWith": "Continue with {provider}",
     "orDivider": "or",
     "oauthTitle": "Choose your username",
