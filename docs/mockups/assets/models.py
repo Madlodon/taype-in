@@ -6,17 +6,11 @@
 
 import math
 import os
-import sys
 
 import bpy
 from mathutils import Vector
 
 OUT = os.path.join(os.getcwd(), "docs", "mockups", "assets")
-PREVIEW = "--arena-preview" in sys.argv
-if PREVIEW:
-    OUT = os.path.join(OUT, "arena-preview")
-    os.makedirs(OUT, exist_ok=True)
-
 BLUE = (0.010, 0.114, 0.63)  # #1a5fd0 en couleur linéaire
 ORANGE = (0.91, 0.20, 0.0)  # #f57c00 en couleur linéaire
 
@@ -119,9 +113,6 @@ def light_and_camera(distance):
     bpy.context.object.data.energy = 2.5
     angle = math.radians(35)
     location = Vector((distance * 0.55, -distance * math.cos(angle), distance * math.sin(angle) + 0.6))
-    if PREVIEW:
-        # Vue latérale légèrement surélevée : assez de profondeur sans perdre la silhouette.
-        location = Vector((distance * 0.12, -distance, distance * 0.22 + 0.6))
     bpy.ops.object.camera_add(location=location)
     cam = bpy.context.object
     cam.data.type = "ORTHO"
@@ -135,18 +126,22 @@ def render(name):
     bpy.ops.render.render(write_still=True)
 
 
-for name, color in (("car-blue", BLUE), ("car-orange", ORANGE)):
-    reset()
-    car(color)
-    light_and_camera(8)
-    render(name)
-    if name == "car-blue" and not PREVIEW:
-        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "car.blend"))
+def main():
+    for name, color in (("car-blue", BLUE), ("car-orange", ORANGE)):
+        reset()
+        car(color)
+        light_and_camera(8)
+        render(name)
+        if name == "car-blue":
+            bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "car.blend"))
 
-reset()
-ball()
-light_and_camera(8)
-bpy.context.scene.camera.data.ortho_scale = 2.4
-render("ball")
-if not PREVIEW:
+    reset()
+    ball()
+    light_and_camera(8)
+    bpy.context.scene.camera.data.ortho_scale = 2.4
+    render("ball")
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, "ball.blend"))
+
+
+if __name__ == "__main__":
+    main()
