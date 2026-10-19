@@ -14,7 +14,7 @@ import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
 import { Server, type Socket } from "socket.io";
 import { SESSION_COOKIE, validateSessionToken, type User } from "./auth.ts";
-import { botKey, botSeed, createBotEngine, xpMultiplier, type Bot, type BotEngine } from "./bots.ts";
+import { botKey, botSeed, createBotEngine, MAX_BOTS, xpMultiplier, type Bot, type BotEngine } from "./bots.ts";
 import {
   addParticipant,
   banParticipant,
@@ -929,6 +929,12 @@ export function createSocketServer(
         ack?.({ ok: false, error: "raceInProgress" });
         return;
       }
+      // Au plus 10 bots par lobby (CONF-10).
+      const bots = lobbyBots.get(lobby.id) ?? [];
+      if (bots.length >= MAX_BOTS) {
+        ack?.({ ok: false, error: "tooManyBots" });
+        return;
+      }
       // Relu : l'hôte a pu changer la capacité avant de relancer (LOB-9).
       const capacity = (await findOpenLobby(lobby.code))?.capacity ?? lobby.capacity;
       if ((await roomParticipants(lobby)).length >= capacity) {
@@ -937,7 +943,6 @@ export function createSocketServer(
       }
 
       // Numéro suivant parmi les bots de ce niveau : « Bot Expert 1 », « Bot Expert 2 »…
-      const bots = lobbyBots.get(lobby.id) ?? [];
       const { level } = message.data;
       const number =
         Math.max(0, ...bots.filter(({ bot }) => bot.level === level).map(({ bot }) => bot.number)) +

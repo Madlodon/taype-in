@@ -20,7 +20,7 @@ import {
   type SettingsMessage,
 } from "@/lib/socket-messages";
 import { detectOvertake, type Overtake } from "@/lib/track";
-import { BOT_LEVELS, type Bot } from "@/lib/bots";
+import { BOT_LEVELS, MAX_BOTS, type Bot } from "@/lib/bots";
 import { Arena } from "@/components/arena";
 import { Avatar } from "@/components/avatar";
 import { BotBadge } from "@/components/bot-badge";
@@ -612,7 +612,11 @@ export function LobbyRoom({
                   ))}
                 </select>
               </label>
-              <button type="submit" className="btn btn-secondary">
+              <button
+                type="submit"
+                className="btn btn-secondary"
+                disabled={participants.filter((participant) => participant.bot).length >= MAX_BOTS}
+              >
                 {t("addBot")}
               </button>
             </form>

@@ -19,6 +19,7 @@ import {
   listParticipants,
   updateLobbySettings,
 } from "../lib/lobbies";
+import { MAX_BOTS } from "../lib/bots";
 import { CODE_ATTEMPT_LIMIT } from "../lib/rate-limit";
 import { createRace } from "../lib/races";
 import { createSocketServer } from "../lib/socket-server";
@@ -2269,6 +2270,20 @@ describe("bots", () => {
 
     expect(await addBot(hostClient, "expert")).toEqual({ ok: true });
     expect(await addBot(hostClient, "expert")).toEqual({ ok: false, error: "lobbyFull" });
+  });
+
+  test("Should_AcceptTenthBot_When_LobbyHasNine", async () => {
+    const { hostClient } = await hostAlone();
+    for (let index = 0; index < MAX_BOTS - 1; index++) await addBot(hostClient, "beginner");
+
+    expect(await addBot(hostClient, "expert")).toEqual({ ok: true });
+  });
+
+  test("Should_AckTooManyBots_When_HostAddsEleventhBot", async () => {
+    const { hostClient } = await hostAlone();
+    for (let index = 0; index < MAX_BOTS; index++) await addBot(hostClient, "beginner");
+
+    expect(await addBot(hostClient, "expert")).toEqual({ ok: false, error: "tooManyBots" });
   });
 
   test("Should_AckLobbyFull_When_HostLoweredCapacityBeforeAddingBot", async () => {

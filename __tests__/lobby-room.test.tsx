@@ -1408,6 +1408,47 @@ test("Should_AskServerToRemoveBot_When_HostClicksRemove", () => {
   expect(socket.emit).toHaveBeenCalledWith("lobby:removeBot", { id: "b1" }, expect.any(Function));
 });
 
+test("Should_DisableAddBot_When_LobbyHasTenBots", () => {
+  renderRoom("fr", true);
+  const bots = Array.from({ length: 10 }, (_, index) => ({
+    id: `b${index + 1}`,
+    username: `Bot beginner ${index + 1}`,
+    bot: { level: "beginner", number: index + 1 },
+  }));
+
+  act(() =>
+    handlers["lobby:participants"]({ hostId: "u1", participants: [{ id: "u1", username: "alex" }, ...bots] }),
+  );
+
+  expect(screen.getByRole("button", { name: "Ajouter un bot" }).hasAttribute("disabled")).toBe(true);
+});
+
+test("Should_EnableAddBot_When_LobbyHasNineBots", () => {
+  renderRoom("fr", true);
+  const bots = Array.from({ length: 9 }, (_, index) => ({
+    id: `b${index + 1}`,
+    username: `Bot beginner ${index + 1}`,
+    bot: { level: "beginner", number: index + 1 },
+  }));
+
+  act(() =>
+    handlers["lobby:participants"]({ hostId: "u1", participants: [{ id: "u1", username: "alex" }, ...bots] }),
+  );
+
+  expect(screen.getByRole("button", { name: "Ajouter un bot" }).hasAttribute("disabled")).toBe(false);
+});
+
+test("Should_ShowTranslatedError_When_ServerRefusesEleventhBot", () => {
+  renderRoom("fr", true);
+  sendHostAndBot();
+  fireEvent.click(screen.getByRole("button", { name: "Ajouter un bot" }));
+  const ack = socket.emit.mock.calls[1][2] as Handler;
+
+  act(() => ack({ ok: false, error: "tooManyBots" }));
+
+  expect(screen.getByRole("alert").textContent).toBe("Une course peut avoir au plus 10 bots");
+});
+
 test("Should_ShowError_When_AddingBotIsRefused", () => {
   renderRoom("fr", true);
   sendHostAndBot();

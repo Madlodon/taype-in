@@ -181,6 +181,7 @@
       "cannotGiveUp": "You can't give up anymore",
       "raceNotFinished": "The race isn't over",
       "botNotFound": "Bot not found",
+      "tooManyBots": "A race can have at most 10 bots",
       "cannotKickSelf": "You can't kick yourself",
       "participantNotFound": "This person is no longer in the race",
       "noHumanRacer": "At least one human player must race",
