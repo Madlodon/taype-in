@@ -129,6 +129,8 @@
     "bonus": {
       "sent": "Goal! {name} gets: {effect}.",
       "received": "{name} scored: {effect}.",
+      "announce": "Goal by {from}! {to} gets: {effect}.",
+      "announceRemove": "Goal by {name}! One word fewer in their text.",
       "effects": {
         "addWords": "3 extra words",
         "blur": "blurred text for 5 s",

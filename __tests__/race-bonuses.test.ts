@@ -3,36 +3,50 @@ import {
   addWords,
   availableEffects,
   BONUS_EFFECTS,
-  isBonusEligible,
+  checkpointsPassed,
+  isBehind,
   shuffleNextWord,
 } from "../lib/race-bonuses";
 
 const content = "Un deux trois. Quatre cinq.";
 
-describe("isBonusEligible", () => {
-  test("Should_BeEligible_When_LastOfTwo", () => {
-    expect(isBonusEligible([0.8, 0.2], 0.2)).toBe(true);
-    expect(isBonusEligible([0.8, 0.2], 0.8)).toBe(false);
+describe("checkpointsPassed", () => {
+  test.each([
+    [0, 0],
+    [0.24, 0],
+    [0.25, 1],
+    [0.5, 2],
+    [0.74, 2],
+    [0.75, 3],
+    [1, 3],
+  ])("Should_Count_When_LeaderIsAt_%s", (leader, passed) => {
+    expect(checkpointsPassed(leader)).toBe(passed);
+  });
+});
+
+describe("isBehind", () => {
+  test("Should_BeBehind_When_Last", () => {
+    const progress = [0.4, 0.35, 0.3];
+
+    expect(progress.map((mine) => isBehind(progress, mine))).toEqual([false, false, true]);
   });
 
-  test("Should_KeepOnlyLeastAdvancedHalf_When_FourRacers", () => {
-    const progress = [0.9, 0.6, 0.4, 0.1];
+  test("Should_BeBehind_When_MoreThanQuarterBehindLeader", () => {
+    const progress = [0.8, 0.5, 0.54, 0.2];
 
-    expect(progress.map((mine) => isBonusEligible(progress, mine))).toEqual([false, false, true, true]);
+    expect(progress.map((mine) => isBehind(progress, mine))).toEqual([false, true, true, true]);
   });
 
-  test("Should_KeepOnlyLast_When_ThreeRacers", () => {
-    const progress = [0.9, 0.5, 0.1];
-
-    expect(progress.map((mine) => isBonusEligible(progress, mine))).toEqual([false, false, true]);
+  test("Should_NotBeBehind_When_ExactlyQuarterBehindAndNotLast", () => {
+    expect(isBehind([0.75, 0.5, 0.1], 0.5)).toBe(false);
   });
 
   test("Should_GiveNobody_When_EveryoneIsTied", () => {
-    expect(isBonusEligible([0.5, 0.5], 0.5)).toBe(false);
+    expect(isBehind([0.5, 0.5], 0.5)).toBe(false);
   });
 
   test("Should_GiveNobody_When_RacingAlone", () => {
-    expect(isBonusEligible([0.3], 0.3)).toBe(false);
+    expect(isBehind([0.3], 0.3)).toBe(false);
   });
 });
 

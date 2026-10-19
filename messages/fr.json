@@ -129,6 +129,8 @@
     "bonus": {
       "sent": "But ! {name} reçoit : {effect}.",
       "received": "{name} a marqué : {effect}.",
+      "announce": "But de {from} ! {to} reçoit : {effect}.",
+      "announceRemove": "But de {name} ! Un mot de moins dans son texte.",
       "effects": {
         "addWords": "3 mots de plus",
         "blur": "texte flou pendant 5 s",

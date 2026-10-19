@@ -64,6 +64,7 @@ const PROGRESS_MS = 100;
 
 // Durée d'affichage d'un dépassement (CRS-3).
 const OVERTAKE_MS = 2500;
+const BONUS_BANNER_MS = 4000;
 
 // 125 → « 2:05 », 3725 → « 1:02:05 ».
 function formatTime(totalSeconds: number): string {
@@ -123,6 +124,8 @@ export function LobbyRoom({
   const [shots, setShots] = useState<Record<string, RaceShotMessage & { receivedAt: number }>>({});
   // Dernier bonus marqué ou reçu, pour l'annoncer (BON-3).
   const [bonus, setBonus] = useState<RaceBonusMessage>();
+  // Dernier bonus de la course, annoncé à tous sous la piste (BONUS-03) ; `at` relance l'animation.
+  const [announcement, setAnnouncement] = useState<RaceBonusMessage & { at: number }>();
   // Ton texte : celui de la course, changé par les bonus reçus (mots ajoutés, mot mélangé).
   const [myContent, setMyContent] = useState<string>();
   // Change pour repartir la zone de frappe sur une saisie raccourcie par un bonus.
@@ -177,6 +180,7 @@ export function LobbyRoom({
       setResumed(undefined);
       setFinished(false);
       setBonus(undefined);
+      setAnnouncement(undefined);
       setMyContent(undefined);
       setHits({});
       setSlowLetters(0);
@@ -207,6 +211,8 @@ export function LobbyRoom({
       setShots(previous => ({ ...previous, [message.id]: { ...message, receivedAt: performance.now() } }));
     });
     socket.on("race:bonus", (message: RaceBonusMessage) => {
+      setAnnouncement({ ...message, at: Date.now() });
+      if (message.from !== userId && message.to !== userId) return;
       setBonus(message);
       if (message.to !== userId) return;
       if (message.removed) setRemoved(message.removed);
@@ -311,6 +317,12 @@ export function LobbyRoom({
     return () => clearTimeout(timer);
   }, [overtake]);
 
+  useEffect(() => {
+    if (!announcement) return;
+    const timer = setTimeout(() => setAnnouncement(undefined), BONUS_BANNER_MS);
+    return () => clearTimeout(timer);
+  }, [announcement]);
+
   // L'hôte court avec les autres ou regarde seulement (LOB-8).
   function start(watch: boolean) {
     socketRef.current?.emit("race:start", { watch }, (ack: Ack) => {
@@ -398,14 +410,15 @@ export function LobbyRoom({
     });
   }
 
+  const racerName = (id: string) => positions.find((entry) => entry.id === id)?.username ?? "";
+
   // Annonce d'un bonus à celui qui marque et à sa cible (BON-3).
   function bonusNote(message: RaceBonusMessage) {
     if (message.effect === "removeWords") return t("goalRemoved", { word: message.word ?? "" });
-    const name = (id: string) => positions.find((entry) => entry.id === id)?.username ?? "";
     const effect = t(`bonus.effects.${message.effect}`);
     return message.from === userId
-      ? t("bonus.sent", { name: name(message.to), effect })
-      : t("bonus.received", { name: name(message.from), effect });
+      ? t("bonus.sent", { name: racerName(message.to), effect })
+      : t("bonus.received", { name: racerName(message.from), effect });
   }
 
   // Un hôte qui regarde ne compte pas parmi les participants (LOB-8).
@@ -456,6 +469,22 @@ export function LobbyRoom({
             ))}
           </ol>
         </div>
+        {/* Toujours là dans une course à bonus : la page ne saute pas quand une annonce s'affiche. */}
+        {settings?.bonusesEnabled && (
+          <p aria-live="polite" className="bonus-banner">
+            {announcement && (
+              <span key={announcement.at}>
+                {announcement.effect === "removeWords"
+                  ? t("bonus.announceRemove", { name: racerName(announcement.from) })
+                  : t("bonus.announce", {
+                      from: racerName(announcement.from),
+                      to: racerName(announcement.to),
+                      effect: t(`bonus.effects.${announcement.effect}`),
+                    })}
+              </span>
+            )}
+          </p>
+        )}
       </div>
     );
 

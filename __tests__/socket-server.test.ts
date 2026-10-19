@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Server } from "socket.io";
 import { io as connect, type Socket } from "socket.io-client";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
@@ -55,7 +55,6 @@ async function startServer(
     idleMs?: number;
     shotMs?: number;
     shotRandom?: () => number;
-    goalChance?: number;
     bonusRandom?: () => number;
     hostGraceMs?: number;
     maxWpm?: number;
@@ -2014,16 +2013,17 @@ describe("host transfer", () => {
 });
 
 describe("bonuses", () => {
-  // L'invité est en avance : seul l'hôte, derrière, peut marquer (BON-2).
+  // Jusqu'au premier espace après une part du texte : le meneur y passe un point de contrôle.
+  const upTo = (content: string, part: number) => content.slice(0, content.indexOf(" ", Math.ceil(content.length * part)));
+
+  // L'invité mènera la course ; l'hôte, resté au départ, sera en retard (BONUS-01).
   async function bonusRace(options: Parameters<typeof startServer>[0] = {}) {
     await io.close();
-    await startServer({ shotMs: 30, shotRandom: () => 0, ...options });
+    // Par défaut, aucune phrase ne marque : seuls les points de contrôle donnent des buts.
+    await startServer({ shotMs: 30, shotRandom: () => 0.99, ...options });
     const race = await lobbyWithTwo({ bonusesEnabled: true });
     const { content } = await startRace(race.hostClient);
-    const boundary = completedSentences(content, content)[0];
-    const guestTyped = content.slice(0, content.indexOf(" ", boundary + 2));
-    await progress(race.guestClient, typing(guestTyped, 0));
-    return { ...race, content, boundary, guestTyped };
+    return { ...race, content, guestTyped: upTo(content, 0.25) };
   }
 
   function collect<T>(client: Socket, event: string) {
@@ -2039,55 +2039,147 @@ describe("bonuses", () => {
 
   test("Should_NeverShoot_When_BonusesAreOff", async () => {
     await io.close();
-    await startServer({ shotMs: 30, shotRandom: () => 0 });
+    await startServer({ shotMs: 30 });
     const { hostClient, guestClient } = await lobbyWithTwo();
     const { content } = await startRace(hostClient);
     const shots = collect<RaceShotMessage>(guestClient, "race:shot");
 
     await progress(hostClient, typing(content.slice(0, completedSentences(content, content)[0]), 0));
+    await progress(guestClient, typing(content.slice(0, -1), 0));
     await wait(60);
 
     expect(shots).toEqual([]);
   });
 
-  test("Should_MissEveryShot_When_ShooterIsAhead", async () => {
-    await io.close();
-    await startServer({ shotMs: 30, shotRandom: () => 0 });
-    const { host, hostClient, guestClient } = await lobbyWithTwo({ bonusesEnabled: true });
-    const { content } = await startRace(hostClient);
+  test("Should_MissShot_When_RollIsAtGoalChance", async () => {
+    const { host, hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0.3 });
+    await progress(guestClient, typing(content.slice(0, 1), 0));
     const shot = next<RaceShotMessage>(guestClient, "race:shot");
-    const bonuses = collect<RaceBonusMessage>(hostClient, "race:bonus");
     const boundary = completedSentences(content, content)[0];
 
     await progress(hostClient, typing(content.slice(0, boundary), 0));
 
     expect(await shot).toEqual({ id: host.id, sequence: boundary, scored: false });
+  });
+
+  // Tout joueur, même le meneur, peut marquer en fin de phrase ; le but retire un mot de son texte.
+  test("Should_RemoveOwnWord_When_LeaderScoresSentenceGoal", async () => {
+    const { host, hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0.29, bonusRandom: pick(2) });
+    const shot = next<RaceShotMessage>(guestClient, "race:shot");
+    const bonuses = collect<RaceBonusMessage>(hostClient, "race:bonus");
+    const boundary = completedSentences(content, content)[0];
+
+    await progress(hostClient, typing(content.slice(0, boundary), 0));
     await wait(60);
-    expect(bonuses).toEqual([]);
+
+    expect(await shot).toEqual({ id: host.id, sequence: boundary, scored: true });
+    const range = thirdWordAhead(content, boundary, [])!;
+    expect(bonuses.filter((bonus) => bonus.effect === "removeWords")).toEqual([{
+      effect: "removeWords",
+      from: host.id,
+      to: host.id,
+      removed: [range],
+      word: content.slice(range.start, range.end).trim(),
+    }]);
   });
 
   test("Should_ShootOncePerSentence_When_SentenceIsRetyped", async () => {
-    const random = vi.fn(() => 0.9);
-    const { hostClient, guestClient, content, boundary } = await bonusRace({ shotRandom: random });
+    const { host, hostClient, guestClient, content } = await bonusRace();
     const shots = collect<RaceShotMessage>(guestClient, "race:shot");
+    const boundary = completedSentences(content, content)[0];
 
     await progress(hostClient, typing(content.slice(0, boundary), 0));
     await progress(hostClient, typing(content.slice(0, boundary - 1), 0));
     await progress(hostClient, typing(content.slice(0, boundary), 0));
     await wait(60);
 
-    expect(shots.map((shot) => shot.scored)).toEqual([false]);
-    expect(random).toHaveBeenCalledTimes(1);
+    expect(shots.filter((shot) => shot.id === host.id && shot.sequence === boundary)).toHaveLength(1);
+  });
+
+  test("Should_ScoreForPlayerBehind_When_LeaderPassesCheckpoint", async () => {
+    const { host, guest, hostClient, guestClient, guestTyped } = await bonusRace({ bonusRandom: pick(2) });
+    const shots = collect<RaceShotMessage>(hostClient, "race:shot");
+    const bonus = next<RaceBonusMessage>(guestClient, "race:bonus");
+
+    await progress(guestClient, typing(guestTyped, 0));
+
+    expect(await bonus).toEqual({ effect: "blur", from: host.id, to: guest.id });
+    // Les phrases finies par le meneur tirent aussi, sans marquer.
+    expect(shots.filter((shot) => shot.scored)).toEqual([{ id: host.id, sequence: -1, scored: true }]);
+  });
+
+  test("Should_ShootOnce_When_LeaderCrossesSameCheckpointAgain", async () => {
+    const { hostClient, guestClient, content, guestTyped } = await bonusRace();
+    const shots = collect<RaceShotMessage>(hostClient, "race:shot");
+
+    await progress(guestClient, typing(guestTyped, 0));
+    await progress(guestClient, typing(content.slice(0, 1), 0));
+    await progress(guestClient, typing(guestTyped, 0));
+    await wait(60);
+
+    expect(shots.filter((shot) => shot.scored)).toHaveLength(1);
+  });
+
+  // Un troisième coureur, arrivé avant le départ.
+  async function threeRace(options: Parameters<typeof startServer>[0] = {}) {
+    await io.close();
+    // Par défaut, aucune phrase ne marque : seuls les points de contrôle donnent des buts.
+    await startServer({ shotMs: 30, shotRandom: () => 0.99, ...options });
+    const race = await lobbyWithTwo({ bonusesEnabled: true });
+    const third = await newClient();
+    await join(third, { code: race.lobby.code });
+    const { content } = await startRace(race.hostClient);
+    return { ...race, third, content };
+  }
+
+  test("Should_NotShoot_When_PlayerIsCloseBehindAndNotLast", async () => {
+    const { host, hostClient, guestClient, third, content } = await threeRace();
+    const shots = collect<RaceShotMessage>(hostClient, "race:shot");
+
+    await progress(third, typing(upTo(content, 0.2), 0));
+    await progress(guestClient, typing(upTo(content, 0.3), 0));
+    await wait(60);
+
+    expect(shots.filter((shot) => shot.scored).map((shot) => shot.id)).toEqual([host.id]);
+  });
+
+  test("Should_GiveAtMostThreeBonuses_When_LeaderPassesEveryCheckpoint", async () => {
+    const { host, hostClient, guestClient, content } = await bonusRace({ bonusRandom: pick(2) });
+    const bonuses = collect<RaceBonusMessage>(guestClient, "race:bonus");
+
+    await progress(guestClient, typing(content.slice(0, -1), 0));
+    await wait(100);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(guestClient, typing(content, 0));
+    await progress(hostClient, typing(content, 0));
+
+    expect(bonuses).toHaveLength(3);
+    const results = (await ended).results;
+    expect(results.find((result) => result.id === host.id)?.bonuses).toBe(3);
+    expect(results.find((result) => result.id !== host.id)?.bonuses).toBe(0);
+  });
+
+  test("Should_AnnounceToWholeRoom_When_BonusIsGiven", async () => {
+    const { host, guest, guestClient, third, content } = await threeRace({ bonusRandom: pick(1) });
+    await progress(third, typing(upTo(content, 0.1), 0));
+    const thirdSees = next<RaceBonusMessage>(third, "race:bonus");
+    const guestSees = next<RaceBonusMessage>(guestClient, "race:bonus");
+
+    await progress(guestClient, typing(upTo(content, 0.25), 0));
+
+    // Les autres voient qui a marqué et l'effet, pas le texte de la cible.
+    expect(await thirdSees).toEqual({ effect: "addWords", from: host.id, to: guest.id });
+    expect((await guestSees).content).toBeDefined();
   });
 
   test("Should_RemoveWordFromScorerText_When_EffectIsRemoveWords", async () => {
-    const { host, hostClient, guestClient, lobby, content, boundary } = await bonusRace({ bonusRandom: pick(0) });
-    const guestBonuses = collect<RaceBonusMessage>(guestClient, "race:bonus");
+    const { host, hostClient, guestClient, lobby, content, guestTyped } = await bonusRace({ bonusRandom: pick(0) });
+    const guestSees = next<RaceBonusMessage>(guestClient, "race:bonus");
     const bonus = next<RaceBonusMessage>(hostClient, "race:bonus");
 
-    await progress(hostClient, typing(content.slice(0, boundary), 0));
+    await progress(guestClient, typing(guestTyped, 0));
 
-    const range = thirdWordAhead(content, boundary, [])!;
+    const range = thirdWordAhead(content, 0, [])!;
     expect(await bonus).toEqual({
       effect: "removeWords",
       from: host.id,
@@ -2095,19 +2187,19 @@ describe("bonuses", () => {
       removed: [range],
       word: content.slice(range.start, range.end).trim(),
     });
-    expect(guestBonuses).toEqual([]);
+    expect(await guestSees).toEqual({ effect: "removeWords", from: host.id, to: host.id });
     const resumed = next<RaceStartedMessage>(hostClient, "race:started");
     await join(hostClient, { code: lobby.code });
     expect((await resumed).mine?.removed).toEqual([range]);
   });
 
   test("Should_AddWordsToLeaderText_When_EffectIsAddWords", async () => {
-    const { host, guest, hostClient, guestClient, lobby, content, boundary, guestTyped } =
+    const { host, guest, hostClient, guestClient, lobby, content, guestTyped } =
       await bonusRace({ bonusRandom: pick(1) });
     const hostSees = next<RaceBonusMessage>(hostClient, "race:bonus");
     const guestSees = next<RaceBonusMessage>(guestClient, "race:bonus");
 
-    await progress(hostClient, typing(content.slice(0, boundary), 0));
+    await progress(guestClient, typing(guestTyped, 0));
 
     expect(await hostSees).toEqual({ effect: "addWords", from: host.id, to: guest.id });
     const message = await guestSees;
@@ -2126,41 +2218,25 @@ describe("bonuses", () => {
     [3, "shrink"],
     [4, "slowLetters"],
   ] as const)("Should_SendEffectToLeader_When_EffectIs_%s_%s", async (index, effect) => {
-    const { host, guest, hostClient, guestClient, content, boundary } = await bonusRace({ bonusRandom: pick(index) });
+    const { host, guest, guestClient, guestTyped } = await bonusRace({ bonusRandom: pick(index) });
     const guestSees = next<RaceBonusMessage>(guestClient, "race:bonus");
 
-    await progress(hostClient, typing(content.slice(0, boundary), 0));
+    await progress(guestClient, typing(guestTyped, 0));
 
     expect(await guestSees).toEqual({ effect, from: host.id, to: guest.id });
   });
 
   test("Should_ShuffleLeaderNextWord_When_EffectIsShuffleWord", async () => {
-    const { host, guest, hostClient, guestClient, content, boundary, guestTyped } =
-      await bonusRace({ bonusRandom: pick(5) });
+    const { host, guest, guestClient, content, guestTyped } = await bonusRace({ bonusRandom: pick(5) });
     const guestSees = next<RaceBonusMessage>(guestClient, "race:bonus");
 
-    await progress(hostClient, typing(content.slice(0, boundary), 0));
+    await progress(guestClient, typing(guestTyped, 0));
 
     const message = await guestSees;
     expect(message).toMatchObject({ effect: "shuffleWord", from: host.id, to: guest.id });
     expect(message.content).toHaveLength(content.length);
     expect(message.content).not.toBe(content);
     expect(message.content!.startsWith(guestTyped)).toBe(true);
-  });
-
-  test("Should_CountScorerBonuses_When_RaceEnds", async () => {
-    const { host, hostClient, guestClient, content, boundary } = await bonusRace({ bonusRandom: pick(2) });
-    const bonus = next<RaceBonusMessage>(guestClient, "race:bonus");
-    await progress(hostClient, typing(content.slice(0, boundary), 0));
-    await bonus;
-    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
-
-    await progress(guestClient, typing(content, 0));
-    await progress(hostClient, typing(content, 0));
-
-    const results = (await ended).results;
-    expect(results.find((result) => result.id === host.id)?.bonuses).toBe(1);
-    expect(results.find((result) => result.id !== host.id)?.bonuses).toBe(0);
   });
 });
 
@@ -2403,10 +2479,10 @@ describe("bots", () => {
     expect(positions[0].position).toBeGreaterThan(0);
   });
 
-  test("Should_GiveBotsGoalBonuses_When_BotCompletesASentenceFromBehind", async () => {
+  test("Should_GiveBotsBonuses_When_BotIsBehindAtCheckpoints", async () => {
     await io.close();
     // bonusRandom = 0 : l'effet est toujours « retirer des mots », que le bot doit sauter.
-    await startServer({ shotMs: 1, shotRandom: () => 0, bonusRandom: () => 0 });
+    await startServer({ shotMs: 1, bonusRandom: () => 0 });
     const { lobby, hostClient } = await hostAlone();
     await db.update(lobbies).set({ bonusesEnabled: true }).where(eq(lobbies.id, lobby.id));
     await addBot(hostClient, "impossible");
@@ -2418,7 +2494,7 @@ describe("bots", () => {
     });
     const { content } = await startRace(hostClient);
     length = content.length;
-    // L'hôte part loin devant : seul le bot, derrière, peut marquer (BON-2).
+    // L'hôte part loin devant et passe les points de contrôle : le bot, derrière, marque (BONUS-01).
     await progress(hostClient, typing(content.slice(0, -1), 0));
     await botFinished;
     const ended = next<RaceEndedMessage>(hostClient, "race:ended");
