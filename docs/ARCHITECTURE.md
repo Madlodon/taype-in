@@ -237,7 +237,7 @@ sequenceDiagram
         S-->>H: race:positions
         S-->>J: race:positions
     end
-    opt bonus activés : le meneur passe 25, 50 ou 75 %
+    opt bonus activés : phrase finie, ou le meneur passe 25, 50 ou 75 %
         S-->>H: race:shot { id, sequence, scored } (tir de chaque joueur en retard)
         S-->>J: race:shot { … }
         S-->>H: race:bonus { effect, from, to } (annonce)
@@ -261,7 +261,7 @@ sequenceDiagram
 | `race:started`                      | serveur → lobby           | Texte, mode d'erreur et coureurs. Un coureur qui revient reçoit aussi sa saisie (`mine`).              |
 | `race:progress`                     | coureur → serveur         | Saisie complète du coureur ; le serveur en déduit la position.                                         |
 | `race:positions`                    | serveur → lobby           | Classement en direct, au plus toutes les 250 ms.                                                       |
-| `race:shot` / `race:bonus`          | serveur → lobby           | Tir (raté en fin de phrase, but à un point de contrôle) ; bonus annoncé à tous, texte changé à la cible. |
+| `race:shot` / `race:bonus`          | serveur → lobby           | Tir en fin de phrase (30 % de but : un mot retiré) ou à un point de contrôle (but) ; bonus annoncé à tous, texte changé à la cible. |
 | `race:giveUp`                       | coureur → serveur         | Abandonner ; la course continue sans lui.                                                              |
 | `race:ended`                        | serveur → lobby           | Raison de la fin et résultats.                                                                         |
 | `lobby:restart` / `lobby:restarted` | hôte → serveur → lobby    | Revenir aux réglages pour une nouvelle course.                                                         |
