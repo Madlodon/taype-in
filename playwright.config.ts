@@ -34,8 +34,7 @@ export default defineConfig({
     command: process.env.CI ? "bun run start" : "bun run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
-    // Un but retire un mot au hasard : les tests tapent tout le texte lu au départ,
-    // d'un coup, plus vite que la limite anti-triche.
-    env: { GOAL_CHANCE: "0", MAX_WPM: "Infinity" },
+    // Les tests tapent tout le texte d'un coup, plus vite que la limite anti-triche.
+    env: { MAX_WPM: "Infinity" },
   },
 });

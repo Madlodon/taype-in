@@ -136,8 +136,8 @@ export type RaceEndedMessage = {
 
 // The server owns shot outcomes and the removed word offsets.
 export type RaceShotMessage = { id: string; sequence: number; scored: boolean };
-// Bonus d'un but (BON-3), envoyé à celui qui marque et à sa cible (from = to pour removeWords).
-// La cible reçoit son nouveau texte (content) ou ses mots retirés (removed) quand ils changent.
+// Bonus d'un but (BON-3), annoncé à toute la salle (from = to pour removeWords).
+// Seule la cible reçoit son nouveau texte (content) ou ses mots retirés (removed) quand ils changent.
 export type RaceBonusMessage = {
   effect: BonusEffect;
   from: string;

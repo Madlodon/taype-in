@@ -1,9 +1,10 @@
 import { countCorrect, hasCorrectInput, wordsPerMinute } from "./typing.ts";
-import { completedSentences, thirdWordAhead, GOAL_CHANCE, SHOT_MS, type RemovedWord } from "./race-goals.ts";
+import { completedSentences, thirdWordAhead, SHOT_MS, type RemovedWord } from "./race-goals.ts";
 import {
   addWords,
   availableEffects,
-  isBonusEligible,
+  checkpointsPassed,
+  isBehind,
   shuffleNextWord,
   SLOW_LETTER_MS,
   SLOW_LETTERS,
@@ -95,6 +96,8 @@ type LiveRace = {
   errorMode: RaceStartedMessage["errorMode"];
   // Buts et bonus seulement si l'hôte les a activés (BON-1).
   bonusesEnabled: boolean;
+  // Points de contrôle déjà passés par le meneur (BONUS-01).
+  checkpoints: number;
   racerIds: string[];
   timeLimitSeconds: number | null;
   // Fin prévue par la minuterie (ms) ; null sans minuterie.
@@ -148,9 +151,6 @@ export function createSocketServer(
     wpmSampleMs = 1000,
     botSpeedup = 1,
     shotMs = SHOT_MS,
-    shotRandom = Math.random,
-    // goalChance = 0 : aucun but, pour les tests E2E qui tapent tout le texte.
-    goalChance = GOAL_CHANCE,
     // Choix de l'effet d'un bonus et de son contenu (mots ajoutés, mélange).
     bonusRandom = Math.random,
     // SALLE-08 : délai laissé à l'hôte parti pour revenir (ex. rechargement de la page).
@@ -393,9 +393,12 @@ export function createSocketServer(
     live.positionsChanged = true;
   }
 
-  function emitTo(lobby: Lobby, id: string, message: RaceBonusMessage) {
+  // Bonus annoncé à toute la salle (BONUS-03) ; seule la cible reçoit son nouveau texte.
+  function announceBonus(lobby: Lobby, message: RaceBonusMessage) {
+    const { effect, from, to } = message;
     for (const client of io.sockets.sockets.values()) {
-      if (client.data.user.id === id && client.rooms.has(lobby.code)) client.emit("race:bonus", message);
+      if (!client.rooms.has(lobby.code)) continue;
+      client.emit("race:bonus", client.data.user.id === to ? message : { effect, from, to });
     }
   }
 
@@ -417,7 +420,7 @@ export function createSocketServer(
       if (!range) return;
       player.removed.push(range);
       player.bonuses++;
-      emitTo(lobby, id, {
+      announceBonus(lobby, {
         effect,
         from: id,
         to: id,
@@ -443,8 +446,28 @@ export function createSocketServer(
       target.slowLetters = SLOW_LETTERS;
     }
     player.bonuses++;
-    emitTo(lobby, id, { effect, from: id, to: targetId! });
-    emitTo(lobby, targetId!, message);
+    announceBonus(lobby, message);
+  }
+
+  // Le meneur passe un point de contrôle : chaque joueur en retard tire un but qui donne un bonus (BONUS-01).
+  // sequence négative (-1 à -3) : ne se confond pas avec les tirs de fin de phrase, à leur position dans le texte.
+  function checkpointShots(lobby: Lobby, live: LiveRace) {
+    const inRace = [...live.players].filter(([, player]) => player.state !== "abandoned");
+    const progress = inRace.map(([, player]) => progressOf(player));
+    const passed = checkpointsPassed(Math.max(...progress));
+    while (live.checkpoints < passed) {
+      live.checkpoints++;
+      for (const [id, player] of inRace) {
+        if (player.state !== "connected" || !isBehind(progress, progressOf(player))) continue;
+        io.to(lobby.code).emit("race:shot", { id, sequence: -live.checkpoints, scored: true });
+        const timer = setTimeout(() => {
+          live.shotTimers.delete(timer);
+          if (live.state !== "racing" || player.state !== "connected") return;
+          applyBonus(lobby, live, id);
+        }, shotMs);
+        live.shotTimers.add(timer);
+      }
+    }
   }
 
   // Nouvelle saisie d'un coureur (joueur ou bot) ; la course finit quand tous ont tapé tout le texte (CRS-5).
@@ -462,24 +485,15 @@ export function createSocketServer(
     player.errors = progress.errors;
     player.keys = progress.keys;
     player.keyErrors = progress.keyErrors;
-    // Sans bonus, pas de tirs ni de buts (BON-1) ; seule la moitié la moins avancée peut marquer (BON-2).
+    // Sans bonus, pas de tirs ni de buts (BON-1). Une phrase finie tire sans marquer :
+    // seuls les points de contrôle du meneur donnent des buts (BONUS-01).
     for (const sentence of live.bonusesEnabled ? completedSentences(player.content, player.typed) : []) {
       if (player.sentences.has(sentence)) continue;
       player.sentences.add(sentence);
-      const eligible = isBonusEligible(
-        [...live.players.values()].map(progressOf),
-        progressOf(player),
-      );
-      const scored = eligible && shotRandom() < goalChance;
-      io.to(lobby.code).emit("race:shot", { id, sequence: sentence, scored });
-      const timer = setTimeout(() => {
-        live.shotTimers.delete(timer);
-        if (!scored || live.state !== "racing" || player.state === "finished" || player.state === "abandoned") return;
-        applyBonus(lobby, live, id);
-      }, shotMs);
-      live.shotTimers.add(timer);
+      io.to(lobby.code).emit("race:shot", { id, sequence: sentence, scored: false });
     }
     movePosition(live, id);
+    if (live.bonusesEnabled) checkpointShots(lobby, live);
     if (player.typed.length === player.content.length) {
       player.state = nextPlayerState(player.state, "finish");
       player.doneAt = Date.now();
@@ -753,6 +767,7 @@ export function createSocketServer(
         content: "",
         errorMode: lobby.errorMode,
         bonusesEnabled: false,
+        checkpoints: 0,
         racerIds: racers.map((racer) => racer.id),
         timeLimitSeconds: null,
         endsAt: null,

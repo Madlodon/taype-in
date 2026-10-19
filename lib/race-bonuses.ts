@@ -1,4 +1,4 @@
-// Bonus des courses où l'hôte les active (BON-1 à BON-3) : un but marqué donne un effet au hasard.
+// Bonus des courses où l'hôte les active (BON-1 à BON-3) : un but à un point de contrôle donne un effet au hasard.
 import { WORD_PATTERN, type RemovedWord } from "./race-goals.ts";
 
 // removeWords aide celui qui marque ; les autres visent le plus avancé encore en course.
@@ -11,11 +11,20 @@ export const SLOW_LETTERS = 3;
 export const SLOW_LETTER_MS = 1000;
 export const ADDED_WORDS = 3;
 
-// Seule la moitié la moins avancée peut avoir un bonus (BON-2) : il faut au moins
-// la moitié des coureurs (arrondie au-dessus) devant soi. progress = part du texte tapée.
-export function isBonusEligible(progress: number[], mine: number) {
-  const ahead = progress.filter((other) => other > mine).length;
-  return ahead >= Math.ceil(progress.length / 2);
+// Points de contrôle du meneur (BONUS-01) : chaque fois qu'il en passe un, les joueurs en retard
+// reçoivent un bonus. Un seul par point de contrôle, donc au plus 3 par joueur et par course.
+export const CHECKPOINTS = [0.25, 0.5, 0.75];
+export const BEHIND_GAP = 0.25;
+
+// Nombre de points de contrôle passés par le meneur ; progress = part du texte tapée.
+export function checkpointsPassed(leader: number) {
+  return CHECKPOINTS.filter((checkpoint) => leader >= checkpoint).length;
+}
+
+// En retard : dernier, ou plus de 25 % du texte derrière le meneur. Le meneur ne l'est jamais.
+export function isBehind(progress: number[], mine: number) {
+  const leader = Math.max(...progress);
+  return mine < leader && (mine === Math.min(...progress) || leader - mine > BEHIND_GAP);
 }
 
 // Effets possibles : sans cible, seulement retirer des mots ; un bot ne voit pas d'écran à flouter.

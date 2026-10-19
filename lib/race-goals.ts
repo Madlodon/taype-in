@@ -1,7 +1,6 @@
 // Original text offsets stay stable across goals, reconnects and in-flight input.
 export type RemovedWord = { start: number; end: number };
 export const SHOT_MS = 1200;
-export const GOAL_CHANCE = .5;
 // A word, with French apostrophes and hyphens kept inside it.
 export const WORD_PATTERN = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu;
 
