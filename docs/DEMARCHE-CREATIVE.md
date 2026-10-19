@@ -168,29 +168,35 @@ Le [modèle Blender](mockups/assets/arena.blend) et les deux rendus se régénè
 /Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/arena-model.py
 ```
 
-### Essai des voitures Blender dans la course (#36)
+### Essai des voitures Blender dans l’arène actuelle (#36)
 
-La [maquette comparative](mockups/7-arena-sprite-preview.html) permet de basculer
-entre les voitures 2D et des sprites Blender légèrement de trois quarts, sans
-recommencer la course. Les voitures bleue et orange et le ballon suivent le
-parcours existant : sol, mur, plafond et tir du plafond.
+La [maquette comparative](mockups/7-arena-sprite-preview.html) réutilise le composant
+`Arena`, le diorama et la simulation actuels : conduite libre, poursuite et contacts
+avec le ballon, boost, tirs et célébration finale. Le bouton **Actuelles / Blender**
+change seulement le rendu des voitures, sans réinitialiser leurs positions.
+Les ballons et leurs animations restent ceux de l’application.
 
-**Choix en attente de validation visuelle.** Cet essai reste séparé de la
-maquette 5 et de l'application ; il ne remplace pas la direction retenue.
+**Choix en attente de validation visuelle.** Le build autonome remplace `FieldCar`
+uniquement dans l’aperçu ; aucun composant de l’application n’est modifié.
+Les voitures Blender disposent de 32 orientations, rendues avec la caméra du diorama.
 
-Les sprites de l'essai se régénèrent dans `mockups/assets/arena-preview`, sans
-écraser les rendus et modèles existants :
+Régénérer les deux planches de sprites :
 
 ```bash
-/Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/models.py -- --arena-preview
+/Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/field-preview.py
 ```
 
-Pour essayer la comparaison, ouvrir le fichier HTML ou lancer :
+Construire l’aperçu avec les dépendances déjà présentes, puis servir le dossier
+temporaire affiché par la commande (le fichier HTML ne s’ouvre plus seul) :
 
 ```bash
-python3 -m http.server 8765 --bind 127.0.0.1 --directory docs/mockups
+node docs/mockups/build-arena-preview.mjs
+python3 -m http.server 8765 --bind 127.0.0.1 --directory <dossier-affiché>
 # http://127.0.0.1:8765/7-arena-sprite-preview.html
 ```
+
+Les boutons permettent d’essayer immédiatement le boost, un tir cadré ou manqué.
+Terminer le texte déclenche le tir final de la simulation actuelle.
 
 Tests autonomes (sans serveur applicatif ni base de données) :
 

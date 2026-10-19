@@ -1,96 +1,118 @@
-// Run independently of the application/database: node --test docs/mockups/arena-sprite-preview.test.mjs
-import { test, before, after } from 'node:test';
-import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
+// node --test docs/mockups/arena-sprite-preview.test.mjs
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { join, extname } from "node:path";
+import { chromium } from "@playwright/test";
+import { buildPreview } from "./build-arena-preview.mjs";
 
-let browser;
-before(async () => { browser = await chromium.launch(); });
-after(async () => { await browser?.close(); });
+let browser, server, url;
+before(async () => {
+  const directory = await buildPreview();
+  server = createServer(async (request, response) => {
+    try {
+      const path = new URL(request.url, 'http://localhost').pathname;
+      const bytes = await readFile(join(directory, path));
+      response.setHeader('Content-Type', ({ '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.webp': 'image/webp' })[extname(path)] ?? 'application/octet-stream');
+      response.end(bytes);
+    } catch {
+      response.writeHead(404).end();
+    }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  url = `http://127.0.0.1:${server.address().port}/7-arena-sprite-preview.html`;
+  browser = await chromium.launch();
+});
+after(async () => { await browser?.close(); await new Promise(resolve => server?.close(resolve)); });
 
 async function openPreview(t) {
-  const page = await browser.newPage({ viewport: { width: 1200, height: 850 } });
+  const page = await browser.newPage({ viewport: { width: 1200, height: 1000 } });
   t.after(() => page.close());
-  await page.route('https://**', (route) => route.abort());
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  t.after(() => assert.deepEqual(errors, []));
   await page.clock.install();
   await page.clock.pauseAt(new Date());
-  await page.goto(new URL('./7-arena-sprite-preview.html', import.meta.url).href);
+  await page.goto(url);
+  await page.locator('[data-sprite-car]').first().waitFor();
   return page;
 }
 
-async function typeText(page, text) {
-  // keyboard.type inserts accented characters without keydown; the mockup listens to keydown.
-  for (const char of text) {
-    if (char.charCodeAt(0) > 127) {
-      await page.locator('body').dispatchEvent('keydown', { key: char, bubbles: true });
-    } else {
-      await page.keyboard.press(char === ' ' ? 'Space' : char);
-    }
-  }
-}
+const player = '[data-car-id="preview"]';
 
-test('switching styles preserves the race and loads every sprite', async (t) => {
+test('uses the current diorama and preserves car and ball positions when switching styles', async t => {
   const page = await openPreview(t);
-  const errors = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  const images = await page.locator('image').evaluateAll(async (nodes) => Promise.all(nodes.map(async (node) => {
-    const image = new Image();
-    image.src = node.getAttribute('href');
-    await image.decode();
-    return image.naturalWidth;
-  })));
-  assert.equal(images.length, 8);
-  assert.ok(images.every((width) => width === 512));
-  await typeText(page, 'Le ballon');
-  const beforeSwitch = await page.locator('#racers > g').first().getAttribute('transform');
-  await page.getByRole('button', { name: '2D', exact: true }).click();
-  assert.equal(await page.locator('#flat').getAttribute('aria-pressed'), 'true');
-  assert.equal(await page.locator('#racers .sprite').first().isVisible(), false);
-  assert.equal(await page.locator('#racers .flat').first().isVisible(), true);
+  assert.equal(await page.locator('.arena').getAttribute('data-stadium'), 'diorama');
+  const sources = await page.locator('.arena image').evaluateAll(nodes => [...new Set(nodes.map(node => node.getAttribute('href')))]);
+  assert.ok(sources.includes('/stadiums/diorama.webp'));
+  assert.ok(sources.includes('assets/arena-preview/field-blue.png'));
+  assert.ok(sources.includes('assets/arena-preview/field-orange.png'));
+  await page.evaluate(async sources => {
+    for (const src of sources) { const image = new Image(); image.src = src; await image.decode(); }
+  }, sources);
+  const pose = await page.locator(`${player} > g > g`).first().getAttribute('transform');
+  const ball = await page.locator(`${player} [data-field-ball]`).getAttribute('transform');
+  await page.getByRole('button', { name: 'Actuelles', exact: true }).click();
+  assert.equal(await page.locator('[data-sprite-car]').count(), 0);
+  assert.equal(await page.locator('[data-field-body]').count(), 4);
   await page.getByRole('button', { name: 'Blender', exact: true }).click();
-  assert.equal(await page.locator('#racers .sprite').first().isVisible(), true);
-  assert.equal(await page.locator('#racers .flat').first().isVisible(), false);
-  assert.equal(await page.locator('#racers > g').first().getAttribute('transform'), beforeSwitch);
-  assert.equal(await page.locator('.done').count(), 9);
-  assert.deepEqual(errors, []);
+  assert.equal(await page.locator(`${player} > g > g`).first().getAttribute('transform'), pose);
+  assert.equal(await page.locator(`${player} [data-field-ball]`).getAttribute('transform'), ball);
 });
 
-test('typing follows floor, wall, ceiling and shot, with boost, errors and goal', async (t) => {
+test('keeps free driving, ball contact, boost, shots and the finish celebration', async t => {
   const page = await openPreview(t);
-  const text = await page.locator('.demo-text').textContent();
-  const car = page.locator('#racers > g').first();
-  async function angle() {
-    return Number((await car.getAttribute('transform')).match(/rotate\(([^)]+)\)/)[1]);
-  }
-  assert.equal(await angle(), 0);
-  await typeText(page, '!');
-  assert.equal(await page.locator('.current.wrong').count(), 1);
-  assert.equal(await page.locator('.done').count(), 0);
-  let typed = 0;
-  for (const [progress, min, max] of [[0.3, -91, -89], [0.6, 179, 181], [0.9, 90, 179]]) {
-    const count = Math.floor(text.length * progress);
-    await typeText(page, text.slice(typed, count));
-    typed = count;
-    const rotation = await angle();
-    assert.ok(rotation >= min && rotation <= max, `rotation ${rotation} at ${progress}`);
-    assert.equal(await page.locator('.current.wrong').count(), 0);
-  }
-  assert.equal(await page.locator('#streak').textContent(), 'Supersonique !');
-  await typeText(page, text.slice(typed));
-  assert.equal(await page.locator('.done').count(), text.length);
-  assert.equal(await page.locator('#flash').textContent(), 'BUT !');
-  await typeText(page, 'extra');
-  assert.equal(await page.locator('.done').count(), text.length);
+  const ball = page.locator(`${player} [data-field-ball]`);
+  const start = await ball.getAttribute('transform');
+  await page.clock.runFor(2000);
+  assert.notEqual(await ball.getAttribute('transform'), start);
+  // Observe the real contact effect while the existing simulation runs.
+  await page.evaluate(() => {
+    window.contactCount = 0;
+    new MutationObserver(records => {
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node instanceof Element && (node.matches('[data-ball-impact]') || node.querySelector('[data-ball-impact]'))) window.contactCount++;
+      }
+    }).observe(document.querySelector('.arena'), { childList: true, subtree: true });
+  });
+  await page.getByRole('button', { name: 'Boost', exact: true }).click();
+  await page.clock.runFor(32);
+  assert.equal(await page.locator(`${player} [data-field-body]`).getAttribute('data-boosting'), 'true');
+  await page.clock.runFor(7000);
+  assert.ok(await page.evaluate(() => window.contactCount > 0));
+  await page.getByRole('button', { name: 'Tirer au but', exact: true }).click();
+  await page.clock.runFor(600);
+  const shot = await ball.getAttribute('transform');
+  await page.clock.runFor(600);
+  assert.notEqual(await ball.getAttribute('transform'), shot);
+  await page.clock.runFor(3000);
+  await page.getByRole('button', { name: 'Tir manqué', exact: true }).click();
+  await page.clock.runFor(600);
+  assert.notEqual(await ball.getAttribute('transform'), shot);
+  await page.clock.runFor(3000);
+  const prompt = await page.locator('.prompt').getAttribute('aria-label');
+  await page.locator('textarea').fill(prompt);
+  await page.clock.runFor(1500);
+  assert.equal(await page.locator(`${player} [data-finish-goal]`).count(), 1);
+  assert.equal(await page.locator('textarea').getAttribute('readonly'), '');
+  await page.getByRole('button', { name: 'Recommencer', exact: true }).click();
+  assert.equal(await page.locator('textarea').inputValue(), '');
+  assert.equal(await page.locator('[data-finish-goal]').count(), 0);
 });
 
-test('style controls work with the keyboard and the preview fits a narrow screen', async (t) => {
+test('keyboard toggle works and preview fits narrow screens', async t => {
   const page = await openPreview(t);
   await page.setViewportSize({ width: 360, height: 780 });
-  await page.locator('#flat').focus();
+  const current = page.getByRole('button', { name: 'Actuelles', exact: true });
+  await current.focus();
   await page.keyboard.press('Space');
-  assert.equal(await page.locator('#flat').getAttribute('aria-pressed'), 'true');
-  assert.equal(await page.locator('.current.wrong').count(), 0);
-  await page.locator('#blender').focus();
+  assert.equal(await current.getAttribute('aria-pressed'), 'true');
+  const blender = page.getByRole('button', { name: 'Blender', exact: true });
+  await blender.focus();
   await page.keyboard.press('Enter');
-  assert.equal(await page.locator('#blender').getAttribute('aria-pressed'), 'true');
+  assert.equal(await blender.getAttribute('aria-pressed'), 'true');
+  await page.locator('textarea').fill('!');
+  assert.equal(await page.locator('.wrong').count(), 1);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
 });
