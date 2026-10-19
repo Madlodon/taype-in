@@ -9,7 +9,7 @@ import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
 import { STADIUM_IMAGES, type Stadium } from "@/lib/garage-items";
 import { DRIVING_AREA, MAX_CAR_SCALE, project } from "@/lib/stadium-track";
-import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls, launchFieldShot } from "@/lib/field-motion";
+import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls, launchFieldShot, finishFieldBall } from "@/lib/field-motion";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
 export function arenaPosition(progress: number) {
@@ -72,8 +72,9 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
   const ids = racers.map(car => car.id);
   const scale = Math.max(.1, Math.min(carScale, MAX_CAR_SCALE));
   const bodies = new Map(racers.map(car => [car.id, car.body ?? "octane"]));
-  const inputs = useRef({ boosts, shots, ids, scale, bodies });
-  useEffect(() => { inputs.current = { boosts, shots, ids, scale, bodies }; });
+  const finished = new Set(racers.filter(car => car.progress >= 1).map(car => car.id));
+  const inputs = useRef({ boosts, shots, ids, scale, bodies, finished });
+  useEffect(() => { inputs.current = { boosts, shots, ids, scale, bodies, finished }; });
   const [motion, setMotion] = useState(() => {
     const drivers = createFieldCars(ids, [], scale);
     return { now: 0, drivers, balls: createFieldBalls(drivers, [], scale, bodies) };
@@ -82,10 +83,11 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const start = performance.now();
     let frame = requestAnimationFrame(function tick(now) {
-      const { boosts, shots, ids, scale, bodies } = inputs.current;
+      const { boosts, shots, ids, scale, bodies, finished } = inputs.current;
       setMotion(previous => {
         let drivers = createFieldCars(ids, previous.drivers, scale);
-        let balls = createFieldBalls(drivers, previous.balls, scale, bodies);
+        let balls = createFieldBalls(drivers, previous.balls.filter(ball => !ball.shot?.finish || finished.has(ball.id)), scale, bodies)
+          .map(ball => finished.has(ball.id) ? finishFieldBall(ball) : ball);
         // Resume gently after a hidden tab instead of replaying minutes of movement.
         let cursor = Math.max(previous.now || start, now - 250);
         while (cursor < now) {
@@ -115,7 +117,9 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
   const position = arenaPosition(progress ?? 0.16);
   if (stadium) {
     const poses = createFieldCars(ids, motion.drivers, scale);
-    const balls = createFieldBalls(poses, motion.balls, scale, bodies);
+    const balls = createFieldBalls(poses, motion.balls, scale, bodies).map(ball =>
+      finished.has(ball.id) && typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+        ? { ...ball, x: 56, y: 0, z: 1.2 } : ball);
     return <svg className={`arena ${className}`} viewBox="0 0 1400 900" fill="none" aria-hidden="true" data-stadium={stadium}>
       <defs>
         <clipPath id={`${id}-driving-area`}>
@@ -132,8 +136,8 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
         const flight = balls.find(ball => ball.id === car.id)!;
         const ball = project(flight.x, flight.y, flight.z, stadium);
         const shadow = project(flight.x, flight.y, 0, stadium);
-        return { car, pose, at, ball, shadow, spin: flight.spin, impact: flight.shot ? 0 : Math.max(0, 1 - flight.sinceContact / .18) };
-      }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow, spin, impact }) => <g key={car.id} data-car-id={car.id}>
+        return { car, pose, at, ball, shadow, spin: flight.spin, celebration: flight.shot?.finish ? Math.max(0, 1 - Math.abs(flight.shot.elapsed - 1.5) / .3) : 0, impact: flight.shot ? 0 : Math.max(0, 1 - flight.sinceContact / .18) };
+      }).sort((a, b) => a.at.y - b.at.y).map(({ car, pose, at, ball, shadow, spin, celebration, impact }) => <g key={car.id} data-car-id={car.id}>
         <g clipPath={`url(#${id}-driving-area)`}><g transform={`translate(${at.x} ${at.y})`}>
           <g transform={`translate(${-at.x} ${-at.y})`}><FieldCar pose={pose} stadium={stadium} orange={!car.you} scale={Math.max(.1, Math.min(carScale, MAX_CAR_SCALE))} body={car.body} boost={car.boost}
             boosting={boosts[car.id] !== undefined && now >= boosts[car.id] && now < boosts[car.id] + BOOST_MS} /></g>
@@ -142,6 +146,10 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
         <g data-field-ball={car.ball ?? "none"} transform={`translate(${ball.x} ${ball.y}) scale(.56)`}>
           <g transform={`rotate(${spin})`}><CarBall ball={car.ball ?? "none"} centered /></g>
         </g>
+        {celebration > 0 && <g data-finish-goal="" transform={`translate(${ball.x} ${ball.y})`} opacity={celebration} stroke={car.you ? "#70d9ff" : "#ffbd70"} strokeWidth="3">
+          <circle r={18 + (1 - celebration) * 24} />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map(angle => <path key={angle} transform={`rotate(${angle})`} d="M25 0 H38" />)}
+        </g>}
         {impact > 0 && <g data-ball-impact="" transform={`translate(${ball.x} ${ball.y})`} opacity={impact} stroke="#fff4c2" strokeWidth="2" strokeLinecap="round">
           <circle r={11 + (1 - impact) * 12} />
           {[0, 60, 120, 180, 240, 300].map(angle => <path key={angle} transform={`rotate(${angle})`} d="M14 0 H21" />)}
