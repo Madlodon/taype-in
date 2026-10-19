@@ -54,6 +54,7 @@ async function startServer(
     countdownMs?: number;
     idleMs?: number;
     shotMs?: number;
+    shotRandom?: () => number;
     bonusRandom?: () => number;
     hostGraceMs?: number;
     maxWpm?: number;
@@ -2018,7 +2019,8 @@ describe("bonuses", () => {
   // L'invité mènera la course ; l'hôte, resté au départ, sera en retard (BONUS-01).
   async function bonusRace(options: Parameters<typeof startServer>[0] = {}) {
     await io.close();
-    await startServer({ shotMs: 30, ...options });
+    // Par défaut, aucune phrase ne marque : seuls les points de contrôle donnent des buts.
+    await startServer({ shotMs: 30, shotRandom: () => 0.99, ...options });
     const race = await lobbyWithTwo({ bonusesEnabled: true });
     const { content } = await startRace(race.hostClient);
     return { ...race, content, guestTyped: upTo(content, 0.25) };
@@ -2049,8 +2051,8 @@ describe("bonuses", () => {
     expect(shots).toEqual([]);
   });
 
-  test("Should_MissShot_When_SentenceIsCompleted", async () => {
-    const { host, hostClient, guestClient, content } = await bonusRace();
+  test("Should_MissShot_When_RollIsAtGoalChance", async () => {
+    const { host, hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0.3 });
     await progress(guestClient, typing(content.slice(0, 1), 0));
     const shot = next<RaceShotMessage>(guestClient, "race:shot");
     const boundary = completedSentences(content, content)[0];
@@ -2058,6 +2060,27 @@ describe("bonuses", () => {
     await progress(hostClient, typing(content.slice(0, boundary), 0));
 
     expect(await shot).toEqual({ id: host.id, sequence: boundary, scored: false });
+  });
+
+  // Tout joueur, même le meneur, peut marquer en fin de phrase ; le but retire un mot de son texte.
+  test("Should_RemoveOwnWord_When_LeaderScoresSentenceGoal", async () => {
+    const { host, hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0.29, bonusRandom: pick(2) });
+    const shot = next<RaceShotMessage>(guestClient, "race:shot");
+    const bonuses = collect<RaceBonusMessage>(hostClient, "race:bonus");
+    const boundary = completedSentences(content, content)[0];
+
+    await progress(hostClient, typing(content.slice(0, boundary), 0));
+    await wait(60);
+
+    expect(await shot).toEqual({ id: host.id, sequence: boundary, scored: true });
+    const range = thirdWordAhead(content, boundary, [])!;
+    expect(bonuses.filter((bonus) => bonus.effect === "removeWords")).toEqual([{
+      effect: "removeWords",
+      from: host.id,
+      to: host.id,
+      removed: [range],
+      word: content.slice(range.start, range.end).trim(),
+    }]);
   });
 
   test("Should_ShootOncePerSentence_When_SentenceIsRetyped", async () => {
@@ -2100,7 +2123,8 @@ describe("bonuses", () => {
   // Un troisième coureur, arrivé avant le départ.
   async function threeRace(options: Parameters<typeof startServer>[0] = {}) {
     await io.close();
-    await startServer({ shotMs: 30, ...options });
+    // Par défaut, aucune phrase ne marque : seuls les points de contrôle donnent des buts.
+    await startServer({ shotMs: 30, shotRandom: () => 0.99, ...options });
     const race = await lobbyWithTwo({ bonusesEnabled: true });
     const third = await newClient();
     await join(third, { code: race.lobby.code });

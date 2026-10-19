@@ -1,5 +1,5 @@
 import { countCorrect, hasCorrectInput, wordsPerMinute } from "./typing.ts";
-import { completedSentences, thirdWordAhead, SHOT_MS, type RemovedWord } from "./race-goals.ts";
+import { completedSentences, thirdWordAhead, GOAL_CHANCE, SHOT_MS, type RemovedWord } from "./race-goals.ts";
 import {
   addWords,
   availableEffects,
@@ -151,6 +151,8 @@ export function createSocketServer(
     wpmSampleMs = 1000,
     botSpeedup = 1,
     shotMs = SHOT_MS,
+    // Tirage d'un but en fin de phrase (GOAL_CHANCE).
+    shotRandom = Math.random,
     // Choix de l'effet d'un bonus et de son contenu (mots ajoutés, mélange).
     bonusRandom = Math.random,
     // SALLE-08 : délai laissé à l'hôte parti pour revenir (ex. rechargement de la page).
@@ -402,6 +404,22 @@ export function createSocketServer(
     }
   }
 
+  // Retire le 3e mot devant le joueur, dans son propre texte : l'aide à celui qui marque.
+  function removeWord(lobby: Lobby, live: LiveRace, id: string) {
+    const player = live.players.get(id)!;
+    const range = thirdWordAhead(player.content, player.typed.length, player.removed);
+    if (!range) return;
+    player.removed.push(range);
+    player.bonuses++;
+    announceBonus(lobby, {
+      effect: "removeWords",
+      from: id,
+      to: id,
+      removed: player.removed,
+      word: player.content.slice(range.start, range.end).trim(),
+    });
+  }
+
   // But marqué : un effet au hasard (BON-3). Retirer des mots aide celui qui marque ;
   // les autres effets visent le plus avancé encore en course.
   function applyBonus(lobby: Lobby, live: LiveRace, id: string) {
@@ -416,17 +434,7 @@ export function createSocketServer(
     const effects = availableEffects(targetId ? { bot: Boolean(live.positions.get(targetId)!.bot) } : undefined);
     const effect: BonusEffect = effects[Math.floor(bonusRandom() * effects.length)];
     if (effect === "removeWords") {
-      const range = thirdWordAhead(player.content, player.typed.length, player.removed);
-      if (!range) return;
-      player.removed.push(range);
-      player.bonuses++;
-      announceBonus(lobby, {
-        effect,
-        from: id,
-        to: id,
-        removed: player.removed,
-        word: player.content.slice(range.start, range.end).trim(),
-      });
+      removeWord(lobby, live, id);
       return;
     }
     const target = live.players.get(targetId!)!;
@@ -485,12 +493,20 @@ export function createSocketServer(
     player.errors = progress.errors;
     player.keys = progress.keys;
     player.keyErrors = progress.keyErrors;
-    // Sans bonus, pas de tirs ni de buts (BON-1). Une phrase finie tire sans marquer :
-    // seuls les points de contrôle du meneur donnent des buts (BONUS-01).
+    // Sans bonus, pas de tirs ni de buts (BON-1). Une phrase finie tire : 30 % de chance de marquer,
+    // pour tous, et le but retire un mot de son propre texte. À part des points de contrôle (BONUS-01).
     for (const sentence of live.bonusesEnabled ? completedSentences(player.content, player.typed) : []) {
       if (player.sentences.has(sentence)) continue;
       player.sentences.add(sentence);
-      io.to(lobby.code).emit("race:shot", { id, sequence: sentence, scored: false });
+      const scored = shotRandom() < GOAL_CHANCE;
+      io.to(lobby.code).emit("race:shot", { id, sequence: sentence, scored });
+      if (!scored) continue;
+      const timer = setTimeout(() => {
+        live.shotTimers.delete(timer);
+        if (live.state !== "racing" || player.state !== "connected") return;
+        removeWord(lobby, live, id);
+      }, shotMs);
+      live.shotTimers.add(timer);
     }
     movePosition(live, id);
     if (live.bonusesEnabled) checkpointShots(lobby, live);
