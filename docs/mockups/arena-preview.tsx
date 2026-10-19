@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Arena, type TrackCar } from "../../components/arena";
+import { BALLS, type Loadout } from "../../lib/garage-items";
+import { CarBall } from "./arena-preview-ball";
 import { SpriteStyle } from "./arena-preview-car";
+
+const BALL_LABELS = { none: "Standard", beach: "Plage", emerald: "Émeraude", glacier: "Glacier", solar: "Solaire", gold: "Doré" };
 
 const PROMPT = "Le ballon file vers le but adverse. Chaque mot tapé sans faute donne un coup de boost à ta voiture.";
 const PLAYERS: TrackCar[] = [
@@ -13,6 +17,7 @@ const PLAYERS: TrackCar[] = [
 
 function Preview() {
   const [sprites, setSprites] = useState(true);
+  const [ball, setBall] = useState<Loadout["ball"]>("none");
   const [typed, setTyped] = useState("");
   const [boosts, setBoosts] = useState<Record<string, number>>({});
   const [shots, setShots] = useState<Record<string, { sequence: number; scored: boolean; receivedAt: number }>>({});
@@ -20,7 +25,7 @@ function Preview() {
   let correct = 0;
   while (correct < typed.length && typed[correct] === PROMPT[correct]) correct++;
   const progress = correct / PROMPT.length;
-  const cars = PLAYERS.map(car => car.you ? { ...car, progress } : car);
+  const cars = PLAYERS.map(car => ({ ...car, ball, progress: car.you ? progress : car.progress }));
   function shoot(scored: boolean) {
     setShots(previous => ({ ...previous, preview: {
       sequence: (previous.preview?.sequence ?? 0) + 1, scored, receivedAt: performance.now(),
@@ -39,6 +44,12 @@ function Preview() {
       <p>Conduite, contacts et tirs de l’arène actuelle. Le choix reste ouvert.</p>
     </div>
     <SpriteStyle.Provider value={sprites}>
+      <div className="ball-options" role="group" aria-label="Ballons du garage">
+        {BALLS.map(finish => <button key={finish} type="button" aria-pressed={ball === finish} onClick={() => setBall(finish)}>
+          <svg viewBox="-24 -24 48 48" width="52" height="52" aria-hidden="true"><CarBall ball={finish} centered /></svg>
+          <span>{BALL_LABELS[finish]}</span>
+        </button>)}
+      </div>
       <Arena key={round} stadium="diorama" cars={cars} boosts={boosts} shots={shots} />
     </SpriteStyle.Provider>
     <div className="toolbar actions">

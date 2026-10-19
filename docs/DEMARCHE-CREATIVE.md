@@ -182,10 +182,17 @@ Le build autonome remplace `FieldCar` et `CarBall` uniquement dans l’aperçu ;
 aucun composant de l’application n’est modifié.
 Les voitures Blender disposent de 32 orientations, rendues avec la caméra du diorama.
 
-Régénérer les deux planches de voitures et le sprite du ballon :
+Les six ballons reprennent directement les dessins `CarBall` du garage : standard,
+plage, émeraude, glacier, solaire et doré. Ces dessins sont exportés en textures,
+puis projetés sur une sphère dans Blender. Le sélecteur permet de comparer chaque
+finition dans les deux modes, sans interrompre la simulation.
+
+Régénérer les deux planches de voitures et les six sprites de ballons :
 
 ```bash
 /Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/field-preview.py
+node docs/mockups/assets/export-ball-textures.mjs
+/Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/garage-ball-preview.py
 ```
 
 Construire l’aperçu avec les dépendances déjà présentes, puis servir le dossier

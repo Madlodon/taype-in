@@ -48,8 +48,8 @@ test('uses the current diorama and preserves car and ball positions when switchi
   assert.ok(sources.includes('/stadiums/diorama.webp'));
   assert.ok(sources.includes('assets/arena-preview/field-blue.png'));
   assert.ok(sources.includes('assets/arena-preview/field-orange.png'));
-  assert.ok(sources.includes('assets/arena-preview/field-ball.png'));
-  assert.equal(await page.locator('[data-sprite-ball]').count(), 4);
+  assert.ok(sources.includes('assets/arena-preview/field-ball-none.png'));
+  assert.equal(await page.locator('.arena [data-sprite-ball]').count(), 4);
   await page.evaluate(async sources => {
     for (const src of sources) { const image = new Image(); image.src = src; await image.decode(); }
   }, sources);
@@ -58,15 +58,15 @@ test('uses the current diorama and preserves car and ball positions when switchi
   const spin = await page.locator(`${player} [data-field-ball] > g`).getAttribute('transform');
   await page.getByRole('button', { name: 'Actuelles', exact: true }).click();
   assert.equal(await page.locator('[data-sprite-car]').count(), 0);
-  assert.equal(await page.locator('[data-sprite-ball]').count(), 0);
-  assert.equal(await page.locator('[data-ball]').count(), 4);
+  assert.equal(await page.locator('.arena [data-sprite-ball]').count(), 0);
+  assert.equal(await page.locator('.arena [data-ball]').count(), 4);
   assert.equal(await page.locator('[data-field-body]').count(), 4);
   await page.getByRole('button', { name: 'Blender', exact: true }).click();
   assert.equal(await page.locator(`${player} > g > g`).first().getAttribute('transform'), pose);
   assert.equal(await page.locator(`${player} [data-field-ball]`).getAttribute('transform'), ball);
   assert.equal(await page.locator(`${player} [data-field-ball] > g`).getAttribute('transform'), spin);
-  assert.equal(await page.locator('[data-sprite-ball]').count(), 4);
-  const size = await page.locator('[data-sprite-ball] image').first().getAttribute('width');
+  assert.equal(await page.locator('.arena [data-sprite-ball]').count(), 4);
+  const size = await page.locator('.arena [data-sprite-ball] image').first().getAttribute('width');
   assert.ok(Math.abs(Number(size) * 1.8 / 2.4 - 32) < .001);
 });
 
@@ -126,4 +126,35 @@ test('keyboard toggle works and preview fits narrow screens', async t => {
   await page.locator('textarea').fill('!');
   assert.equal(await page.locator('.wrong').count(), 1);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+});
+
+
+test('every garage ball keeps its selected look in both modes without resetting motion', async t => {
+  const page = await openPreview(t);
+  const ball = page.locator(`${player} [data-field-ball]`);
+  await page.clock.runFor(1000);
+  const position = await ball.getAttribute('transform');
+  const choices = [['none', 'Standard'], ['beach', 'Plage'], ['emerald', 'Émeraude'], ['glacier', 'Glacier'], ['solar', 'Solaire'], ['gold', 'Doré']];
+  const sources = [];
+  for (const [finish, label] of choices) {
+    await page.getByRole('group', { name: 'Ballons du garage' }).getByRole('button', { name: label, exact: true }).click();
+    assert.equal(await ball.getAttribute('data-field-ball'), finish);
+    assert.equal(await ball.getAttribute('transform'), position);
+    const image = ball.locator('[data-sprite-ball] image');
+    const source = await image.getAttribute('href');
+    assert.equal(source, `assets/arena-preview/field-ball-${finish}.png`);
+    sources.push(source);
+    await page.getByRole('button', { name: 'Actuelles', exact: true }).click();
+    assert.equal(await ball.locator('[data-ball]').getAttribute('data-ball'), finish);
+    assert.equal(await ball.getAttribute('transform'), position);
+    await page.getByRole('button', { name: 'Blender', exact: true }).click();
+    assert.equal(await ball.locator('[data-sprite-ball]').getAttribute('data-sprite-ball'), finish);
+  }
+  const decoded = await page.evaluate(async sources => Promise.all(sources.map(async src => {
+    const image = new Image(); image.src = src; await image.decode();
+    const response = await fetch(src);
+    return { width: image.naturalWidth, bytes: Array.from(new Uint8Array(await response.arrayBuffer())).join(',') };
+  })), sources);
+  assert.ok(decoded.every(image => image.width === 256));
+  assert.equal(new Set(decoded.map(image => image.bytes)).size, 6);
 });
