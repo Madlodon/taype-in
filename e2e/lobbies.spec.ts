@@ -19,7 +19,7 @@ async function newHost(browser: Browser): Promise<{ page: Page; name: string }> 
   await page.getByLabel("Nom d'utilisateur").fill(name);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
-  await expect(page.getByText(`Connecté en tant que ${name}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${name}`);
   return { page, name };
 }
 
@@ -184,7 +184,7 @@ test("Should_ReturnToLobbies_When_LoggingInFromRedirect", async ({ page }) => {
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
-  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${username}`);
   // En production, les liens sont préchargés et chaque réponse remet le cookie de session :
   // on attend la fin des préchargements avant d'effacer les cookies.
   await page.waitForLoadState("networkidle");
@@ -512,7 +512,7 @@ test("Should_ShowXpLevelUpAndUnlocks_When_RegisteredRacerWins", async ({ browser
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
-  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${username}`);
   const code = await createRace(page, /Non répertoriée/);
   const player = await newGuest(browser);
   await player.page.goto(`/lobbies/${code}`);

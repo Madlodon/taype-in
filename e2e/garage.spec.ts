@@ -19,7 +19,7 @@ test("Should_KeepChoice_When_RegisteredUserSavesGarage", async ({ page }) => {
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
-  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${username}`);
   await giveLevel(username, 15);
 
   await page.getByRole("navigation").getByRole("link", { name: "Garage" }).click();
@@ -70,7 +70,7 @@ test("Should_LockItemsAboveLevel_When_NewUserOpensGarage", async ({ page }) => {
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
-  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${username}`);
 
   await page.goto("/garage");
   await expect(page.getByRole("radio", { name: "Cône orange Niveau 2" })).toBeDisabled();

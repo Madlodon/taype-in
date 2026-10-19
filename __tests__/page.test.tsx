@@ -58,14 +58,13 @@ test("Should_OfferSignUpLogInAndGuest_When_NobodyIsLoggedIn", async () => {
   expect(screen.getByRole("button", { name: "Jouer en invité" })).toBeDefined();
 });
 
-test("Should_ShowUsernameAndLogOut_When_UserIsLoggedIn", async () => {
+test("Should_NotShowAccountLine_When_RegisteredUserIsLoggedIn", async () => {
   vi.mocked(getCurrentUser).mockResolvedValue(aUser);
 
   await renderPage();
 
-  expect(screen.getByText("alex", { selector: "strong" })).toBeDefined();
-  expect(screen.queryByText(/invité/)).toBeNull();
-  expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeDefined();
+  expect(screen.queryByText(/Connecté en tant que/)).toBeNull();
+  expect(screen.queryByRole("button", { name: "Se déconnecter" })).toBeNull();
 });
 
 test("Should_LinkToLobbies_When_UserIsLoggedIn", async () => {
@@ -97,6 +96,7 @@ test("Should_ShowGuestLabel_When_GuestIsLoggedIn", async () => {
   await renderPage();
 
   expect(screen.getByText("(invité)", { exact: false })).toBeDefined();
+  expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeDefined();
 });
 
 test("Should_ShowBattleInARealStadium_When_HomePageIsRendered", async () => {

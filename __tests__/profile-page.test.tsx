@@ -96,6 +96,22 @@ test("Should_HideYouBadge_When_AnotherUserVisits", async () => {
   expect(screen.queryByText("Toi")).toBeNull();
 });
 
+test("Should_ShowLogOut_When_OwnerViewsTheirProfile", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(alex);
+
+  await renderProfile();
+
+  expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeDefined();
+});
+
+test("Should_HideLogOut_When_AnotherUserVisits", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(sam);
+
+  await renderProfile();
+
+  expect(screen.queryByRole("button", { name: "Se déconnecter" })).toBeNull();
+});
+
 test("Should_ShowProfile_When_VisitorIsLoggedOut", async () => {
   vi.mocked(listRaceHistory).mockResolvedValue([entry()]);
 
