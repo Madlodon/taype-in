@@ -403,6 +403,9 @@
     "track": "Stadium route",
     "typing": "On the pitch",
     "keyboardTitle": "Grab a keyboard.",
+    "you": "You",
+    "bots": "Bots ({count}/{max})",
+    "botsList": "Training bots",
     "keyboardNote": "Racing needs a physical keyboard. Come back on a computer to race. You can still follow the track from here."
   },
   "ErrorPages": {

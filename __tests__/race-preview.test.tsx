@@ -112,3 +112,57 @@ test("Should_BoostOnCorrectTrainingInput_And_ExpireRefreshAndResetTheEffect", ()
   fireEvent.click(screen.getByRole("button", { name: new RegExp(en.Race.restart) }));
   expect(exhaust()).toBeNull();
 });
+
+function addBot(level: string) {
+  fireEvent.change(screen.getByRole("combobox", { name: en.LobbyRoom.botLevel }), { target: { value: level } });
+  fireEvent.click(screen.getByRole("button", { name: en.LobbyRoom.addBot }));
+}
+
+function botsList() {
+  return screen.queryByRole("list", { name: en.Race.botsList });
+}
+
+test("Should_AddAndRemoveTrainingBots_When_ChoosingTheirLevel", () => {
+  preview();
+  addBot("expert");
+  addBot("noob");
+  addBot("expert");
+  expect(botsList()!.textContent).toContain("Bot Expert 1");
+  expect(botsList()!.textContent).toContain("Bot Noob 1");
+  expect(botsList()!.textContent).toContain("Bot Expert 2");
+  expect(screen.getByRole("list", { name: en.LobbyRoom.ranking }).children).toHaveLength(4);
+  fireEvent.click(screen.getByRole("button", { name: `${en.LobbyRoom.removeBot} Bot Expert 1` }));
+  expect(botsList()!.textContent).not.toContain("Bot Expert 1");
+  expect(botsList()!.children).toHaveLength(2);
+});
+
+test("Should_DisableAdding_When_TenBotsAreInTraining", () => {
+  preview();
+  for (let index = 0; index < 11; index++) addBot("beginner");
+  expect(botsList()!.children).toHaveLength(10);
+  expect(screen.getByRole("heading", { name: "Bots (10/10)" })).toBeTruthy();
+  expect((screen.getByRole("button", { name: en.LobbyRoom.addBot }) as HTMLButtonElement).disabled).toBe(true);
+});
+
+test("Should_MoveBotsAfterFirstKey_And_ResetThemOnRestart", () => {
+  vi.useFakeTimers();
+  try {
+    const input = preview();
+    addBot("impossible");
+    const botRow = () => screen.getByRole("list", { name: en.LobbyRoom.ranking }).querySelector("li:not(.ranking-you)")!;
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(botRow().textContent).toContain("0%");
+    fireEvent.change(input, { target: { value: "Y" } });
+    // Bots can no longer be changed once the race has started.
+    expect(botsList()).toBeNull();
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(Number(botRow().textContent!.match(/(\d+)%/)![1])).toBeGreaterThan(0);
+    act(() => { vi.advanceTimersByTime(60_000); });
+    expect(botRow().textContent).toContain("100%");
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(en.Race.restart) }));
+    expect(botRow().textContent).toContain("0%");
+    expect(botsList()!.textContent).toContain("Bot Impossible 1");
+  } finally {
+    vi.useRealTimers();
+  }
+});

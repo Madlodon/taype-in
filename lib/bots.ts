@@ -7,6 +7,9 @@ export const BOT_LEVELS = ["noob", "beginner", "intermediate", "expert", "imposs
 
 export type BotLevel = (typeof BOT_LEVELS)[number];
 
+// Bots au plus dans une course d'entraînement (CONF-10).
+export const MAX_BOTS = 10;
+
 // Un bot s'affiche « Bot Expert 2 » : son niveau et son numéro parmi les bots de ce niveau.
 export type Bot = { level: BotLevel; number: number };
 
