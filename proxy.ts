@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_DURATION_MS } from "@/lib/auth";
-import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/session-cookie";
+import { SESSION_COOKIE, sessionCookieOptions, TEMP_SESSION_COOKIE } from "@/lib/session-cookie";
 
-// Repousse l'expiration du cookie à chaque visite, comme la session en base.
+// Repousse l'expiration du cookie à chaque visite, comme la session en base,
+// sauf pour une session qui doit finir à la fermeture du navigateur.
 export function proxy(request: NextRequest) {
   const response = NextResponse.next();
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (request.method === "GET" && token) {
+  if (request.method === "GET" && token && !request.cookies.has(TEMP_SESSION_COOKIE)) {
     response.cookies.set(SESSION_COOKIE, token, {
       ...sessionCookieOptions,
       maxAge: SESSION_DURATION_MS / 1000,

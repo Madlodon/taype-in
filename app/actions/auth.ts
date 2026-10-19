@@ -30,9 +30,9 @@ function nextPath(formData: FormData): string {
   return safeNextPath(String(formData.get("next") ?? ""));
 }
 
-async function startSession(userId: string) {
+async function startSession(userId: string, remember = true) {
   const { token, expiresAt } = await createSession(userId);
-  await setSessionCookie(token, expiresAt);
+  await setSessionCookie(token, expiresAt, remember);
 }
 
 export async function signUpAction(
@@ -117,7 +117,7 @@ export async function logInAction(
     };
   }
 
-  await startSession(user.id);
+  await startSession(user.id, formData.get("remember") === "on");
   redirect(nextPath(formData));
 }
 
