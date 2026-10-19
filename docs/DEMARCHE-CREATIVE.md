@@ -168,6 +168,36 @@ Le [modèle Blender](mockups/assets/arena.blend) et les deux rendus se régénè
 /Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/arena-model.py
 ```
 
+### Essai des voitures Blender dans la course (#36)
+
+La [maquette comparative](mockups/7-arena-sprite-preview.html) permet de basculer
+entre les voitures 2D et des sprites Blender légèrement de trois quarts, sans
+recommencer la course. Les voitures bleue et orange et le ballon suivent le
+parcours existant : sol, mur, plafond et tir du plafond.
+
+**Choix en attente de validation visuelle.** Cet essai reste séparé de la
+maquette 5 et de l'application ; il ne remplace pas la direction retenue.
+
+Les sprites de l'essai se régénèrent dans `mockups/assets/arena-preview`, sans
+écraser les rendus et modèles existants :
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/models.py -- --arena-preview
+```
+
+Pour essayer la comparaison, ouvrir le fichier HTML ou lancer :
+
+```bash
+python3 -m http.server 8765 --bind 127.0.0.1 --directory docs/mockups
+# http://127.0.0.1:8765/7-arena-sprite-preview.html
+```
+
+Tests autonomes (sans serveur applicatif ni base de données) :
+
+```bash
+node --test docs/mockups/arena-sprite-preview.test.mjs
+```
+
 ### Modèles Blender
 
 [`mockups/assets/models.py`](mockups/assets/models.py) construit une voiture et un ballon low-poly, puis les rend en sprites PNG transparents (voiture bleue, voiture orange, ballon). Les fichiers `.blend` peuvent être retouchés à la main dans Blender.
