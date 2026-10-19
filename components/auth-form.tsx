@@ -12,9 +12,11 @@ type Props = {
   // Page où revenir après la connexion (ex. un lien d'invitation).
   next?: string;
   defaultUsername?: string;
+  // Case « Se souvenir de moi », seulement à la connexion.
+  rememberMe?: boolean;
 };
 
-export function AuthForm({ action, submitLabel, passwordAutoComplete, next, defaultUsername }: Props) {
+export function AuthForm({ action, submitLabel, passwordAutoComplete, next, defaultUsername, rememberMe }: Props) {
   const t = useTranslations("Auth");
   const [state, formAction, pending] = useActionState(action, undefined);
 
@@ -40,6 +42,10 @@ export function AuthForm({ action, submitLabel, passwordAutoComplete, next, defa
           autoComplete={passwordAutoComplete}
 
         />
+      </label>}
+      {rememberMe && <label className="radio-option">
+        <input type="checkbox" name="remember" defaultChecked />
+        {t("rememberMe")}
       </label>}
       {state?.error && (
         <p role="alert" className="form-error">
