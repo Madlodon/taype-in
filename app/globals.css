@@ -989,6 +989,24 @@ a, button, input {
   background: var(--wrong-surface);
 }
 
+/* Bonus annoncé à tous, sous la piste et le classement (BONUS-03). */
+.bonus-banner {
+  grid-column: 1 / -1;
+  min-height: 34px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.bonus-banner > span {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 5px;
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  animation: overtake-pop 4s ease-out forwards;
+}
+
 @keyframes overtake-pop {
   from { transform: scale(1.15); }
   10% { transform: scale(1); }

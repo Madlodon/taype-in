@@ -1133,6 +1133,7 @@ describe("bonuses", () => {
       positions: [
         { id: "u1", username: "rival", position: 10, wpm: 50 },
         { id: "u2", username: "moi", position: 0, wpm: 0 },
+        { id: "u3", username: "third", position: 0, wpm: 0 },
       ],
     }));
     return screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -1187,6 +1188,40 @@ describe("bonuses", () => {
 
     expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Go. One ");
     expect(socket.emit).toHaveBeenLastCalledWith("race:progress", expect.objectContaining({ typed: "Go. One " }));
+  });
+
+  // BONUS-03 : sous la piste, tout le monde voit qui a marqué et l'effet.
+  test("Should_ShowBannerWithoutPersonalNote_When_OthersAreInvolved", () => {
+    bonusRace();
+    sendSettings({ ...settings, bonusesEnabled: true });
+
+    act(() => handlers["race:bonus"]({ effect: "blur", from: "u1", to: "u3" }));
+
+    expect(screen.getByText("Goal by rival! third gets: blurred text for 5 s.")).toBeTruthy();
+    expect(screen.queryByText(/rival scored/)).toBeNull();
+    expect(text().classList.contains("typing-blur")).toBe(false);
+  });
+
+  test("Should_AnnounceRemovedWord_When_ScorerRemovesFromOwnText", () => {
+    bonusRace();
+    sendSettings({ ...settings, bonusesEnabled: true });
+
+    act(() => handlers["race:bonus"]({ effect: "removeWords", from: "u3", to: "u3" }));
+
+    expect(screen.getByText("Goal by third! One word fewer in their text.")).toBeTruthy();
+  });
+
+  test("Should_HideBanner_When_FourSecondsHavePassed", () => {
+    vi.useFakeTimers();
+    bonusRace();
+    sendSettings({ ...settings, bonusesEnabled: true });
+    act(() => handlers["race:bonus"]({ effect: "shrink", from: "u1", to: "u3" }));
+
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+
+    expect(screen.queryByText("Goal by rival! third gets: smaller text for 5 s.")).toBeNull();
   });
 
   test("Should_WaitOneSecondBetweenLetters_When_HitBySlowLetters", () => {
