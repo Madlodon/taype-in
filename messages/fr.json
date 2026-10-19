@@ -418,6 +418,7 @@
   "Profile": {
     "eyebrow": "Profil de pilote",
     "you": "Toi",
+    "logOut": "Se déconnecter",
     "level": "Niveau {level}",
     "levelProgress": "Progression vers le niveau suivant",
     "xpToNext": "{current} / {needed} XP",

@@ -1,6 +1,7 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { logOutAction } from "@/app/actions/auth";
 import { removeAvatarAction, uploadAvatarAction } from "@/app/actions/avatar";
 import { changeUsernameAction, revertUsernameAction } from "@/app/actions/username";
 import { Avatar } from "@/components/avatar";
@@ -72,7 +73,14 @@ export default async function ProfilePage({
             )}
           </div>
         </div>
-        {isOwner && <span className="badge">{t("you")}</span>}
+        {isOwner && (
+          <div className="flex items-center gap-4">
+            <span className="badge">{t("you")}</span>
+            <form action={logOutAction}>
+              <button className="text-link" type="submit">{t("logOut")}</button>
+            </form>
+          </div>
+        )}
       </div>
       {isOwner && (
         <AvatarForm

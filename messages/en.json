@@ -418,6 +418,7 @@
   "Profile": {
     "eyebrow": "Driver profile",
     "you": "You",
+    "logOut": "Log out",
     "level": "Level {level}",
     "levelProgress": "Progress to the next level",
     "xpToNext": "{current} / {needed} XP",

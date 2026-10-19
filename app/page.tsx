@@ -26,12 +26,13 @@ export default async function Home() {
               <Link href="/race" className="btn btn-secondary hero-cta">{d("tryPreview")}<span aria-hidden="true">→</span>
               </Link>
             </div>
-            <div className="account-line">
-              <p>{t.rich("loggedInAs", { username: user.username, strong: chunks => <strong>{chunks}</strong> })}{user.isGuest && ` ${t("guest")}`}</p>
+            {/* Les inscrits se déconnectent depuis leur profil ; les invités n'en ont pas. */}
+            {user.isGuest && <div className="account-line">
+              <p>{t.rich("loggedInAs", { username: user.username, strong: chunks => <strong>{chunks}</strong> })} {t("guest")}</p>
               <form action={logOutAction}>
                 <button className="text-link" type="submit">{t("logOut")}</button>
               </form>
-            </div>
+            </div>}
           </> : <>
             <div className="hero-actions">
               <Link href="/signup" className="btn btn-primary hero-cta">{t("signUp")}<span aria-hidden="true">↗</span>
