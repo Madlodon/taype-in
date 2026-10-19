@@ -152,7 +152,7 @@ export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boo
 export type FieldBall = {
   id: string; x: number; y: number; z: number;
   vx: number; vy: number; spin: number; sinceContact: number; contacts: number;
-  shot?: { sequence: number; scored: boolean; elapsed: number; x: number; y: number; z: number; returnX: number; returnY: number };
+  shot?: { finish?: boolean; sequence: number; scored: boolean; elapsed: number; x: number; y: number; z: number; returnX: number; returnY: number };
   shotSequence?: number;
 };
 
@@ -166,10 +166,18 @@ export function createFieldBalls(cars: readonly FieldMotion[], previous: readonl
 }
 
 export function launchFieldShot(ball: FieldBall, sequence: number, scored: boolean): FieldBall {
-  if (ball.shotSequence === sequence) return ball;
+  if (ball.shot?.finish || ball.shotSequence === sequence) return ball;
   return { ...ball, vx: 0, vy: 0, sinceContact: Infinity, shotSequence: sequence,
     shot: { sequence, scored, elapsed: 0, x: ball.x, y: ball.y, z: ball.z,
       returnX: ball.shot?.returnX ?? ball.x, returnY: ball.shot?.returnY ?? ball.y } };
+}
+
+// A finish always scores, even if a sentence shot was already in flight.
+export function finishFieldBall(ball: FieldBall): FieldBall {
+  if (ball.shot?.finish) return ball;
+  return { ...ball, vx: 0, vy: 0, sinceContact: Infinity,
+    shot: { finish: true, sequence: ball.shotSequence ?? 0, scored: true, elapsed: 0,
+      x: ball.x, y: ball.y, z: ball.z, returnX: ball.x, returnY: ball.y } };
 }
 
 // Ball integration never uses the car heading except at a real bumper contact.
@@ -181,11 +189,11 @@ export function stepFieldBalls(balls: readonly FieldBall[], cars: readonly Field
       const elapsed = Math.min(2, ball.shot.elapsed + seconds);
       const shot = { ...ball.shot, elapsed };
       const flight = shotBall({ x: shot.x, y: shot.y, heading: 0 }, Math.min(elapsed, 1.2), shot.scored, 0);
-      const recovery = Math.max(0, (elapsed - 1.2) / .8);
+      const recovery = shot.finish ? 0 : Math.max(0, (elapsed - 1.2) / .8);
       // Return to a fixed ground position, then let the driver find the ball again.
       return { ...next, x: flight.x + (shot.returnX - flight.x) * recovery,
         y: flight.y + (shot.returnY - flight.y) * recovery, z: elapsed > 1.2 ? 1.2 : flight.z + (shot.z - 1.2) * (1 - elapsed / 1.2),
-        shot: elapsed < 2 ? shot : undefined };
+        shot: shot.finish || elapsed < 2 ? shot : undefined };
     }
     const decay = Math.exp(-1.5 * seconds);
     next.x += ball.vx * (1 - decay) / 1.5;

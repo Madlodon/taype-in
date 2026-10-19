@@ -291,3 +291,57 @@ test("Should_UseRenderedScaleForSpawnSpacing_When_HomepageRequestsLargerCars", (
   rerender(<Arena stadium="top-down" carScale={1.4} cars={[...cars].reverse()} />);
   expect(positions()).toEqual(initial);
 });
+
+test.each(STADIUMS)("Should_ScoreOnceForPlayersAndBots_AndResetForAnotherRace_In_%s", stadium => {
+  let tick: FrameRequestCallback = () => {};
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { tick = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(performance, "now").mockReturnValue(0);
+  const cars = [
+    { id: "player", name: "You", progress: .99, you: true },
+    { id: "bot", name: "Nova", progress: .99, you: false },
+  ];
+  const { container, rerender } = render(<Arena stadium={stadium} cars={cars} />);
+  const position = (id: string) => container.querySelector(`[data-car-id="${id}"] [data-field-ball]`)!.getAttribute("transform");
+  const initial = position("player");
+  const finished = cars.map(car => ({ ...car, progress: 1 }));
+  rerender(<Arena stadium={stadium} cars={finished} />);
+  for (let time = 100; time <= 600; time += 100) act(() => tick(time));
+  expect(position("player")).not.toBe(initial);
+  const goal = project(56, 0, 1.2, stadium);
+  for (let time = 700; time <= 1500; time += 100) act(() => tick(time));
+  expect(container.querySelectorAll("[data-finish-goal]")).toHaveLength(2);
+  for (const car of cars) {
+    const [x, y] = position(car.id)!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    expect(x).toBeCloseTo(goal.x);
+    expect(y).toBeCloseTo(goal.y);
+  }
+  const settled = position("player");
+  // Ranking updates and late sentence shots cannot replay or undo the finish.
+  rerender(<Arena stadium={stadium} cars={[...finished].reverse()}
+    shots={{ player: { sequence: 10, scored: false, receivedAt: 1500 } }} />);
+  for (let time = 1600; time <= 3500; time += 100) act(() => tick(time));
+  expect(position("player")).toBe(settled);
+  expect(container.querySelector("[data-finish-goal]")).toBeNull();
+  rerender(<Arena stadium={stadium} cars={cars} />);
+  act(() => tick(3600));
+  expect(position("player")).not.toBe(settled);
+  rerender(<Arena stadium={stadium} cars={finished} />);
+  for (let time = 3700; time <= 5100; time += 100) act(() => tick(time));
+  expect(position("player")).toBe(settled);
+});
+
+test("Should_ShowFinishedBallInNetWithoutAnimation_When_ReducedMotionIsRequested", () => {
+  const raf = vi.fn();
+  vi.stubGlobal("requestAnimationFrame", raf);
+  vi.stubGlobal("matchMedia", () => ({ matches: true }));
+  const { container, rerender } = render(<Arena stadium="top-down" progress={0} />);
+  const initial = container.querySelector("[data-field-ball]")!.getAttribute("transform");
+  rerender(<Arena stadium="top-down" progress={1} />);
+  const goal = project(56, 0, 1.2, "top-down");
+  expect(container.querySelector("[data-field-ball]")!.getAttribute("transform")).toBe(`translate(${goal.x} ${goal.y}) scale(.56)`);
+  expect(raf).not.toHaveBeenCalled();
+  rerender(<Arena stadium="top-down" progress={0} />);
+  expect(container.querySelector("[data-field-ball]")!.getAttribute("transform")).toBe(initial);
+});

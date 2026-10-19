@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls, launchFieldShot } from "../lib/field-motion";
+import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls, launchFieldShot, finishFieldBall } from "../lib/field-motion";
 import { DRIVING_AREA, ballContactDistance } from "../lib/stadium-track";
 
 test.each(["octane", "fennec", "dominus", "merc"])("Should_SeparateOverlappingBallsDuringKickCooldown_For_%s", body => {
@@ -235,4 +235,20 @@ test("Should_ReturnInsideTheField_When_ASecondShotInterruptsFlight", () => {
   }
   expect(Math.abs(balls[0].x)).toBeLessThan(DRIVING_AREA.halfLength - 1.2);
   expect(balls[0].shot).toBeUndefined();
+});
+
+
+test("Should_FinishFromAnActiveMiss_AndKeepTheBallInTheNet", () => {
+  const cars = createFieldCars(["bot"]);
+  const shot = launchFieldShot(createFieldBalls(cars)[0], 1, false);
+  const airborne = stepFieldBalls([shot], cars, .6)[0];
+  const finish = finishFieldBall(airborne);
+  expect(finish).toMatchObject({ x: airborne.x, y: airborne.y, z: airborne.z });
+  expect(finishFieldBall(finish)).toBe(finish);
+  const firstFrame = stepFieldBalls([finish], cars, 1 / 60)[0];
+  expect(Math.hypot(firstFrame.x - finish.x, firstFrame.y - finish.y, firstFrame.z - finish.z)).toBeLessThan(2);
+  const landed = stepFieldBalls([firstFrame], cars, 3)[0];
+  expect(landed).toMatchObject({ x: 56, y: 0, z: 1.2 });
+  expect(launchFieldShot(landed, 2, false)).toBe(landed);
+  expect(stepFieldBalls([landed], cars, 10)[0]).toEqual(landed);
 });
