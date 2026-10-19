@@ -9,17 +9,21 @@ test("Should_StayLoggedIn_When_SigningUpThenLoggingOutAndBackIn", async ({
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
-  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${username}`);
 
   await page.reload();
-  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${username}`);
 
+  await page.getByRole("navigation").getByRole("link", { name: "Mon profil" }).click();
+  await expect(page).toHaveURL(`/profile/${username}`);
+  // Un préchargement encore en cours remettrait le cookie de session après la déconnexion.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Se déconnecter" }).click();
   await page.getByRole("link", { name: "Se connecter" }).click();
   await page.getByLabel("Nom d'utilisateur").fill(username);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Se connecter" }).click();
-  await expect(page.getByText(`Connecté en tant que ${username}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${username}`);
 });
 
 test("Should_ShowError_When_PasswordIsWrong", async ({ page }) => {

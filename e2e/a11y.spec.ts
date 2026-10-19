@@ -15,7 +15,7 @@ async function signUp(page: Page): Promise<string> {
   await page.getByLabel("Nom d'utilisateur").fill(name);
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByRole("button", { name: "Créer le compte" }).click();
-  await expect(page.getByText(`Connecté en tant que ${name}`)).toBeVisible();
+  await expect(page.getByRole("navigation").getByRole("link", { name: "Mon profil" })).toHaveAttribute("href", `/profile/${name}`);
   return name;
 }
 
