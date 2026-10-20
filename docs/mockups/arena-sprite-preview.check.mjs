@@ -1,4 +1,4 @@
-// node --test docs/mockups/arena-sprite-preview.test.mjs
+// node --test docs/mockups/arena-sprite-preview.check.mjs
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
@@ -46,9 +46,9 @@ test('uses the current diorama and preserves car and ball positions when switchi
   assert.equal(await page.locator('.arena').getAttribute('data-stadium'), 'diorama');
   const sources = await page.locator('.arena image').evaluateAll(nodes => [...new Set(nodes.map(node => node.getAttribute('href')))]);
   assert.ok(sources.includes('/stadiums/diorama.webp'));
-  assert.ok(sources.includes('assets/arena-preview/field-blue.png'));
-  assert.ok(sources.includes('assets/arena-preview/field-orange.png'));
-  assert.ok(sources.includes('assets/arena-preview/field-ball-none.png'));
+  assert.ok(sources.includes('/sprites/cars/diorama/octane-blue.png'));
+  assert.ok(sources.includes('/sprites/cars/diorama/octane-orange.png'));
+  assert.ok(sources.includes('/sprites/balls/none.png'));
   assert.equal(await page.locator('.arena [data-sprite-ball]').count(), 4);
   await page.evaluate(async sources => {
     for (const src of sources) { const image = new Image(); image.src = src; await image.decode(); }
@@ -142,7 +142,7 @@ test('every garage ball keeps its selected look in both modes without resetting 
     assert.equal(await ball.getAttribute('transform'), position);
     const image = ball.locator('[data-sprite-ball] image');
     const source = await image.getAttribute('href');
-    assert.equal(source, `assets/arena-preview/field-ball-${finish}.png`);
+    assert.equal(source, `/sprites/balls/${finish}.png`);
     sources.push(source);
     await page.getByRole('button', { name: 'Actuelles', exact: true }).click();
     assert.equal(await ball.locator('[data-ball]').getAttribute('data-ball'), finish);
@@ -157,4 +157,32 @@ test('every garage ball keeps its selected look in both modes without resetting 
   })), sources);
   assert.ok(decoded.every(image => image.width === 256));
   assert.equal(new Set(decoded.map(image => image.bytes)).size, 6);
+});
+
+
+test('every car, team and stadium loads its production atlas and switches without moving', async t => {
+  const page = await openPreview(t);
+  const sources = new Set();
+  for (const stadium of ['diorama', 'cutaway', 'top-down']) {
+    await page.getByLabel('Stade', { exact: true }).selectOption(stadium);
+    for (const body of ['octane', 'fennec', 'dominus', 'merc']) {
+      await page.getByLabel('Voiture', { exact: true }).selectOption(body);
+      const sprites = page.locator('.arena [data-body] image');
+      const paths = await sprites.evaluateAll(nodes => nodes.map(node => node.getAttribute('href')));
+      assert.equal(paths.length, 4);
+      assert.ok(paths.includes(`/sprites/cars/${stadium}/${body}-blue.png`));
+      assert.ok(paths.includes(`/sprites/cars/${stadium}/${body}-orange.png`));
+      paths.forEach(path => sources.add(path));
+      const at = await page.locator(`${player} > g > g`).first().getAttribute('transform');
+      await page.getByRole('button', { name: 'Actuelles', exact: true }).click();
+      await page.getByRole('button', { name: 'Blender', exact: true }).click();
+      assert.equal(await page.locator(`${player} > g > g`).first().getAttribute('transform'), at);
+    }
+  }
+  assert.equal(sources.size, 24);
+  await page.evaluate(async sources => {
+    for (const src of sources) { const image = new Image(); image.src = src; await image.decode();
+      if (image.naturalWidth !== 1024 || image.naturalHeight !== 512) throw new Error(src);
+    }
+  }, [...sources]);
 });

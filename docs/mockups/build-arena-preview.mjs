@@ -22,7 +22,7 @@ export async function buildPreview() {
     }],
   });
   await cp(join(source, "7-arena-sprite-preview.html"), join(previewDirectory, "7-arena-sprite-preview.html"));
-  await cp(join(source, "assets/arena-preview"), join(previewDirectory, "assets/arena-preview"), { recursive: true });
+  await cp(resolve(source, "../../public/sprites"), join(previewDirectory, "sprites"), { recursive: true });
   await cp(resolve(source, "../../public/stadiums"), join(previewDirectory, "stadiums"), { recursive: true });
   return previewDirectory;
 }

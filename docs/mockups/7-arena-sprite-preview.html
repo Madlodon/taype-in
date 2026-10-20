@@ -15,16 +15,13 @@
       .toolbar p { color: #9aa8c3; font-size: .85rem; margin: 0; }
       .ball-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
       .ball-options button { display: grid; justify-items: center; min-width: 90px; padding: 6px 12px; font-size: .8rem; }
+      select { background: #14213d; color: #e8eef9; padding: 8px; border: 1px solid #6b7a99; border-radius: 6px; font: inherit; }
       .toggle { display: flex; gap: 6px; }
       button { border: 1px solid #6b7a99; background: #14213d; color: #e8eef9; border-radius: 8px; padding: 9px 15px; font: inherit; cursor: pointer; }
       button[aria-pressed="true"] { background: #4d94ff; border-color: #4d94ff; color: #0b1426; }
       button:focus-visible, textarea:focus-visible { outline: 3px solid #ff9a3c; outline-offset: 3px; }
       .arena { display: block; width: 100%; height: auto; max-height: 60vh; margin: 8px 0; }
       .car-tag { fill: #e8eef9; font-weight: 700; paint-order: stroke; stroke: #0b1426; stroke-width: 3px; }
-      /* FieldCar's direct groups are body surfaces; the first is the exhaust only during boost. */
-      .sprite-exhaust [data-field-body] > g { display: none; }
-      .sprite-exhaust [data-field-body][data-boosting="true"] > g:first-child { display: inline; }
-      .sprite-exhaust [data-field-body] > polygon:last-child { display: none; }
       .actions { font-size: .85rem; }
       .actions span { margin-left: auto; color: #9aa8c3; }
       .typing { margin-top: 20px; padding: 18px; border: 1px solid #364866; border-radius: 12px; background: #14213d; }
