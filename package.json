@@ -8,6 +8,7 @@
     "start": "NODE_ENV=production node server.ts",
     "lint": "eslint",
     "test": "vitest run",
+    "test:preview": "node --test docs/mockups/arena-sprite-preview.check.mjs",
     "test:e2e": "playwright test",
     "test:load": "node --env-file-if-exists=.env scripts/load-test.ts",
     "db:seed": "node --env-file-if-exists=.env scripts/seed.ts",

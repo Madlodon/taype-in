@@ -168,8 +168,8 @@ test("Should_RenderTheGarageArtworkForEachDemoCarAndBall", async () => {
     const pose = poses.find(pose => pose.id === car.id)!;
     const at = project(pose.x, pose.y, 0, "diorama");
     expect(element.querySelector("[clip-path] > g")?.getAttribute("transform")).toBe(`translate(${at.x} ${at.y})`);
-    expect(element.querySelector(`[data-body="${car.body}"] path`)).not.toBeNull();
-    expect(element.querySelector(`[data-ball="${car.ball}"] circle`)).not.toBeNull();
+    expect(element.querySelector(`[data-body="${car.body}"] image`)?.getAttribute("href")).toBe(`/sprites/cars/diorama/${car.body}-${car.you ? "blue" : "orange"}.png`);
+    expect(element.querySelector(`[data-ball="${car.ball}"] image`)?.getAttribute("href")).toBe(`/sprites/balls/${car.ball}.png`);
   }
   const ids = [...container.querySelectorAll("[id]")].map(element => element.id);
   expect(new Set(ids).size).toBe(ids.length);

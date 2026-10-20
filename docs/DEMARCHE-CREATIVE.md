@@ -168,6 +168,64 @@ Le [modèle Blender](mockups/assets/arena.blend) et les deux rendus se régénè
 /Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/arena-model.py
 ```
 
+### Voitures et ballons Blender (#36)
+
+La [maquette comparative](mockups/7-arena-sprite-preview.html) réutilise le composant
+`Arena`, le diorama et la simulation actuels : conduite libre, poursuite et contacts
+avec le ballon, boost, tirs et célébration finale. Le bouton **Actuelles / Blender**
+change le rendu des voitures et des ballons, sans réinitialiser leurs positions.
+Le ballon Blender conserve la taille, la rotation, les ombres et les animations
+de contact et de tir de l’application.
+
+**Direction retenue : voitures et ballons Blender.** `FieldCar` utilise les sprites
+en course pour les quatre carrosseries (Octane, Fennec, Dominus et Merc), les deux
+équipes et les trois stades. Chaque combinaison possède 32 orientations ; les
+caméras et l’échelle correspondent à `stadium-track.ts`. Les 24 planches sont dans
+`public/sprites/cars`. `CarBall` utilise les six finitions dans `public/sprites/balls`,
+y compris dans le garage. Les illustrations des carrosseries du garage restent
+leurs dessins de sélection existants ; la conduite utilise les modèles Blender.
+Les boosts, contacts, tirs, ombres et célébrations gardent la simulation actuelle.
+
+La maquette compare les composants de production aux anciens rendus conservés
+uniquement sous `docs/mockups/previous-*.tsx`. Les sélecteurs couvrent toutes les
+carrosseries, vues et finitions. Les anciens dessins de ballons servent également
+de source aux textures, sans copie manuelle des palettes ou des panneaux.
+
+Les six ballons reprennent directement les dessins `CarBall` du garage : standard,
+plage, émeraude, glacier, solaire et doré. Ces dessins sont exportés en textures,
+puis projetés sur une sphère dans Blender. Le sélecteur permet de comparer chaque
+finition dans les deux modes, sans interrompre la simulation.
+
+Régénérer les 24 planches de voitures et les six sprites de ballons :
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/field-preview.py
+node docs/mockups/assets/export-ball-textures.mjs
+/Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/garage-ball-preview.py
+```
+
+Construire l’aperçu avec les dépendances déjà présentes, puis servir le dossier
+temporaire affiché par la commande (le fichier HTML ne s’ouvre plus seul) :
+
+```bash
+node docs/mockups/build-arena-preview.mjs
+python3 -m http.server 8765 --bind 127.0.0.1 --directory <dossier-affiché>
+# http://127.0.0.1:8765/7-arena-sprite-preview.html
+```
+
+Les boutons permettent d’essayer immédiatement le boost, un tir cadré ou manqué.
+Terminer le texte déclenche le tir final de la simulation actuelle.
+
+Tests autonomes (sans serveur applicatif ni base de données) :
+
+```bash
+bun run test:preview
+```
+
+Le remplacement est purement visuel : aucune migration ni modification des
+comptes ou inventaires. Après fusion, un **revert de la PR** restaure les anciens
+rendus sans réécrire l’historique.
+
 ### Modèles Blender
 
 [`mockups/assets/models.py`](mockups/assets/models.py) construit une voiture et un ballon low-poly, puis les rend en sprites PNG transparents (voiture bleue, voiture orange, ballon). Les fichiers `.blend` peuvent être retouchés à la main dans Blender.

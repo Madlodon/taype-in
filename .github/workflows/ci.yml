@@ -91,6 +91,8 @@ jobs:
         run: bun run build
       - name: Playwright browsers
         run: bunx playwright install --with-deps chromium
+      - name: Sprite preview tests
+        run: bun run test:preview
       - name: E2E tests
         run: bun run test:e2e
 
