@@ -13,7 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from models import reset
 
 TEXTURES = os.path.join(tempfile.gettempdir(), "taype-garage-ball-textures")
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "arena-preview")
+OUT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../public/sprites/balls"))
+os.makedirs(OUT, exist_ok=True)
 with open(os.path.join(TEXTURES, "balls.json")) as manifest:
     finishes = json.load(manifest)
 
@@ -59,5 +60,5 @@ for finish in finishes:
     scene.camera = camera
     scene.render.resolution_x = 256
     scene.render.resolution_y = 256
-    scene.render.filepath = os.path.join(OUT, f"field-ball-{finish}.png")
+    scene.render.filepath = os.path.join(OUT, f"{finish}.png")
     bpy.ops.render.render(write_still=True)

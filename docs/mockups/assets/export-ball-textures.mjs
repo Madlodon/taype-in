@@ -14,7 +14,7 @@ const modulePath = join(directory, "garage-balls.cjs");
 await build({
   stdin: {
     contents: `import { renderToStaticMarkup } from "react-dom/server";
-      import { CarBall } from "./components/car-ball";
+      import { CarBall } from "./docs/mockups/previous-car-ball";
       export { BALLS } from "./lib/garage-items";
       export function renderBall(ball) {
         return renderToStaticMarkup(<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="-16 -16 32 32"><CarBall ball={ball} centered /></svg>);

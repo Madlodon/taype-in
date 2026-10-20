@@ -71,20 +71,42 @@ def wheel(location, mat, rim):
     bpy.context.object.data.materials.append(rim)
 
 
-def car(color):
+def car(color, shape="octane"):
     body = material("Body", color, roughness=0.35, metallic=0.3)
     dark = material("Tire", (0.04, 0.05, 0.08), roughness=0.9)
     glass = material("Glass", (0.05, 0.1, 0.2), roughness=0.1)
     rim = material("Rim", (0.8, 0.82, 0.86), metallic=0.8, roughness=0.3)
     boost = material("Boost", ORANGE, emission=6)
 
-    box("Chassis", (2.4, 1.2, 0.45), (0, 0, 0.5), body)
-    box("Nose", (0.6, 1.1, 0.25), (1.35, 0, 0.42), body)
-    box("Cabin", (1.2, 1.0, 0.45), (-0.2, 0, 0.95), glass, taper=(0.7, 0.85))
-    box("Spoiler", (0.25, 1.3, 0.08), (-1.15, 0, 1.2), body)
-    box("SpoilerLeg", (0.1, 0.6, 0.35), (-1.1, 0, 0.9), dark)
-    box("Nozzle", (0.15, 0.35, 0.2), (-1.25, 0, 0.55), boost)
-    for x in (0.8, -0.8):
+    # Dimensions stay within the current collision/contact envelopes (half scale here).
+    length = 2.4 if shape == "octane" else 3.5 if shape == "dominus" else 3.0
+    box("Chassis", (length, 1.2, 0.45), (0, 0, 0.5), body)
+    if shape == "octane":
+        box("Nose", (0.6, 1.1, 0.25), (1.35, 0, 0.42), body)
+        box("Cabin", (1.2, 1.0, 0.45), (-0.2, 0, 0.95), glass, taper=(0.7, 0.85))
+        box("Spoiler", (0.25, 1.3, 0.08), (-1.15, 0, 1.2), body)
+        box("SpoilerLeg", (0.1, 0.6, 0.35), (-1.1, 0, 0.9), dark)
+    elif shape == "fennec":
+        # Squared hatchback, upright windows and short hood.
+        box("Cabin", (1.85, 1.08, 0.65), (-0.25, 0, 1.03), glass, taper=(0.9, 0.92))
+        box("Roof", (1.65, 1.02, 0.10), (-0.25, 0, 1.4), body)
+        box("Hood", (0.72, 1.13, 0.16), (1.04, 0, 0.8), body)
+    elif shape == "dominus":
+        # Long, low coupe with a sloped cockpit and rear wing.
+        box("Cabin", (1.45, 1.0, 0.40), (-0.25, 0, 0.97), glass, taper=(0.65, 0.8))
+        box("Hood", (1.02, 1.1, 0.12), (1.1, 0, 0.78), body)
+        box("Spoiler", (0.3, 1.4, 0.08), (-1.5, 0, 1.0), body)
+        box("SpoilerLeg", (0.1, 0.8, 0.25), (-1.5, 0, 0.85), dark)
+    else:
+        # Tall panel van, distinct from the hatchback even at race size.
+        box("Cabin", (2.65, 1.12, 1.0), (-0.12, 0, 1.17), body, taper=(0.94, 0.95))
+        box("Windshield", (0.05, 0.95, 0.48), (1.18, 0, 1.35), glass)
+        for side in (-0.566, 0.566):
+            box("SideWindow", (0.62, 0.025, 0.45), (0.72, side, 1.35), glass)
+        box("Grille", (0.05, 0.8, 0.3), (1.52, 0, 0.6), rim)
+    box("Nozzle", (0.15, 0.35, 0.2), (-length / 2 - 0.05, 0, 0.55), boost)
+    axle = 1.15 if shape == "dominus" else 0.8
+    for x in (axle, -axle):
         for y in (0.62, -0.62):
             wheel((x, y, 0.36), dark, rim)
 
