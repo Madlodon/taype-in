@@ -183,15 +183,17 @@ export async function createInvites(lobbyId: string, count: number): Promise<str
   return rows.map((row) => row.token);
 }
 
+// usedBy : nom de la personne qui a utilisé le lien, ou null s'il est libre (SALLE-04).
 export async function listInvites(
   lobbyId: string,
-): Promise<{ token: string; used: boolean }[]> {
-  const rows = await db
-    .select({ token: lobbyInvites.token, usedBy: lobbyInvites.usedBy })
+): Promise<{ token: string; usedBy: string | null }[]> {
+  return db
+    .select({ token: lobbyInvites.token, usedBy: users.username })
     .from(lobbyInvites)
+    .leftJoin(users, eq(lobbyInvites.usedBy, users.id))
     .where(eq(lobbyInvites.lobbyId, lobbyId))
-    .orderBy(asc(lobbyInvites.createdAt));
-  return rows.map((row) => ({ token: row.token, used: row.usedBy !== null }));
+    // Les liens d'un même lot ont la même date : le jeton garde l'ordre stable.
+    .orderBy(asc(lobbyInvites.createdAt), asc(lobbyInvites.token));
 }
 
 // Lien valide depuis cette IP : lobby ouvert, et lien libre ou déjà lié à cette IP (SALLE-04).

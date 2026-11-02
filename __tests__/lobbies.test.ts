@@ -274,7 +274,7 @@ test("Should_CreateDistinctUnusedLinks_When_HostGeneratesInvites", async () => {
 
   expect(new Set(tokens).size).toBe(30);
   expect(await listInvites(lobby.id)).toHaveLength(30);
-  expect((await listInvites(lobby.id)).every((invite) => !invite.used)).toBe(true);
+  expect((await listInvites(lobby.id)).every((invite) => invite.usedBy === null)).toBe(true);
 });
 
 test("Should_LetEveryoneEnter_When_LobbyIsNotPrivate", async () => {
@@ -304,7 +304,7 @@ test("Should_AdmitUserAndMarkLinkUsed_When_UserClaimsInvite", async () => {
   expect((await claimInvite(token, student.id, IP))?.id).toBe(lobby.id);
 
   expect(await canEnterLobby(lobby, student.id)).toBe(true);
-  expect(await listInvites(lobby.id)).toEqual([{ token, used: true }]);
+  expect(await listInvites(lobby.id)).toEqual([{ token, usedBy: student.username }]);
 });
 
 test("Should_RefuseLink_When_AnotherIpAlreadyUsedIt", async () => {
@@ -339,13 +339,26 @@ test("Should_MoveLinkToNewAccount_When_ReusedFromSameIp", async () => {
   expect(await canEnterLobby(lobby, lostSession.id)).toBe(false);
 });
 
+test("Should_ShowWhoUsedEachLink_When_SomeLinksAreUsed", async () => {
+  const lobby = await createLobby((await newUser()).id, "private");
+  const [first, second, third] = await createInvites(lobby.id, 3);
+  const [alice, bob] = [await newUser(), await newUser()];
+  await claimInvite(first, alice.id, IP);
+  await claimInvite(third, bob.id, OTHER_IP);
+
+  const usedBy = new Map((await listInvites(lobby.id)).map((invite) => [invite.token, invite.usedBy]));
+
+  expect(usedBy).toEqual(new Map([[first, alice.username], [second, null], [third, bob.username]]));
+});
+
 test("Should_BindLink_When_LobbyIsJoinedByCode", async () => {
   const lobby = await createLobby((await newUser()).id, "unlisted");
   const [token] = await createInvites(lobby.id, 1);
 
-  expect((await claimInvite(token, (await newUser()).id, IP))?.id).toBe(lobby.id);
+  const student = await newUser();
+  expect((await claimInvite(token, student.id, IP))?.id).toBe(lobby.id);
 
-  expect(await listInvites(lobby.id)).toEqual([{ token, used: true }]);
+  expect(await listInvites(lobby.id)).toEqual([{ token, usedBy: student.username }]);
   expect(await claimInvite(token, (await newUser()).id, OTHER_IP)).toBeNull();
 });
 
@@ -378,7 +391,7 @@ test("Should_RevokeInviteLink_When_InvitedUserIsKicked", async () => {
 
   expect(await findInviteLobby(token, IP)).toBeNull();
   expect(await canEnterLobby(lobby, kicked.id)).toBe(false);
-  expect(await listInvites(lobby.id)).toEqual([{ token: other, used: false }]);
+  expect(await listInvites(lobby.id)).toEqual([{ token: other, usedBy: null }]);
 });
 
 test("Should_KeepFreeLinkUnused_When_KickedUserTriesIt", async () => {
@@ -388,7 +401,7 @@ test("Should_KeepFreeLinkUnused_When_KickedUserTriesIt", async () => {
   await banParticipant(lobby.id, kicked.id);
 
   expect(await claimInvite(token, kicked.id, IP)).toBeNull();
-  expect(await listInvites(lobby.id)).toEqual([{ token, used: false }]);
+  expect(await listInvites(lobby.id)).toEqual([{ token, usedBy: null }]);
 });
 
 test("Should_KeepOneBan_When_UserIsKickedTwice", async () => {
@@ -419,7 +432,7 @@ test("Should_KeepLinkUnused_When_UserCanAlreadyEnter", async () => {
 
   expect((await claimInvite(token, host.id, IP))?.id).toBe(lobby.id);
 
-  expect(await listInvites(lobby.id)).toEqual([{ token, used: false }]);
+  expect(await listInvites(lobby.id)).toEqual([{ token, usedBy: null }]);
 });
 
 test("Should_RefuseLink_When_LobbyIsClosed", async () => {

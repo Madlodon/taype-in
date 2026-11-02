@@ -313,7 +313,10 @@
     "generate": "Générer les liens",
     "usage": "{used} sur {total} liens utilisés",
     "unusedLinks": "Liens non utilisés (un par ligne)",
-    "none": "Aucun lien pour le moment."
+    "none": "Aucun lien pour le moment.",
+    "statusList": "État des liens",
+    "unused": "Non utilisé",
+    "usedBy": "Utilisé par {name}"
   },
   "InvitePage": {
     "title": "Invitation à une course",
