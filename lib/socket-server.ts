@@ -114,6 +114,8 @@ type LiveRace = {
   botTimers: Map<string, NodeJS.Timeout>;
   // Abandon prévu de chaque coureur déconnecté (COURSE-08).
   giveUpTimers: Map<string, NodeJS.Timeout>;
+  // Fin du compte à rebours : annulée si le lobby ferme avant le « Go ».
+  countdownTimer?: NodeJS.Timeout;
   endTimer?: NodeJS.Timeout;
   idleTimer?: NodeJS.Timeout;
   positionsTimer?: NodeJS.Timeout;
@@ -330,6 +332,7 @@ export function createSocketServer(
   }
 
   function stopTimers(live: LiveRace) {
+    clearTimeout(live.countdownTimer);
     clearTimeout(live.endTimer);
     clearTimeout(live.idleTimer);
     clearInterval(live.positionsTimer);
@@ -880,7 +883,7 @@ export function createSocketServer(
       ack?.({ ok: true });
       await updateExplorer();
 
-      setTimeout(inBackground("countdownEnd", async () => {
+      live.countdownTimer = setTimeout(inBackground("countdownEnd", async () => {
         live.state = nextLobbyState(live.state, "countdownEnd");
         live.startedAt = Date.now();
         await markRaceStarted(race.id);
