@@ -212,6 +212,29 @@ test("Should_ShowCodeAndInviteLinksOnlyToHost_When_RaceIsUnlisted", async ({ bro
   await expect(player.page.getByRole("heading", { name: "Liens d'invitation" })).toHaveCount(0);
 });
 
+// SALLE-03 : l'hôte change la visibilité dans la salle d'attente ; la liste, les panneaux et le résumé suivent.
+test("Should_HideFromListAndShowInviteLinks_When_HostMakesPublicRacePrivate", async ({ browser }) => {
+  const host = await newHost(browser);
+  const code = await createRace(host.page, /Publique/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  const watcher = await newGuest(browser);
+  await watcher.page.getByRole("link", { name: "Démarrer une course" }).click();
+  const listed = watcher.page.getByRole("listitem").filter({ hasText: `Course de ${host.name}` });
+  await expect(listed).toBeVisible();
+  await expect(host.page.getByRole("heading", { name: "Liens d'invitation" })).toHaveCount(0);
+
+  await host.page.getByText("Modifier les réglages").click();
+  await host.page.getByLabel(/^Privée/).check();
+  await host.page.getByRole("button", { name: "Enregistrer les réglages" }).click();
+
+  await expect(player.page.getByText("Privée", { exact: true })).toBeVisible();
+  await expect(listed).toHaveCount(0);
+  await expect(host.page.getByRole("heading", { name: "Liens d'invitation" })).toBeVisible();
+  await expect(host.page.getByText("Code de la course :")).toHaveCount(0);
+  await expect(participants(player.page)).toHaveCount(2);
+});
+
 async function generateInvites(page: Page, count: number): Promise<string[]> {
   await page.getByLabel("Nombre de liens").fill(String(count));
   await page.getByRole("button", { name: "Générer les liens" }).click();

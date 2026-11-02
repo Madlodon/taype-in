@@ -394,12 +394,15 @@ export function LobbyRoom({
   }
 
   // L'hôte enregistre les réglages ; le serveur les envoie à toute la salle (CONF-12).
+  // La page est rechargée pour que les panneaux du code et des liens suivent la visibilité (SALLE-03).
   function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const payload = settingsPayload(new FormData(event.currentTarget));
     socketRef.current?.emit("lobby:settings", payload, (ack: Ack) => {
-      if (ack.ok) setSettingsSaved(true);
-      else setError(ack.error);
+      if (ack.ok) {
+        setSettingsSaved(true);
+        router.refresh();
+      } else setError(ack.error);
     });
   }
 

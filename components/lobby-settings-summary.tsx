@@ -28,6 +28,10 @@ export function LobbySettingsSummary({ settings }: { settings: SettingsMessage }
       <h3 id="settings-title" className="text-lg font-semibold mb-3">{t("title")}</h3>
       <dl className="lobby-settings">
         <div>
+          <dt>{n("visibility")}</dt>
+          <dd>{t(settings.visibility)}</dd>
+        </div>
+        <div>
           <dt>{n("textLanguage")}</dt>
           <dd>{n(settings.textLanguage === "fr" ? "french" : "english")}</dd>
         </div>

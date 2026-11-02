@@ -217,6 +217,9 @@
     "settingsSaved": "Settings saved: everyone can see them.",
     "settings": {
       "title": "Race settings",
+      "public": "Public",
+      "unlisted": "Unlisted",
+      "private": "Private",
       "text": "Text",
       "sentences": "Sentences",
       "words": "Scrambled words",

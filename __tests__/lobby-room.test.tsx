@@ -1536,6 +1536,7 @@ test("Should_NameBotInRankingAndOvertake_When_BotPassesUser", () => {
 
 // CONF-12 : réglages vus par tous et modifiés par l'hôte dans la salle d'attente.
 const settings: SettingsMessage = {
+  visibility: "unlisted",
   textLanguage: "en",
   textLength: 50,
   textComplexity: "hard",
@@ -1575,6 +1576,7 @@ test("Should_ShowSettingsToEveryone_When_ServerSendsThem", () => {
   sendSettings();
 
   expect(summary()).toEqual([
+    "VisibilitéNon répertoriée",
     "Langue du texteAnglais",
     "Texte50 mots · Mots mélangés",
     "Caractères ciblésChiffres, lettres « qz »",
@@ -1590,9 +1592,10 @@ test("Should_UpdateSettings_When_HostChangesThem", () => {
   sendParticipants();
   sendSettings();
 
-  sendSettings({ ...settings, customText: true, timeLimitSeconds: null });
+  sendSettings({ ...settings, visibility: "private", customText: true, timeLimitSeconds: null });
 
   expect(summary()).toEqual([
+    "VisibilitéPrivée",
     "Langue du texteAnglais",
     "TexteTexte personnalisé",
     "Erreurs de frappeTolérant",
@@ -1609,6 +1612,7 @@ test("Should_ShowComplexityAndRemovedContent_When_TextComesFromBankSentences", (
   sendSettings({ ...settings, textType: "sentences", textNumbers: false, textAccents: false });
 
   expect(summary()).toEqual([
+    "VisibilitéNon répertoriée",
     "Langue du texteAnglais",
     "Texte50 mots · Phrases",
     "ComplexitéDifficile",
@@ -1640,6 +1644,8 @@ test("Should_SendFormFields_When_HostSavesSettings", () => {
   expect(call[1]).toEqual({ textLanguage: "en", textTargets: [] });
   act(() => (call[2] as Handler)({ ok: true }));
   expect(screen.getByRole("status").textContent).toBe("Réglages enregistrés : tout le monde les voit.");
+  // Les panneaux du code et des liens suivent la nouvelle visibilité (SALLE-03).
+  expect(router.refresh).toHaveBeenCalledOnce();
 });
 
 test("Should_ShowError_When_SavingSettingsIsRefused", () => {
