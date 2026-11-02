@@ -5,6 +5,7 @@ import {
   availableEffects,
   checkpointsPassed,
   isBehind,
+  MAX_BONUSES,
   shuffleNextWord,
   SLOW_LETTER_MS,
   SLOW_LETTERS,
@@ -70,6 +71,7 @@ type SocketData = { user: User; lobby?: Lobby };
 // doneAt : moment où il a fini ou abandonné, pour son temps (FIN-2).
 // wpmSeries : son MPM à chaque seconde, jusqu'à ce qu'il finisse ou abandonne (RES-03).
 // content : son texte, changé par les bonus (mots ajoutés, mot mélangé) ; bonuses : buts marqués.
+// goals : buts comptés dès le tir, pour le plafond de MAX_BONUSES (BONUS-01).
 // slowLetters : lettres qu'un bot doit encore taper avec 1 s d'attente (BON-3).
 type Player = ProgressMessage & {
   state: PlayerState;
@@ -79,6 +81,7 @@ type Player = ProgressMessage & {
   sentences: Set<number>;
   wpmSeries: number[];
   bonuses: number;
+  goals: number;
   slowLetters: number;
 };
 
@@ -457,16 +460,26 @@ export function createSocketServer(
     announceBonus(lobby, message);
   }
 
+  // Progression des coureurs encore en course, abandons exclus.
+  function inRaceProgress(live: LiveRace) {
+    return [...live.players.values()].filter((player) => player.state !== "abandoned").map(progressOf);
+  }
+
+  // Peut tirer : en course, en retard et sous le plafond de bonus (BONUS-01).
+  function canShoot(player: Player, progress: number[]) {
+    return player.state === "connected" && player.goals < MAX_BONUSES && isBehind(progress, progressOf(player));
+  }
+
   // Le meneur passe un point de contrôle : chaque joueur en retard tire un but qui donne un bonus (BONUS-01).
   // sequence négative (-1 à -3) : ne se confond pas avec les tirs de fin de phrase, à leur position dans le texte.
   function checkpointShots(lobby: Lobby, live: LiveRace) {
-    const inRace = [...live.players].filter(([, player]) => player.state !== "abandoned");
-    const progress = inRace.map(([, player]) => progressOf(player));
+    const progress = inRaceProgress(live);
     const passed = checkpointsPassed(Math.max(...progress));
     while (live.checkpoints < passed) {
       live.checkpoints++;
-      for (const [id, player] of inRace) {
-        if (player.state !== "connected" || !isBehind(progress, progressOf(player))) continue;
+      for (const [id, player] of live.players) {
+        if (!canShoot(player, progress)) continue;
+        player.goals++;
         io.to(lobby.code).emit("race:shot", { id, sequence: -live.checkpoints, scored: true });
         const timer = setTimeout(() => {
           live.shotTimers.delete(timer);
@@ -493,14 +506,16 @@ export function createSocketServer(
     player.errors = progress.errors;
     player.keys = progress.keys;
     player.keyErrors = progress.keyErrors;
-    // Sans bonus, pas de tirs ni de buts (BON-1). Une phrase finie tire : 30 % de chance de marquer,
-    // pour tous, et le but retire un mot de son propre texte. À part des points de contrôle (BONUS-01).
+    // Sans bonus, pas de tirs ni de buts (BON-1). Une phrase finie par un joueur en retard tire :
+    // 30 % de chance de marquer, et le but retire un mot de son propre texte. Compte dans le plafond (BONUS-01).
     for (const sentence of live.bonusesEnabled ? completedSentences(player.content, player.typed) : []) {
       if (player.sentences.has(sentence)) continue;
       player.sentences.add(sentence);
+      if (!canShoot(player, inRaceProgress(live))) continue;
       const scored = shotRandom() < GOAL_CHANCE;
       io.to(lobby.code).emit("race:shot", { id, sequence: sentence, scored });
       if (!scored) continue;
+      player.goals++;
       const timer = setTimeout(() => {
         live.shotTimers.delete(timer);
         if (live.state !== "racing" || player.state !== "connected") return;
@@ -801,6 +816,7 @@ export function createSocketServer(
               sentences: new Set<number>(),
               wpmSeries: [],
               bonuses: 0,
+              goals: 0,
               slowLetters: 0,
             },
           ]),

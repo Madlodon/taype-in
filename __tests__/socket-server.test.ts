@@ -2054,28 +2054,37 @@ describe("bonuses", () => {
     expect(shots).toEqual([]);
   });
 
+  // L'invité passe la première phrase : l'hôte, derrière, est en retard quand il la finit.
+  async function guestPastFirstSentence(guestClient: Socket, content: string) {
+    const boundary = completedSentences(content, content)[0];
+    await progress(guestClient, typing(content.slice(0, boundary + 1), 0));
+    return boundary;
+  }
+
+  const sentenceShots = (shots: RaceShotMessage[]) => shots.filter((shot) => shot.sequence > 0);
+
   test("Should_MissShot_When_RollIsAtGoalChance", async () => {
     const { host, hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0.3 });
-    await progress(guestClient, typing(content.slice(0, 1), 0));
-    const shot = next<RaceShotMessage>(guestClient, "race:shot");
-    const boundary = completedSentences(content, content)[0];
-
-    await progress(hostClient, typing(content.slice(0, boundary), 0));
-
-    expect(await shot).toEqual({ id: host.id, sequence: boundary, scored: false });
-  });
-
-  // Tout joueur, même le meneur, peut marquer en fin de phrase ; le but retire un mot de son texte.
-  test("Should_RemoveOwnWord_When_LeaderScoresSentenceGoal", async () => {
-    const { host, hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0.29, bonusRandom: pick(2) });
-    const shot = next<RaceShotMessage>(guestClient, "race:shot");
-    const bonuses = collect<RaceBonusMessage>(hostClient, "race:bonus");
-    const boundary = completedSentences(content, content)[0];
+    const boundary = await guestPastFirstSentence(guestClient, content);
+    const shots = collect<RaceShotMessage>(guestClient, "race:shot");
 
     await progress(hostClient, typing(content.slice(0, boundary), 0));
     await wait(60);
 
-    expect(await shot).toEqual({ id: host.id, sequence: boundary, scored: true });
+    expect(sentenceShots(shots)).toEqual([{ id: host.id, sequence: boundary, scored: false }]);
+  });
+
+  // Le but de fin de phrase d'un joueur en retard retire un mot de son propre texte.
+  test("Should_RemoveOwnWord_When_PlayerBehindScoresSentenceGoal", async () => {
+    const { host, hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0.29, bonusRandom: pick(2) });
+    const boundary = await guestPastFirstSentence(guestClient, content);
+    const shots = collect<RaceShotMessage>(guestClient, "race:shot");
+    const bonuses = collect<RaceBonusMessage>(hostClient, "race:bonus");
+
+    await progress(hostClient, typing(content.slice(0, boundary), 0));
+    await wait(60);
+
+    expect(sentenceShots(shots)).toEqual([{ id: host.id, sequence: boundary, scored: true }]);
     const range = thirdWordAhead(content, boundary, [])!;
     expect(bonuses.filter((bonus) => bonus.effect === "removeWords")).toEqual([{
       effect: "removeWords",
@@ -2086,10 +2095,20 @@ describe("bonuses", () => {
     }]);
   });
 
+  test("Should_NotShoot_When_LeaderFinishesSentence", async () => {
+    const { hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0 });
+    const shots = collect<RaceShotMessage>(guestClient, "race:shot");
+
+    await progress(hostClient, typing(content.slice(0, completedSentences(content, content)[0]), 0));
+    await wait(60);
+
+    expect(sentenceShots(shots)).toEqual([]);
+  });
+
   test("Should_ShootOncePerSentence_When_SentenceIsRetyped", async () => {
     const { host, hostClient, guestClient, content } = await bonusRace();
+    const boundary = await guestPastFirstSentence(guestClient, content);
     const shots = collect<RaceShotMessage>(guestClient, "race:shot");
-    const boundary = completedSentences(content, content)[0];
 
     await progress(hostClient, typing(content.slice(0, boundary), 0));
     await progress(hostClient, typing(content.slice(0, boundary - 1), 0));
@@ -2097,6 +2116,29 @@ describe("bonuses", () => {
     await wait(60);
 
     expect(shots.filter((shot) => shot.id === host.id && shot.sequence === boundary)).toHaveLength(1);
+  });
+
+  // Chaque phrase et chaque point de contrôle marquent : sans plafond, l'hôte aurait plus de 3 bonus.
+  test("Should_GiveAtMostThreeBonuses_When_SentenceAndCheckpointGoalsAdd", async () => {
+    const { host, hostClient, guestClient, content } = await bonusRace({ shotRandom: () => 0, bonusRandom: pick(2) });
+    const boundaries = completedSentences(content, content);
+    expect(boundaries.length).toBeGreaterThan(1);
+    const shots = collect<RaceShotMessage>(guestClient, "race:shot");
+    const bonuses = collect<RaceBonusMessage>(guestClient, "race:bonus");
+
+    for (const boundary of boundaries.slice(0, -1)) {
+      await progress(guestClient, typing(content.slice(0, boundary + 1), 0));
+      await progress(hostClient, typing(content.slice(0, boundary), 0));
+    }
+    await progress(guestClient, typing(content.slice(0, -1), 0));
+    await wait(100);
+    const ended = next<RaceEndedMessage>(hostClient, "race:ended");
+    await progress(hostClient, typing(content, 0));
+    await progress(guestClient, typing(content, 0));
+
+    expect(shots.filter((shot) => shot.id === host.id && shot.scored)).toHaveLength(3);
+    expect(bonuses).toHaveLength(3);
+    expect((await ended).results.find((result) => result.id === host.id)?.bonuses).toBe(3);
   });
 
   test("Should_ScoreForPlayerBehind_When_LeaderPassesCheckpoint", async () => {
@@ -2107,7 +2149,6 @@ describe("bonuses", () => {
     await progress(guestClient, typing(guestTyped, 0));
 
     expect(await bonus).toEqual({ effect: "blur", from: host.id, to: guest.id });
-    // Les phrases finies par le meneur tirent aussi, sans marquer.
     expect(shots.filter((shot) => shot.scored)).toEqual([{ id: host.id, sequence: -1, scored: true }]);
   });
 
