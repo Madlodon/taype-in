@@ -1666,6 +1666,35 @@ describe("lobby:settings", () => {
     expect((await findOpenLobby(lobby.code))?.capacity).toBe(5);
   });
 
+  test("Should_AckCapacityBelowParticipantsAndKeepCapacity_When_CapacityIsUnderHeadcount", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo({ capacity: 5 });
+    await join(await newClient(), { code: lobby.code });
+
+    expect(await hostClient.emitWithAck("lobby:settings", { ...newSettings, capacity: "2" })).toEqual({
+      ok: false,
+      error: "capacityBelowParticipants",
+    });
+    expect((await findOpenLobby(lobby.code))?.capacity).toBe(5);
+  });
+
+  test("Should_CountBots_When_CheckingCapacityAgainstHeadcount", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo({ capacity: 5 });
+    await hostClient.emitWithAck("lobby:addBot", { level: "expert" });
+
+    expect(await hostClient.emitWithAck("lobby:settings", { ...newSettings, capacity: "2" })).toEqual({
+      ok: false,
+      error: "capacityBelowParticipants",
+    });
+    expect((await findOpenLobby(lobby.code))?.capacity).toBe(5);
+  });
+
+  test("Should_SaveCapacity_When_CapacityEqualsHeadcount", async () => {
+    const { lobby, hostClient } = await lobbyWithTwo({ capacity: 5 });
+
+    expect(await hostClient.emitWithAck("lobby:settings", { ...newSettings, capacity: "2" })).toEqual({ ok: true });
+    expect((await findOpenLobby(lobby.code))?.capacity).toBe(2);
+  });
+
   test("Should_AckLobbyNotFound_When_SocketHasNotJoinedALobby", async () => {
     const client = await newClient();
 
