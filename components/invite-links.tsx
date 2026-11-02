@@ -7,7 +7,7 @@ import { listInvites, MAX_INVITES, type Lobby } from "@/lib/lobbies";
 export async function InviteLinks({ lobby }: { lobby: Lobby }) {
   const t = await getTranslations("Invites");
   const invites = await listInvites(lobby.id);
-  const unused = invites.filter((invite) => !invite.used);
+  const unused = invites.filter((invite) => !invite.usedBy);
   // Derrière Caddy, le protocole d'origine arrive dans x-forwarded-proto.
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
