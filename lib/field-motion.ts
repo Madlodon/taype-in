@@ -164,17 +164,19 @@ export function stepFieldBalls(balls: readonly FieldBall[], cars: readonly Field
         next[velocity] *= -.65;
       }
     }
-    const car = cars.find(car => car.id === ball.id)!;
-    const dx = next.x - car.x, dy = next.y - car.y;
-    const distance = Math.hypot(dx, dy);
-    const ahead = dx * Math.cos(car.heading) + dy * Math.sin(car.heading);
-    const contact = ballContactDistance(scale, bodies.get(car.id));
-    if (next.sinceContact > .25 && ahead > 0 && distance <= contact + .25) {
-      const speed = car.speed * (boosting.has(car.id) ? 2 : 1) + 9;
-      next.vx = Math.cos(car.heading) * speed;
-      next.vy = Math.sin(car.heading) * speed;
-      next.sinceContact = 0;
-      next.contacts++;
+    // Any bumper can kick a ground ball without changing its owner.
+    for (const car of cars) {
+      const dx = next.x - car.x, dy = next.y - car.y;
+      const distance = Math.hypot(dx, dy);
+      const ahead = dx * Math.cos(car.heading) + dy * Math.sin(car.heading);
+      const contact = ballContactDistance(scale, bodies.get(car.id));
+      if (next.sinceContact > .25 && ahead > 0 && distance <= contact + .25) {
+        const speed = car.speed * (boosting.has(car.id) ? 2 : 1) + 9;
+        next.vx = Math.cos(car.heading) * speed;
+        next.vy = Math.sin(car.heading) * speed;
+        next.sinceContact = 0;
+        next.contacts++;
+      }
     }
     // Resolve overlap separately from kicks: cooldowns and side/rear contacts
     // must never leave a ball inside either its driver or a neighbouring car.
