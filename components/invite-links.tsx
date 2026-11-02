@@ -35,6 +35,12 @@ export async function InviteLinks({ lobby }: { lobby: Lobby }) {
             className="font-mono"
           />
         </label>}
+        <ul className="invite-list" aria-label={t("statusList")}>
+          {invites.map((invite) => <li key={invite.token}>
+            <code>{`${origin}/invite/${invite.token}`}</code>
+            <span>{invite.usedBy ? t("usedBy", { name: invite.usedBy }) : t("unused")}</span>
+          </li>)}
+        </ul>
       </>}
     </section>
   );
