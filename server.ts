@@ -8,6 +8,11 @@ const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev, port });
 const handle = app.getRequestHandler();
 
+// Une promesse rejetée sans catch est journalisée au lieu d'arrêter le processus et ses courses en mémoire.
+process.on("unhandledRejection", (reason) => {
+  console.error("Promesse rejetée non gérée :", reason);
+});
+
 await app.prepare();
 
 const httpServer = createServer((req, res) => handle(req, res));

@@ -195,6 +195,33 @@ export function createSocketServer(
   // Bots de chaque lobby ; ils restent d'une course à l'autre jusqu'à ce que l'hôte les retire.
   const lobbyBots = new Map<string, BotParticipant[]>();
 
+  // Une erreur (ex. base de données) est journalisée sans arrêter le processus :
+  // les courses gardées en mémoire continuent.
+  function logError(where: string, error: unknown) {
+    console.error(`[socket] ${where} a échoué :`, error);
+  }
+
+  // Gestionnaire d'un message : en cas d'erreur, l'ack (dernier argument) reçoit « serverError ».
+  // Un ack déjà envoyé n'est pas renvoyé (Socket.IO l'ignore).
+  function safely<Args extends unknown[]>(event: string, handler: (...args: Args) => Promise<void>) {
+    return async (...args: Args) => {
+      try {
+        await handler(...args);
+      } catch (error) {
+        logError(event, error);
+        const ack = args.at(-1);
+        if (typeof ack === "function") ack({ ok: false, error: "serverError" });
+      }
+    };
+  }
+
+  // Tâche lancée par une minuterie : personne n'attend sa promesse, son erreur est journalisée.
+  function inBackground(where: string, task: () => Promise<unknown>) {
+    return () => {
+      task().catch((error) => logError(where, error));
+    };
+  }
+
   // Les joueurs connectés, puis les bots : tous comptent comme participants (BOT-1).
   async function roomParticipants(lobby: Lobby): Promise<ParticipantsMessage["participants"]> {
     return [...(await listParticipants(lobby.id)), ...(lobbyBots.get(lobby.id) ?? [])];
@@ -365,7 +392,7 @@ export function createSocketServer(
   // Chaque frappe repousse la fin pour inactivité.
   function resetIdleTimer(lobby: Lobby, live: LiveRace) {
     clearTimeout(live.idleTimer);
-    live.idleTimer = setTimeout(() => endRace(lobby, live, "idle"), idleMs);
+    live.idleTimer = setTimeout(inBackground("endRace", () => endRace(lobby, live, "idle")), idleMs);
   }
 
   // Remplacements d'hôte en attente ; annulés à l'arrêt du serveur.
@@ -546,11 +573,11 @@ export function createSocketServer(
       player.slowLetters--;
       delayMs = Math.max(delayMs, SLOW_LETTER_MS);
     }
-    const timer = setTimeout(async () => {
+    const timer = setTimeout(inBackground("bot", async () => {
       if (live.state !== "racing") return;
       await updateProgress(lobby, live, id, key.typing);
       if (player.state === "connected") driveBot(lobby, live, id, engine);
-    }, delayMs / botSpeedup);
+    }), delayMs / botSpeedup);
     live.botTimers.set(id, timer);
   }
 
@@ -595,13 +622,13 @@ export function createSocketServer(
       // Pas revenu à temps : il abandonne, la course peut finir sans lui (COURSE-08).
       live.giveUpTimers.set(
         userId,
-        setTimeout(async () => {
+        setTimeout(inBackground("giveUp", async () => {
           live.giveUpTimers.delete(userId);
           if (player.state !== "disconnected" || live.state === "finished") return;
           player.state = nextPlayerState(player.state, "abandon");
           player.doneAt = Date.now();
           if (live.state === "racing") await endIfNobodyRacing(lobby, live);
-        }, giveUpMs),
+        }), giveUpMs),
       );
     }
 
@@ -609,10 +636,10 @@ export function createSocketServer(
     await sendParticipants(lobby);
 
     if (lobby.hostId !== userId || stopped) return;
-    const timer = setTimeout(() => {
+    const timer = setTimeout(inBackground("replaceHost", () => {
       hostTimers.delete(timer);
-      replaceHost(lobby.code, userId);
-    }, graceMs);
+      return replaceHost(lobby.code, userId);
+    }), graceMs);
     hostTimers.add(timer);
   }
 
@@ -631,31 +658,36 @@ export function createSocketServer(
   // Le cookie de session (httpOnly) accompagne la connexion : seul un utilisateur connecté entre.
   io.use(async (socket, next) => {
     const token = readCookie(socket.handshake.headers.cookie, SESSION_COOKIE);
-    const user = token ? await validateSessionToken(token) : null;
-    if (!user) return next(new Error("notLoggedIn"));
-    socket.data.user = user;
-    next();
+    try {
+      const user = token ? await validateSessionToken(token) : null;
+      if (!user) return next(new Error("notLoggedIn"));
+      socket.data.user = user;
+      next();
+    } catch (error) {
+      logError("connexion", error);
+      next(new Error("serverError"));
+    }
   });
 
   io.on("connection", (socket) => {
     // La page des courses suit la liste publique en direct (JOIN-02).
-    socket.on("lobbies:watch", async () => {
+    socket.on("lobbies:watch", safely("lobbies:watch", async () => {
       await socket.join(EXPLORER_ROOM);
       socket.emit("lobbies:list", await explorerLobbies());
-    });
+    }));
 
     // « Course rapide » : le code du lobby public à rejoindre, sauf là où on est exclu (JOIN-03, SALLE-07).
-    socket.on("lobbies:quick", async (ack?: (response: QuickRaceAck) => void) => {
+    socket.on("lobbies:quick", safely("lobbies:quick", async (ack?: (response: QuickRaceAck) => void) => {
       const candidates = [];
       for (const lobby of await publicLobbies()) {
         if (!(await isBanned(lobby.id, socket.data.user.id))) candidates.push(lobby);
       }
       const lobby = pickQuickLobby(candidates);
       ack?.(lobby ? { ok: true, code: lobby.code } : { ok: false, error: "noQuickLobby" });
-    });
+    }));
 
     // Un lobby = une salle Socket.IO nommée par son code.
-    socket.on("lobby:join", async (payload: unknown, ack?: (response: Ack) => void) => {
+    socket.on("lobby:join", safely("lobby:join", async (payload: unknown, ack?: (response: Ack) => void) => {
       const result = joinLobbySchema.safeParse(payload);
       if (!result.success) {
         ack?.({ ok: false, error: "invalidMessage" });
@@ -756,11 +788,11 @@ export function createSocketServer(
         });
       }
       ack?.({ ok: true });
-    });
+    }));
 
     // Seul l'hôte lance la course ; tous reçoivent le même compte à rebours, puis le même texte (CRS-1).
     // L'hôte court avec les autres ou regarde seulement (LOB-8).
-    socket.on("race:start", async (payload: unknown, ack?: (response: Ack) => void) => {
+    socket.on("race:start", safely("race:start", async (payload: unknown, ack?: (response: Ack) => void) => {
       const { user } = socket.data;
       const message = startRaceSchema.safeParse(payload);
       if (!message.success) {
@@ -851,14 +883,14 @@ export function createSocketServer(
       ack?.({ ok: true });
       await updateExplorer();
 
-      live.countdownTimer = setTimeout(async () => {
+      live.countdownTimer = setTimeout(inBackground("countdownEnd", async () => {
         live.state = nextLobbyState(live.state, "countdownEnd");
         live.startedAt = Date.now();
         await markRaceStarted(race.id);
         if (live.timeLimitSeconds !== null) {
           live.endsAt = Date.now() + live.timeLimitSeconds * 1000;
           live.endTimer = setTimeout(
-            () => endRace(lobby, live, "timeUp"),
+            inBackground("endRace", () => endRace(lobby, live, "timeUp")),
             live.timeLimitSeconds * 1000,
           );
         }
@@ -887,11 +919,11 @@ export function createSocketServer(
         for (const { id, bot } of racers) {
           if (bot) driveBot(lobby, live, id, createBotEngine(bot.level, botSeed(live.raceId, bot)));
         }
-      }, countdownMs);
-    });
+      }), countdownMs);
+    }));
 
     // Progression d'un coureur ; la course finit quand tous ont tapé tout le texte (CRS-5).
-    socket.on("race:progress", async (payload: unknown, ack?: (response: Ack) => void) => {
+    socket.on("race:progress", safely("race:progress", async (payload: unknown, ack?: (response: Ack) => void) => {
       const { lobby, user } = socket.data;
       const result = progressSchema.safeParse(payload);
       if (!result.success) {
@@ -934,10 +966,10 @@ export function createSocketServer(
       }
       await updateProgress(lobby, live, user.id, result.data);
       ack?.({ ok: true });
-    });
+    }));
 
     // Le coureur abandonne et devient spectateur ; la course continue sans lui (CRS-7).
-    socket.on("race:giveUp", async (ack?: (response: Ack) => void) => {
+    socket.on("race:giveUp", safely("race:giveUp", async (ack?: (response: Ack) => void) => {
       const { lobby, user } = socket.data;
       const live = lobby && liveRaces.get(lobby.id);
       if (!lobby || live?.state !== "racing") {
@@ -958,10 +990,10 @@ export function createSocketServer(
       player.doneAt = Date.now();
       await endIfNobodyRacing(lobby, live);
       ack?.({ ok: true });
-    });
+    }));
 
     // Dans la salle d'attente, l'hôte ajoute un bot du niveau choisi (BOT-1, BOT-2).
-    socket.on("lobby:addBot", async (payload: unknown, ack?: (response: Ack) => void) => {
+    socket.on("lobby:addBot", safely("lobby:addBot", async (payload: unknown, ack?: (response: Ack) => void) => {
       const { lobby, user } = socket.data;
       const message = addBotSchema.safeParse(payload);
       if (!message.success) {
@@ -1008,9 +1040,9 @@ export function createSocketServer(
       ]);
       await sendParticipants(lobby);
       ack?.({ ok: true });
-    });
+    }));
 
-    socket.on("lobby:removeBot", async (payload: unknown, ack?: (response: Ack) => void) => {
+    socket.on("lobby:removeBot", safely("lobby:removeBot", async (payload: unknown, ack?: (response: Ack) => void) => {
       const { lobby, user } = socket.data;
       const message = removeBotSchema.safeParse(payload);
       if (!message.success) {
@@ -1041,10 +1073,10 @@ export function createSocketServer(
       );
       await sendParticipants(lobby);
       ack?.({ ok: true });
-    });
+    }));
 
     // L'hôte exclut un participant ou un spectateur, à tout moment : il ne peut plus revenir (SALLE-07).
-    socket.on("lobby:kick", async (payload: unknown, ack?: (response: Ack) => void) => {
+    socket.on("lobby:kick", safely("lobby:kick", async (payload: unknown, ack?: (response: Ack) => void) => {
       const { lobby, user } = socket.data;
       const message = kickSchema.safeParse(payload);
       if (!message.success) {
@@ -1087,10 +1119,10 @@ export function createSocketServer(
       await removeFromLobby(lobby, id);
       if (live?.state === "racing") await endIfNobodyRacing(lobby, live);
       ack?.({ ok: true });
-    });
+    }));
 
     // Après une course, l'hôte relance le même lobby : tous reviennent à la salle d'attente (LOB-9).
-    socket.on("lobby:restart", async (ack?: (response: Ack) => void) => {
+    socket.on("lobby:restart", safely("lobby:restart", async (ack?: (response: Ack) => void) => {
       const { lobby, user } = socket.data;
       if (!lobby) {
         ack?.({ ok: false, error: "lobbyNotFound" });
@@ -1110,11 +1142,11 @@ export function createSocketServer(
       io.to(lobby.code).emit("lobby:restarted");
       ack?.({ ok: true });
       await updateExplorer();
-    });
+    }));
 
     // Dans la salle d'attente, l'hôte change les réglages de la prochaine course ;
     // tout le monde voit la mise à jour (CONF-12).
-    socket.on("lobby:settings", async (payload: unknown, ack?: (response: Ack) => void) => {
+    socket.on("lobby:settings", safely("lobby:settings", async (payload: unknown, ack?: (response: Ack) => void) => {
       const { lobby, user } = socket.data;
       if (!lobby) {
         ack?.({ ok: false, error: "lobbyNotFound" });
@@ -1136,10 +1168,10 @@ export function createSocketServer(
       ack?.({ ok: true });
       // La visibilité, la langue et la capacité changent l'explorateur (JOIN-02).
       await updateExplorer();
-    });
+    }));
 
     // Seul l'hôte ferme le lobby ; tous les participants sont renvoyés à la liste (LOB-10).
-    socket.on("lobby:close", async (ack?: (response: Ack) => void) => {
+    socket.on("lobby:close", safely("lobby:close", async (ack?: (response: Ack) => void) => {
       const { lobby, user } = socket.data;
       if (!lobby) {
         ack?.({ ok: false, error: "lobbyNotFound" });
@@ -1161,9 +1193,9 @@ export function createSocketServer(
       io.to(lobby.code).emit("lobby:closed");
       ack?.({ ok: true });
       await updateExplorer();
-    });
+    }));
 
-    socket.on("disconnect", async () => {
+    socket.on("disconnect", safely("disconnect", async () => {
       const { lobby, user } = socket.data;
       if (!lobby) return;
 
@@ -1172,7 +1204,7 @@ export function createSocketServer(
       if (others.some((other) => other.data.user.id === user.id)) return;
 
       await removeFromLobby(lobby, user.id);
-    });
+    }));
   });
 
   return io;
