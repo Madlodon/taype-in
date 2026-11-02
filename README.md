@@ -24,7 +24,7 @@ Live: https://laniproject.dev
 
 ### Demo account
 
-Created locally by `bun run db:seed`, with five rivals and 24 past races (profile, history, progression chart).
+Available on https://laniproject.dev and created locally by `bun run db:seed`, with five rivals and 24 past races (profile, history, progression chart).
 
 | Username | Password |
 | --- | --- |
@@ -144,6 +144,12 @@ The application runs on an AWS EC2 instance (Ubuntu) with Docker Compose. [`comp
 
 Caddy gets the HTTPS certificate on first start.
 
+Then create the demo account (once; re-running resets its history):
+
+```bash
+docker compose -f compose.prod.yml exec app node scripts/seed.ts
+```
+
 #### Updating
 
 ```bash
@@ -179,7 +185,7 @@ En ligne : https://laniproject.dev
 
 ### Compte de démonstration
 
-Créé en local par `bun run db:seed`, avec cinq adversaires et 24 courses passées (profil, historique, graphique de progression).
+Disponible sur https://laniproject.dev et créé en local par `bun run db:seed`, avec cinq adversaires et 24 courses passées (profil, historique, graphique de progression).
 
 | Nom d'utilisateur | Mot de passe |
 | --- | --- |
@@ -298,6 +304,12 @@ L'application tourne sur une instance AWS EC2 (Ubuntu) avec Docker Compose. [`co
    ```
 
 Caddy obtient le certificat HTTPS au premier démarrage.
+
+Créer ensuite le compte de démo (une seule fois; relancer réinitialise son historique) :
+
+```bash
+docker compose -f compose.prod.yml exec app node scripts/seed.ts
+```
 
 #### Mettre à jour
 
