@@ -626,6 +626,9 @@ describe("race:start", () => {
   });
 
   test("Should_SendCountdown_When_RacerComesBackDuringCountdown", async () => {
+    // 100 ms ne suffit pas toujours pour se déconnecter puis revenir sur la CI.
+    await io.close();
+    await startServer({ countdownMs: 1000 });
     const { guest, lobby, hostClient, guestClient } = await lobbyWithTwo();
     const started = next(hostClient, "race:started");
     await hostClient.emitWithAck("race:start", { watch: false });
