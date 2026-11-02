@@ -38,4 +38,6 @@ Tous sont dans le dépôt :
 
 ## Réflexion
 
-<!-- À compléter : courte réflexion personnelle sur la façon de travailler avec les agents. -->
+- **Ce qui m'a aidé** : avec les agents, j'ai pu faire beaucoup plus que si j'avais tout fait moi-même, par exemple les tests, l'intégration continue avec GitHub Actions et le design avec Codex. Des skills comme `grilling` m'ont aussi aidé à penser à des choses auxquelles je n'aurais pas pensé : une autre façon de faire, quels outils utiliser, etc.
+- **Ce que je vérifie moi-même** : je vérifie toujours le site. Je vais tester moi-même si ça fonctionne et si l'interface et l'expérience sont agréables. Dans chaque conversation avec une IA, je demande un résumé de ce qu'elle a fait pour m'assurer que tout a été fait correctement.
+- **Ce que je ferais autrement** : pas grand-chose, peut-être en savoir plus sur l'IA. Parfois, l'agent prenait beaucoup de temps pour faire quelque chose de petit ; j'aimerais rendre mon IA plus efficace.
