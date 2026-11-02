@@ -1163,6 +1163,11 @@ export function createSocketServer(
       }
 
       const settings = parseLobbySettings(payload);
+      // Personne n'est expulsé : une capacité sous le nombre de participants est refusée (SALLE-05).
+      if (settings.capacity < (await roomParticipants(lobby)).length) {
+        ack?.({ ok: false, error: "capacityBelowParticipants" });
+        return;
+      }
       await updateLobbySettings(lobby.id, settings);
       io.to(lobby.code).emit("lobby:settings", publicSettings(settings));
       ack?.({ ok: true });
