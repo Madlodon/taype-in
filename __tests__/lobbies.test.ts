@@ -119,6 +119,7 @@ test("Should_SaveCapacity_When_CreatingLobbyWithCapacity", async () => {
 test("Should_KeepLobbyAndCodeWithNewSettings_When_HostChangesSettings", async () => {
   const lobby = await createLobby((await newUser()).id, "public");
   const settings = {
+    visibility: "private" as const,
     textLanguage: "en" as const,
     textLength: 200,
     textComplexity: "medium" as const,
@@ -140,7 +141,6 @@ test("Should_KeepLobbyAndCodeWithNewSettings_When_HostChangesSettings", async ()
 
   expect(await findOpenLobby(lobby.code)).toMatchObject({
     id: lobby.id,
-    visibility: "public",
     ...settings,
   });
 });

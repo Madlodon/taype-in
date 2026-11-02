@@ -27,11 +27,8 @@ export async function createLobbyAction(formData: FormData) {
   if (!user) redirect("/");
   if (user.isGuest) redirect("/signup?next=/lobbies/new");
 
-  const visibility = z
-    .enum(["public", "unlisted", "private"])
-    .catch("unlisted")
-    .parse(formData.get("visibility"));
-  const lobby = await createLobby(user.id, visibility, parseLobbySettings(settingsPayload(formData)));
+  const settings = parseLobbySettings(settingsPayload(formData));
+  const lobby = await createLobby(user.id, settings.visibility, settings);
   redirect(`/lobbies/${lobby.code}`);
 }
 

@@ -198,6 +198,7 @@ export function createSocketServer(
   // Seulement les réglages : le reste du lobby (id, invitations…) ne sort pas du serveur.
   function publicSettings(settings: LobbySettings): SettingsMessage {
     return {
+      visibility: settings.visibility,
       textLanguage: settings.textLanguage,
       textLength: settings.textLength,
       textComplexity: settings.textComplexity,
@@ -1114,7 +1115,7 @@ export function createSocketServer(
       await updateLobbySettings(lobby.id, settings);
       io.to(lobby.code).emit("lobby:settings", publicSettings(settings));
       ack?.({ ok: true });
-      // La langue et la capacité sont affichées dans l'explorateur (JOIN-02).
+      // La visibilité, la langue et la capacité changent l'explorateur (JOIN-02).
       await updateExplorer();
     });
 
