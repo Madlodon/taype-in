@@ -8,7 +8,7 @@ Statut :
 - **Partiel** : une partie est livrée ; la note dit ce qui manque.
 - **À faire** : rien n'est livré ; une issue est ouverte.
 
-Bilan : 90 exigences, 87 faites, 3 partielles, 0 à faire.
+Bilan : 90 exigences, 89 faites, 1 partielle, 0 à faire.
 
 Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et choix ».
 
