@@ -21,6 +21,8 @@ COPY --from=build /app/.next ./.next
 COPY public ./public
 COPY db ./db
 COPY lib ./lib
+# Données de démo, lancées une fois à la main (voir README)
+COPY scripts/seed.ts ./scripts/seed.ts
 COPY package.json next.config.ts server.ts ./
 USER node
 EXPOSE 3000
