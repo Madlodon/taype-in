@@ -217,6 +217,9 @@
     "settingsSaved": "Réglages enregistrés : tout le monde les voit.",
     "settings": {
       "title": "Réglages de la course",
+      "public": "Publique",
+      "unlisted": "Non répertoriée",
+      "private": "Privée",
       "text": "Texte",
       "sentences": "Phrases",
       "words": "Mots mélangés",

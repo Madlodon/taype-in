@@ -263,6 +263,7 @@ describe("lobby:join", () => {
   test("Should_AckLobbyFull_When_HostLoweredCapacityBelowPeopleInRoom", async () => {
     const { lobby } = await lobbyWithTwo();
     await updateLobbySettings(lobby.id, {
+      visibility: "unlisted",
       textLanguage: "fr",
       textLength: 100,
       textComplexity: "medium",
@@ -290,6 +291,7 @@ describe("lobby:join", () => {
     const { lobby } = await lobbyWithTwo({ capacity: 3 });
     await join(await newClient(), { code: lobby.code });
     await updateLobbySettings(lobby.id, {
+      visibility: "unlisted",
       textLanguage: "fr",
       textLength: 100,
       textComplexity: "medium",
@@ -1570,6 +1572,7 @@ describe("lobby:restart", () => {
 
 describe("lobby:settings", () => {
   const newSettings = {
+    visibility: "private",
     textLanguage: "en",
     textLength: "50",
     textComplexity: "hard",
@@ -1591,6 +1594,7 @@ describe("lobby:settings", () => {
     expect(await hostClient.emitWithAck("lobby:settings", newSettings)).toEqual({ ok: true });
 
     expect(await guestSees).toEqual({
+      visibility: "private",
       textLanguage: "en",
       textLength: 50,
       textComplexity: "hard",
@@ -1608,6 +1612,7 @@ describe("lobby:settings", () => {
       bonusesEnabled: true,
     });
     expect(await findOpenLobby(lobby.code)).toMatchObject({
+      visibility: "private",
       textLanguage: "en",
       customText: "Mon texte secret",
       timeLimitSeconds: 90,
@@ -1632,6 +1637,7 @@ describe("lobby:settings", () => {
     expect(await hostClient.emitWithAck("lobby:settings", "n'importe quoi")).toEqual({ ok: true });
 
     expect(await findOpenLobby(lobby.code)).toMatchObject({
+      visibility: "unlisted",
       textLanguage: "fr",
       textLength: 100,
       capacity: 30,
@@ -2409,6 +2415,7 @@ describe("bots", () => {
   test("Should_AckLobbyFull_When_HostLoweredCapacityBeforeAddingBot", async () => {
     const { lobby, hostClient } = await lobbyWithTwo();
     await updateLobbySettings(lobby.id, {
+      visibility: "unlisted",
       textLanguage: "fr",
       textLength: 100,
       textComplexity: "medium",
@@ -2432,6 +2439,7 @@ describe("bots", () => {
   test("Should_RefusePlayer_When_BotsFillTheCapacity", async () => {
     const { lobby, hostClient } = await hostAlone();
     await updateLobbySettings(lobby.id, {
+      visibility: "unlisted",
       textLanguage: "fr",
       textLength: 100,
       textComplexity: "medium",
@@ -2675,6 +2683,18 @@ describe("lobbies explorer", () => {
     await hostClient.emitWithAck("lobby:restart");
 
     expect(await waiting).toMatchObject({ state: "waiting" });
+  });
+
+  test("Should_RemoveThenListLobby_When_HostChangesVisibility", async () => {
+    const { lobby, hostClient, watcher } = await watchedLobby();
+
+    const removed = listedWhere(watcher, lobby.code, (listed) => listed === undefined);
+    await hostClient.emitWithAck("lobby:settings", { visibility: "unlisted" });
+    await removed;
+    const listed = listedWhere(watcher, lobby.code, (listed) => listed !== undefined);
+    await hostClient.emitWithAck("lobby:settings", { visibility: "public" });
+
+    expect(await listed).toMatchObject({ code: lobby.code });
   });
 
   test("Should_RemoveLobby_When_HostCloses", async () => {

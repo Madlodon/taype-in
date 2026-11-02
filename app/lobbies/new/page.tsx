@@ -27,15 +27,6 @@ export default async function NewLobbyPage() {
       <div className="split-layout">
         <section className="panel panel-accent">
           <form action={createLobbyAction} className="form-stack">
-            <fieldset>
-              <legend className="text-sm font-semibold">{t("visibility")}</legend>
-              <label className="radio-option">
-                <input type="radio" name="visibility" value="public" defaultChecked />{t("public")}</label>
-              <label className="radio-option">
-                <input type="radio" name="visibility" value="unlisted" />{t("unlisted")}</label>
-              <label className="radio-option">
-                <input type="radio" name="visibility" value="private" />{t("private")}</label>
-            </fieldset>
             <LobbySettingsFields locale={locale} />
             <button type="submit" className="btn btn-primary">{t("submit")}<span aria-hidden="true">↗</span>
             </button>

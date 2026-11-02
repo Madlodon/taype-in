@@ -13,6 +13,7 @@ function fields(settings?: LobbySettings) {
 }
 
 const settings: LobbySettings = {
+  visibility: "unlisted",
   textLanguage: "en",
   textLength: 100,
   textComplexity: "medium",
@@ -144,4 +145,18 @@ test("Should_LeaveBonusesOff_When_CreatingLobby", () => {
 
 test("Should_CheckBonuses_When_LobbyHasThem", () => {
   expect(bonuses({ ...settings, bonusesEnabled: true }).checked).toBe(true);
+});
+
+const visibility = () => (screen.getByRole("radio", { checked: true, name: /^(Public|Unlisted|Private):/ }) as HTMLInputElement).value;
+
+test("Should_SelectPublic_When_CreatingLobby", () => {
+  fields();
+
+  expect(visibility()).toBe("public");
+});
+
+test("Should_SelectLobbyVisibility_When_EditingSettings", () => {
+  fields({ ...settings, visibility: "private" });
+
+  expect(visibility()).toBe("private");
 });

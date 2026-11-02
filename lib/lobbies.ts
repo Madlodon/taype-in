@@ -52,6 +52,7 @@ export async function createLobby(
 
 export type LobbySettings = Pick<
   Lobby,
+  | "visibility"
   | "textLanguage"
   | "textLength"
   | "textComplexity"
@@ -73,6 +74,8 @@ export type LobbySettings = Pick<
 // Une valeur invalide prend la valeur par défaut.
 export function parseLobbySettings(input: unknown): LobbySettings {
   const fields = z.record(z.string(), z.unknown()).catch({}).parse(input);
+  // Publique, sur code ou privée ; l'hôte peut la changer entre deux courses (SALLE-03).
+  const visibility = z.enum(["public", "unlisted", "private"]).catch("unlisted").parse(fields.visibility);
   // Langue du texte indépendante de celle de l'interface (TXT-1, TXT-2).
   const textLanguage = z.enum(["fr", "en"]).catch("fr").parse(fields.textLanguage);
   const textLength = z.coerce
@@ -114,6 +117,7 @@ export function parseLobbySettings(input: unknown): LobbySettings {
   // Case décochée par défaut : pas de bonus (BON-1).
   const bonusesEnabled = Boolean(fields.bonusesEnabled);
   return {
+    visibility,
     textLanguage,
     textLength,
     textComplexity,

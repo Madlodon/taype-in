@@ -14,6 +14,7 @@ type Props = { settings?: LobbySettings; locale: string };
 // Sans réglages, la langue du texte suit celle de l'interface.
 export function LobbySettingsFields({ settings, locale }: Props) {
   const t = useTranslations("NewLobby");
+  const visibility = settings?.visibility ?? "public";
   const textLanguage = settings?.textLanguage ?? (locale === "en" ? "en" : "fr");
   const textLength = settings?.textLength ?? 100;
   const textComplexity = settings?.textComplexity ?? "medium";
@@ -26,6 +27,14 @@ export function LobbySettingsFields({ settings, locale }: Props) {
   const capacity = settings?.capacity ?? MAX_CAPACITY;
   return (
     <>
+      {/* SALLE-03 : la visibilité se change aussi entre deux courses. */}
+      <fieldset>
+        <legend className="text-sm font-semibold">{t("visibility")}</legend>
+        {(["public", "unlisted", "private"] as const).map((value) => (
+          <label key={value} className="radio-option">
+            <input type="radio" name="visibility" value={value} defaultChecked={value === visibility} />{t(value)}</label>
+        ))}
+      </fieldset>
       <fieldset>
         <legend className="text-sm font-semibold">{t("textLanguage")}</legend>
         <label className="radio-option">
