@@ -10,7 +10,6 @@ export type FieldMotion = {
   decisionIn: number;
   seed: number;
   edgeTurn: boolean;
-  detourIn?: number;
 };
 
 // Leave room for the largest car and its ball, even during a turn.
@@ -53,67 +52,36 @@ export function createFieldCars(ids: readonly string[], previous: readonly Field
   return cars;
 }
 
-// Optional pursuit targets leave spawn placement and car spacing independent (#182).
-// Call with short time steps so avoidance also works at low rendering frame rates.
-export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boosting: ReadonlySet<string> = new Set(), pursuit: ReadonlyMap<string, FieldBall> = new Map(), scale = .45): FieldMotion[] {
-  const clearance = fieldClearance(scale);
+// Each car pursues its own ball; other cars do not interrupt its path.
+export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boosting: ReadonlySet<string> = new Set(), pursuit: ReadonlyMap<string, FieldBall> = new Map()): FieldMotion[] {
   return cars.map(car => {
-    const next = { ...car, decisionIn: car.decisionIn - seconds, detourIn: Math.max(0, (car.detourIn ?? 0) - seconds) };
+    const next = { ...car, decisionIn: car.decisionIn - seconds };
     if (next.decisionIn <= 0) {
       const choice = random(next);
       const turn = choice < .25 ? 1 : choice < .5 ? -1 : 0;
       const target = car.heading + turn * (.6 + random(next) * .7);
-      if (!car.edgeTurn && !next.detourIn) next.targetHeading = target;
+      if (!car.edgeTurn) next.targetHeading = target;
       next.decisionIn += 2 + random(next) * 2;
     }
 
     const ball = pursuit.get(car.id);
-    if (ball && !ball.shot && !car.edgeTurn && !next.detourIn) {
+    if (ball && !ball.shot && !car.edgeTurn) {
       next.targetHeading = Math.atan2(ball.y - car.y, ball.x - car.x);
     }
 
-    // Avoid obstacles along the pursuit path, even while turning back to a ball.
     const travelHeading = ball && !ball.shot ? next.targetHeading : car.heading;
-    const forwardX = Math.cos(travelHeading), forwardY = Math.sin(travelHeading);
     let speed = car.speed * (boosting.has(car.id) ? 2 : 1);
-    let nearest = Infinity;
-    let detourDuration = 2.5;
-    for (const other of cars) {
-      if (other.id === car.id) continue;
-      const dx = other.x - car.x, dy = other.y - car.y;
-      const distance = Math.hypot(dx, dy);
-      const ahead = dx * forwardX + dy * forwardY;
-      const side = forwardX * dy - forwardY * dx;
-      if (ahead <= 0 || distance > clearance + 5 || Math.abs(side) > clearance) continue;
-      if (distance < nearest && !next.detourIn) {
-        nearest = distance;
-        // Stagger their return so two drivers do not resume the same chase together.
-        detourDuration = car.id < other.id ? 2.5 : 5;
-        // Both drivers bear right in a head-on encounter.
-        const bearing = Math.atan2(dy, dx);
-        const turn = Math.PI / 2 + Math.max(0, (clearance + 3 - distance) / 3);
-        const right = bearing - turn, left = bearing + turn;
-        const room = (heading: number) => Math.min(
-          LIMIT_X - Math.abs(car.x + Math.cos(heading) * 6),
-          LIMIT_Y - Math.abs(car.y + Math.sin(heading) * 6));
-        next.targetHeading = room(right) < 1 && room(left) > room(right) ? left : right;
-      }
-    }
 
-    // Finish the turn and drive clear before pursuing again. A short timer expires
-    // mid-turn and makes nearby drivers repeatedly rotate toward each other.
-    if (nearest < Infinity && ball && !ball.shot) next.detourIn = detourDuration;
-
-    // Finish an inward turn even when avoidance temporarily takes us away from a ball.
+    // Finish an inward turn before resuming pursuit.
     const edgeMargin = ball && !ball.shot ? .5 : 2;
     const edgeLookahead = ball && !ball.shot ? .5 : 1.4;
-    const edgeHeading = nearest < Infinity ? next.targetHeading : travelHeading;
+    const edgeHeading = travelHeading;
     if (!car.edgeTurn && (Math.abs(car.x + Math.cos(edgeHeading) * speed * edgeLookahead) > LIMIT_X - edgeMargin ||
         Math.abs(car.y + Math.sin(edgeHeading) * speed * edgeLookahead) > LIMIT_Y - edgeMargin)) {
       next.targetHeading = Math.atan2(-car.y, -car.x);
       next.edgeTurn = true;
     }
-    // Avoidance must not keep pointing through a wall while the boundary brake is on.
+    // Keep the target inside the field while the boundary brake is on.
     let targetX = Math.cos(next.targetHeading), targetY = Math.sin(next.targetHeading);
     if (Math.abs(car.x) > LIMIT_X - edgeMargin && targetX * car.x > 0) targetX *= -1;
     if (Math.abs(car.y) > LIMIT_Y - edgeMargin && targetY * car.y > 0) targetY *= -1;
@@ -127,16 +95,6 @@ export function stepFieldCars(cars: readonly FieldMotion[], seconds: number, boo
     const roomX = Math.abs(vx) < 1e-8 ? Infinity : (LIMIT_X - Math.sign(vx) * car.x) / Math.abs(vx);
     const roomY = Math.abs(vy) < 1e-8 ? Infinity : (LIMIT_Y - Math.sign(vy) * car.y) / Math.abs(vy);
     speed = Math.max(0, Math.min(speed, roomX * 2, roomY * 2));
-    // Edge steering can override avoidance; still leave braking room for a neighbour.
-    for (const other of cars) {
-      if (other.id === car.id) continue;
-      const dx = other.x - car.x, dy = other.y - car.y;
-      if (dx * vx + dy * vy > 0) {
-        const distance = Math.hypot(dx, dy);
-        const closing = (dx * vx + dy * vy) / distance;
-        speed = Math.min(speed, Math.max(0, (distance - clearance) * 2 / closing));
-      }
-    }
     if (ball && !ball.shot) {
       // Turn toward a missed ball before advancing, instead of orbiting it forever.
       const bearing = next.targetHeading - next.heading;
@@ -206,17 +164,19 @@ export function stepFieldBalls(balls: readonly FieldBall[], cars: readonly Field
         next[velocity] *= -.65;
       }
     }
-    const car = cars.find(car => car.id === ball.id)!;
-    const dx = next.x - car.x, dy = next.y - car.y;
-    const distance = Math.hypot(dx, dy);
-    const ahead = dx * Math.cos(car.heading) + dy * Math.sin(car.heading);
-    const contact = ballContactDistance(scale, bodies.get(car.id));
-    if (next.sinceContact > .25 && ahead > 0 && distance <= contact + .25) {
-      const speed = car.speed * (boosting.has(car.id) ? 2 : 1) + 9;
-      next.vx = Math.cos(car.heading) * speed;
-      next.vy = Math.sin(car.heading) * speed;
-      next.sinceContact = 0;
-      next.contacts++;
+    // Any bumper can kick a ground ball without changing its owner.
+    for (const car of cars) {
+      const dx = next.x - car.x, dy = next.y - car.y;
+      const distance = Math.hypot(dx, dy);
+      const ahead = dx * Math.cos(car.heading) + dy * Math.sin(car.heading);
+      const contact = ballContactDistance(scale, bodies.get(car.id));
+      if (next.sinceContact > .25 && ahead > 0 && distance <= contact + .25) {
+        const speed = car.speed * (boosting.has(car.id) ? 2 : 1) + 9;
+        next.vx = Math.cos(car.heading) * speed;
+        next.vy = Math.sin(car.heading) * speed;
+        next.sinceContact = 0;
+        next.contacts++;
+      }
     }
     // Resolve overlap separately from kicks: cooldowns and side/rear contacts
     // must never leave a ball inside either its driver or a neighbouring car.

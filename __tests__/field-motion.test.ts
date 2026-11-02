@@ -76,33 +76,12 @@ test("Should_ChooseLeftRightAndStraight_WithTheAgreedProbabilitiesAndTiming", ()
   expect(counts[2] / 4000).toBeCloseTo(.5, 1);
 });
 
-test("Should_SteerAndSlowDown_When_TwoCarsApproachHeadOn", () => {
-  let cars = createFieldCars(["a", "b"]).map((car, index) => ({ ...car,
-    x: index === 0 ? -6 : 6, y: 0, heading: index * Math.PI,
-    targetHeading: index * Math.PI, decisionIn: 20, speed: 6,
+test("Should_KeepDriving_When_AnotherCarOccupiesTheSamePosition", () => {
+  const cars = createFieldCars(["a", "b"]).map(car => ({ ...car,
+    x: 0, y: 0, heading: 0, targetHeading: 0, decisionIn: 20, speed: 6,
   }));
   const next = stepFieldCars(cars, 1 / 60);
-  expect(next.every((car, index) => car.heading < cars[index].heading)).toBe(true);
-  let minimumDistance = Infinity;
-  let slowed = false;
-  for (let step = 0; step < 600; step++) {
-    const next = stepFieldCars(cars, 1 / 60);
-    slowed ||= Math.hypot(next[0].x - cars[0].x, next[0].y - cars[0].y) < .08;
-    cars = next;
-    minimumDistance = Math.min(minimumDistance, Math.hypot(cars[0].x - cars[1].x, cars[0].y - cars[1].y));
-  }
-  expect(slowed).toBe(true);
-  expect(minimumDistance).toBeGreaterThan(4.2);
-});
-
-test("Should_ResumeNormalSpeed_When_ThePathClears", () => {
-  const [car, other] = createFieldCars(["a", "b"]);
-  const driver = { ...car, x: 0, y: 0, heading: 0, targetHeading: 0, decisionIn: 10 };
-  const obstacle = { ...other, x: 6, y: 0 };
-  const slow = stepFieldCars([driver, obstacle], 1 / 60)[0];
-  const clear = stepFieldCars([slow], 1 / 60)[0];
-  expect(Math.hypot(clear.x - slow.x, clear.y - slow.y)).toBeCloseTo(car.speed / 60);
-  expect(Math.hypot(slow.x, slow.y)).toBeLessThan(car.speed / 60);
+  for (const car of next) expect(car).toMatchObject({ x: .1, y: 0, heading: 0 });
 });
 
 test("Should_KeepCarsAndDribbledBallsInsideTheGrass_DuringLongBoostedWandering", () => {
@@ -140,7 +119,7 @@ test("Should_DoubleTravel_When_BoostingOnAClearStretch", () => {
   expect(cars[0].x).toBe(0);
 });
 
-test("Should_KeepWanderingPreviewCarsApart_OverSeveralMinutes", () => {
+test("Should_AllowWanderingPreviewCarsToCross_OverSeveralMinutes", () => {
   let cars = createFieldCars(["you", "nova", "blitz", "echo"]);
   let minimumDistance = Infinity;
   for (let step = 0; step < 60 * 300; step++) {
@@ -149,7 +128,7 @@ test("Should_KeepWanderingPreviewCarsApart_OverSeveralMinutes", () => {
       minimumDistance = Math.min(minimumDistance, Math.hypot(car.x - other.x, car.y - other.y));
     }
   }
-  expect(minimumDistance).toBeGreaterThan(4.2);
+  expect(minimumDistance).toBeLessThan(1);
 });
 
 

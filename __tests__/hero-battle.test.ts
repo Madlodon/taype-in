@@ -38,19 +38,16 @@ test("Should_UseTheFourGarageCarsAndExistingBallDesigns", () => {
 });
 
 
-test("Should_KeepPreviewCarsApartWhileWanderingThroughoutTheBattle", () => {
+test("Should_KeepPreviewCarsInsideTheFieldThroughoutTheBattle", () => {
   const cars = battleCars(0, "You");
   expect(new Set(cars.map(car => car.lane)).size).toBe(cars.length);
   const clearance = 2 * Math.hypot(3.6, 2) * MAX_CAR_SCALE;
   let poses = createFieldCars(cars.map(car => car.id));
   for (let seconds = 0; seconds < 300; seconds += 1 / 60) {
     poses = stepFieldCars(poses, 1 / 60);
-    for (const [index, pose] of poses.entries()) {
+    for (const pose of poses) {
       expect(Math.abs(pose.x) + clearance / 2).toBeLessThan(DRIVING_AREA.halfLength);
       expect(Math.abs(pose.y) + clearance / 2).toBeLessThan(DRIVING_AREA.halfWidth);
-      for (const other of poses.slice(index + 1)) {
-        expect(Math.hypot(pose.x - other.x, pose.y - other.y)).toBeGreaterThan(clearance);
-      }
     }
   }
 });

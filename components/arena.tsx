@@ -102,7 +102,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
           }
           for (const shot of Object.values(shots)) if (shot.receivedAt > cursor) end = Math.min(end, shot.receivedAt);
           const boosting = new Set(Object.keys(boosts).filter(id => cursor >= boosts[id] && cursor < boosts[id] + BOOST_MS));
-          drivers = stepFieldCars(drivers, (end - cursor) / 1000, boosting, new Map(balls.map(ball => [ball.id, ball])), scale);
+          drivers = stepFieldCars(drivers, (end - cursor) / 1000, boosting, new Map(balls.map(ball => [ball.id, ball])));
           balls = stepFieldBalls(balls, drivers, (end - cursor) / 1000, boosting, scale, bodies);
           cursor = end;
         }
