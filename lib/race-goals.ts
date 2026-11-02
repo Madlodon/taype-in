@@ -1,7 +1,7 @@
 // Original text offsets stay stable across goals, reconnects and in-flight input.
 export type RemovedWord = { start: number; end: number };
 export const SHOT_MS = 1200;
-// Chance qu'une phrase finie marque un but, pour tous les joueurs.
+// Chance qu'une phrase finie par un joueur en retard marque un but.
 export const GOAL_CHANCE = .3;
 // A word, with French apostrophes and hyphens kept inside it.
 export const WORD_PATTERN = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu;

@@ -235,6 +235,10 @@ test("Should_HideFromListAndShowInviteLinks_When_HostMakesPublicRacePrivate", as
   await expect(participants(player.page)).toHaveCount(2);
 });
 
+function inviteStatus(page: Page, link: string) {
+  return page.getByRole("list", { name: "État des liens" }).locator("li", { hasText: link }).locator("span");
+}
+
 async function generateInvites(page: Page, count: number): Promise<string[]> {
   await page.getByLabel("Nombre de liens").fill(String(count));
   await page.getByRole("button", { name: "Générer les liens" }).click();
@@ -254,6 +258,7 @@ test("Should_JoinPrivateRaceOnlyByInviteLink_When_HostGeneratesLinks", async ({
   expect(links).toHaveLength(3);
   expect(new Set(links).size).toBe(3);
   await expect(host.page.getByText("0 sur 3 liens utilisés")).toBeVisible();
+  for (const link of links) await expect(inviteStatus(host.page, link)).toHaveText("Non utilisé");
 
   // Ni dans la liste, ni par le code, ni par l'adresse directe.
   const outsider = await newGuest(browser, "203.0.113.7");
@@ -280,6 +285,8 @@ test("Should_JoinPrivateRaceOnlyByInviteLink_When_HostGeneratesLinks", async ({
 
   await host.page.reload();
   await expect(host.page.getByText("1 sur 3 liens utilisés")).toBeVisible();
+  await expect(inviteStatus(host.page, links[0])).toHaveText(`Utilisé par ${student.name}`);
+  await expect(inviteStatus(host.page, links[1])).toHaveText("Non utilisé");
   expect(
     (await host.page.getByLabel("Liens non utilisés (un par ligne)").inputValue()).split("\n"),
   ).toEqual(links.slice(1));

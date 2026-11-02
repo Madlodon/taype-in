@@ -1323,6 +1323,34 @@ a, button, input {
   text-align: center;
 }
 
+/* État de chaque lien d'invitation pour l'hôte (SALLE-04). */
+.invite-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.invite-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.invite-list code {
+  min-width: 0;
+  color: var(--muted);
+  font: 11px var(--font-jetbrains-mono);
+  overflow-wrap: anywhere;
+}
+
+.invite-list span {
+  flex-shrink: 0;
+  font-weight: 650;
+}
+
 .room-info {
   margin-top: 22px;
   padding: 16px;

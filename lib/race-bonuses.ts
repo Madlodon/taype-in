@@ -12,9 +12,10 @@ export const SLOW_LETTER_MS = 1000;
 export const ADDED_WORDS = 3;
 
 // Points de contrôle du meneur (BONUS-01) : chaque fois qu'il en passe un, les joueurs en retard
-// reçoivent un bonus. Un seul par point de contrôle, donc au plus 3 par joueur et par course.
+// reçoivent un bonus. Avec les buts de fin de phrase, au plus 3 par joueur et par course.
 export const CHECKPOINTS = [0.25, 0.5, 0.75];
 export const BEHIND_GAP = 0.25;
+export const MAX_BONUSES = 3;
 
 // Nombre de points de contrôle passés par le meneur ; progress = part du texte tapée.
 export function checkpointsPassed(leader: number) {

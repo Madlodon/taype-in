@@ -316,7 +316,10 @@
     "generate": "Generate links",
     "usage": "{used} of {total} links used",
     "unusedLinks": "Unused links (one per line)",
-    "none": "No links yet."
+    "none": "No links yet.",
+    "statusList": "Link status",
+    "unused": "Unused",
+    "usedBy": "Used by {name}"
   },
   "InvitePage": {
     "title": "Race invitation",
