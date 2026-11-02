@@ -170,6 +170,7 @@
     "gaveUp": "You gave up: you're watching the rest of the race.",
     "errors": {
       "notLoggedIn": "Not logged in",
+      "serverError": "Server error. Try again.",
       "invalidMessage": "Invalid message",
       "lobbyNotFound": "Race not found",
       "tooManyAttempts": "Too many attempts. Try again in a minute.",

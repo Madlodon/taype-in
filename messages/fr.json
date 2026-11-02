@@ -170,6 +170,7 @@
     "gaveUp": "Tu as abandonné : tu regardes la fin de la course.",
     "errors": {
       "notLoggedIn": "Non connecté",
+      "serverError": "Erreur du serveur. Réessaie.",
       "invalidMessage": "Message invalide",
       "lobbyNotFound": "Course introuvable",
       "tooManyAttempts": "Trop d'essais. Réessayez dans une minute.",
