@@ -1986,6 +1986,24 @@ describe("host transfer", () => {
     expect(await findOpenLobby(lobby.code)).toBeNull();
   });
 
+  test("Should_NeverStartRace_When_LobbyClosesDuringCountdown", async () => {
+    await io.close();
+    await startServer({ hostGraceMs: 50, countdownMs: 300 });
+    const host = await newUser();
+    const lobby = await createLobby(host.id, "unlisted");
+    const hostClient = await newClient(host);
+    await join(hostClient, { code: lobby.code });
+    await hostClient.emitWithAck("lobby:addBot", { level: "expert" });
+    await hostClient.emitWithAck("race:start", { watch: false });
+
+    hostClient.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    expect(await findOpenLobby(lobby.code)).toBeNull();
+    const [race] = await db.select().from(races).where(eq(races.lobbyId, lobby.id));
+    expect(race.startedAt).toBeNull();
+  });
+
   test("Should_KeepHost_When_HostComesBackInTime", async () => {
     await io.close();
     await startServer({ hostGraceMs: 300 });
