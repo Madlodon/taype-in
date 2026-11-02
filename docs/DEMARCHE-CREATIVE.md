@@ -246,6 +246,8 @@ rendus sans réécrire l’historique.
 Dans la barre de navigation, le logo orange est à gauche et le bleu à droite, comme deux équipes face à face.
 Le favicon ([`app/icon.svg`](../app/icon.svg)) reprend le logo bleu en thème clair et l'orange en sombre. Il suit le thème du navigateur, car le thème choisi sur le site ne lui est pas accessible.
 
+Je n'ai pas gardé les croquis faits avant le logo final, donc aucune photo n'est jointe.
+
 ### Versions précédentes
 
 Première version, une Octane avec une traînée de boost, sans le nom. Ces images avaient été générées par IA ; elles sont écartées, car le logo doit être fait sans IA (DES-02).
