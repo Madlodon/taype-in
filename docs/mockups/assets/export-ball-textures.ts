@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
+import type { Loadout } from "../../../lib/garage-items.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const directory = join(tmpdir(), "taype-garage-ball-textures");
@@ -23,7 +24,9 @@ await build({
   },
   bundle: true, platform: "node", format: "cjs", jsx: "automatic", outfile: modulePath,
 });
-const { BALLS, renderBall } = createRequire(import.meta.url)(modulePath);
+type Ball = Loadout["ball"];
+const { BALLS, renderBall }: { BALLS: readonly Ball[]; renderBall: (ball: Ball) => string } =
+  createRequire(import.meta.url)(modulePath);
 for (const ball of BALLS) {
   await sharp(Buffer.from(renderBall(ball))).png().toFile(join(directory, `${ball}.png`));
 }

@@ -200,7 +200,7 @@ Régénérer les 24 planches de voitures et les six sprites de ballons :
 
 ```bash
 /Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/field-preview.py
-node docs/mockups/assets/export-ball-textures.mjs
+node docs/mockups/assets/export-ball-textures.ts
 /Applications/Blender.app/Contents/MacOS/Blender -b -t 8 -P docs/mockups/assets/garage-ball-preview.py
 ```
 
@@ -208,7 +208,7 @@ Construire l’aperçu avec les dépendances déjà présentes, puis servir le d
 temporaire affiché par la commande (le fichier HTML ne s’ouvre plus seul) :
 
 ```bash
-node docs/mockups/build-arena-preview.mjs
+node docs/mockups/build-arena-preview.ts
 python3 -m http.server 8765 --bind 127.0.0.1 --directory <dossier-affiché>
 # http://127.0.0.1:8765/7-arena-sprite-preview.html
 ```
