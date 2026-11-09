@@ -17,7 +17,7 @@ Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et ch
 | ID | Exigence | Statut | Fichiers principaux | Tests | Issues | Notes et choix |
 | -- | -------- | ------ | ------------------- | ----- | ------ | -------------- |
 | TECH-01 | Next.js (App Router) avec React | Fait | [`app/layout.tsx`](../app/layout.tsx), [`server.ts`](../server.ts) | Toute la suite ; build dans la CI | [#7][i7] | Next.js 16, serveur personnalisé pour Socket.IO sur le même port. |
-| TECH-02 | TypeScript à 100 % | Fait | [`tsconfig.json`](../tsconfig.json), [`eslint.config.mjs`](../eslint.config.mjs) | [typescript-only.test.ts](../__tests__/typescript-only.test.ts) | [#137][i137] | `strict`, `allowJs` désactivé, `no-explicit-any` en erreur, `@ts-expect-error` seulement avec une description. |
+| TECH-02 | TypeScript à 100 % | Fait | [`tsconfig.json`](../tsconfig.json), [`eslint.config.mjs`](../eslint.config.mjs) | [typescript-only.test.ts](../__tests__/typescript-only.test.ts) | [#137][i137], [#241][i241] | `strict`, `allowJs` désactivé, `no-explicit-any` en erreur, `@ts-expect-error` seulement avec une description. Aucun `.js`, `.jsx`, `.cjs` ni `.mjs`, sauf les configurations d'ESLint et de PostCSS (`eslint.config.mjs`, `postcss.config.mjs`) ; le test le vérifie. |
 | TECH-03 | Tailwind CSS | Fait | [`app/globals.css`](../app/globals.css) | — | [#7][i7] | Tailwind v4 ; jetons de couleur dans `globals.css`. |
 | TECH-04 | PostgreSQL, migrations versionnées, script de seed | Fait | [`db/schema.ts`](../db/schema.ts), [`db/migrations`](../db/migrations), [`scripts/seed.ts`](../scripts/seed.ts) | [db/schema.test.ts](../__tests__/db/schema.test.ts), [db/migrate.test.ts](../__tests__/db/migrate.test.ts), [seed.test.ts](../__tests__/seed.test.ts) | [#5][i5], [#2][i2], [#135][i135] | Drizzle. Le corpus de textes est dans les migrations ; `bun run db:seed` crée le compte de démo, cinq adversaires et 24 courses. Relancer le script réinitialise ces données ; en local seulement. |
 | TECH-05 | Déployé sur un VPS, public en HTTPS | Fait | [`compose.prod.yml`](../compose.prod.yml), [`Caddyfile`](../Caddyfile) | Vérifié à la main sur https://laniproject.dev | [#13][i13], [#38][i38] | AWS EC2 + Docker Compose ; Caddy obtient le certificat Let's Encrypt. |
@@ -256,3 +256,4 @@ Les choix faits devant une exigence ambiguë sont dans la colonne « Notes et ch
 [i161]: https://github.com/Madlodon/taype-in/issues/161
 [i183]: https://github.com/Madlodon/taype-in/issues/183
 [i224]: https://github.com/Madlodon/taype-in/issues/224
+[i241]: https://github.com/Madlodon/taype-in/issues/241
