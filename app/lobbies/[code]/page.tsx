@@ -51,7 +51,6 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
           {isHost && lobby.visibility !== "public" && <InviteLinks lobby={lobby} />}
           <section className="panel">
             <h2>{d("nextUp")}</h2>
-            <p className="description">{d("raceComing")}</p>
             <p className="room-info">{d("previewSeparate")}</p>
             <Link href="/race" className="text-link inline-block mt-5">{d("tryPreview")} →</Link>
           </section>
