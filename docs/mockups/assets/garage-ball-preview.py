@@ -1,4 +1,4 @@
-# First run: node docs/mockups/assets/export-ball-textures.mjs
+# First run: node docs/mockups/assets/export-ball-textures.ts
 # Then: Blender -b -t 8 -P docs/mockups/assets/garage-ball-preview.py
 import json
 import os

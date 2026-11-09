@@ -17,6 +17,16 @@ test("Should_HaveNoJavaScriptFiles_When_ListingTrackedFiles", () => {
   expect(files.filter((file) => /\.jsx?$/.test(file))).toEqual([]);
 });
 
+// Seules les configurations d'ESLint et de PostCSS restent en .mjs (#137).
+test("Should_HaveOnlyConfigModules_When_ListingMjsAndCjsFiles", () => {
+  const files = execFileSync("git", ["ls-files"], { encoding: "utf8" }).split("\n");
+
+  expect(files.filter((file) => /\.[mc]js$/.test(file))).toEqual([
+    "eslint.config.mjs",
+    "postcss.config.mjs",
+  ]);
+});
+
 test("Should_ReportError_When_UsingExplicitAny", async () => {
   expect(await lint("export const value: any = 1;\n")).toContain(
     "@typescript-eslint/no-explicit-any",

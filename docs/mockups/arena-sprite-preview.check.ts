@@ -1,35 +1,47 @@
-// node --test docs/mockups/arena-sprite-preview.check.mjs
-import { test, before, after } from "node:test";
+// node --test docs/mockups/arena-sprite-preview.check.ts
+import { test, before, after, type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { createServer } from "node:http";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { readFile } from "node:fs/promises";
 import { join, extname } from "node:path";
-import { chromium } from "@playwright/test";
-import { buildPreview } from "./build-arena-preview.mjs";
+import { chromium, type Browser } from "@playwright/test";
+import { buildPreview } from "./build-arena-preview.ts";
 
-let browser, server, url;
+// Compteur posé sur la page par le test de contact avec le ballon.
+declare global {
+  interface Window { contactCount: number }
+}
+
+const contentTypes: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.webp': 'image/webp' };
+
+let browser: Browser | undefined;
+let server: Server | undefined;
+let url = '';
 before(async () => {
   const directory = await buildPreview();
-  server = createServer(async (request, response) => {
+  const listening = createServer(async (request, response) => {
     try {
-      const path = new URL(request.url, 'http://localhost').pathname;
+      const path = new URL(request.url ?? '/', 'http://localhost').pathname;
       const bytes = await readFile(join(directory, path));
-      response.setHeader('Content-Type', ({ '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.webp': 'image/webp' })[extname(path)] ?? 'application/octet-stream');
+      response.setHeader('Content-Type', contentTypes[extname(path)] ?? 'application/octet-stream');
       response.end(bytes);
     } catch {
       response.writeHead(404).end();
     }
   });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  url = `http://127.0.0.1:${server.address().port}/7-arena-sprite-preview.html`;
+  server = listening;
+  await new Promise<void>(resolve => listening.listen(0, '127.0.0.1', resolve));
+  url = `http://127.0.0.1:${(listening.address() as AddressInfo).port}/7-arena-sprite-preview.html`;
   browser = await chromium.launch();
 });
-after(async () => { await browser?.close(); await new Promise(resolve => server?.close(resolve)); });
+after(async () => { await browser?.close(); await new Promise(resolve => server ? server.close(resolve) : resolve(undefined)); });
 
-async function openPreview(t) {
+async function openPreview(t: TestContext) {
+  if (!browser) throw new Error('browser not started');
   const page = await browser.newPage({ viewport: { width: 1200, height: 1000 } });
   t.after(() => page.close());
-  const errors = [];
+  const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   t.after(() => assert.deepEqual(errors, []));
   await page.clock.install();
@@ -41,10 +53,10 @@ async function openPreview(t) {
 
 const player = '[data-car-id="preview"]';
 
-test('uses the current diorama and preserves car and ball positions when switching styles', async t => {
+test('uses the current diorama and preserves car and ball positions when switching styles', async (t: TestContext) => {
   const page = await openPreview(t);
   assert.equal(await page.locator('.arena').getAttribute('data-stadium'), 'diorama');
-  const sources = await page.locator('.arena image').evaluateAll(nodes => [...new Set(nodes.map(node => node.getAttribute('href')))]);
+  const sources = await page.locator('.arena image').evaluateAll(nodes => [...new Set(nodes.map(node => node.getAttribute('href') ?? ''))]);
   assert.ok(sources.includes('/stadiums/diorama.webp'));
   assert.ok(sources.includes('/sprites/cars/diorama/octane-blue.png'));
   assert.ok(sources.includes('/sprites/cars/diorama/octane-orange.png'));
@@ -70,7 +82,7 @@ test('uses the current diorama and preserves car and ball positions when switchi
   assert.ok(Math.abs(Number(size) * 1.8 / 2.4 - 32) < .001);
 });
 
-test('keeps free driving, ball contact, boost, shots and the finish celebration', async t => {
+test('keeps free driving, ball contact, boost, shots and the finish celebration', async (t: TestContext) => {
   const page = await openPreview(t);
   const ball = page.locator(`${player} [data-field-ball]`);
   const start = await ball.getAttribute('transform');
@@ -85,7 +97,7 @@ test('keeps free driving, ball contact, boost, shots and the finish celebration'
       for (const record of records) for (const node of record.addedNodes) {
         if (node instanceof Element && (node.matches('[data-ball-impact]') || node.querySelector('[data-ball-impact]'))) window.contactCount++;
       }
-    }).observe(document.querySelector('.arena'), { childList: true, subtree: true });
+    }).observe(document.querySelector('.arena') as Element, { childList: true, subtree: true });
   });
   await page.getByRole('button', { name: 'Boost', exact: true }).click();
   await page.clock.runFor(32);
@@ -102,7 +114,7 @@ test('keeps free driving, ball contact, boost, shots and the finish celebration'
   await page.clock.runFor(600);
   assert.notEqual(await ball.getAttribute('transform'), shot);
   await page.clock.runFor(3000);
-  const prompt = await page.locator('.prompt').getAttribute('aria-label');
+  const prompt = await page.locator('.prompt').getAttribute('aria-label') ?? '';
   await page.locator('textarea').fill(prompt);
   await page.clock.runFor(1500);
   assert.equal(await page.locator(`${player} [data-finish-goal]`).count(), 1);
@@ -112,7 +124,7 @@ test('keeps free driving, ball contact, boost, shots and the finish celebration'
   assert.equal(await page.locator('[data-finish-goal]').count(), 0);
 });
 
-test('keyboard toggle works and preview fits narrow screens', async t => {
+test('keyboard toggle works and preview fits narrow screens', async (t: TestContext) => {
   const page = await openPreview(t);
   await page.setViewportSize({ width: 360, height: 780 });
   const current = page.getByRole('button', { name: 'Actuelles', exact: true });
@@ -129,19 +141,19 @@ test('keyboard toggle works and preview fits narrow screens', async t => {
 });
 
 
-test('every garage ball keeps its selected look in both modes without resetting motion', async t => {
+test('every garage ball keeps its selected look in both modes without resetting motion', async (t: TestContext) => {
   const page = await openPreview(t);
   const ball = page.locator(`${player} [data-field-ball]`);
   await page.clock.runFor(1000);
   const position = await ball.getAttribute('transform');
   const choices = [['none', 'Standard'], ['beach', 'Plage'], ['emerald', 'Émeraude'], ['glacier', 'Glacier'], ['solar', 'Solaire'], ['gold', 'Doré']];
-  const sources = [];
+  const sources: string[] = [];
   for (const [finish, label] of choices) {
     await page.getByRole('group', { name: 'Ballons du garage' }).getByRole('button', { name: label, exact: true }).click();
     assert.equal(await ball.getAttribute('data-field-ball'), finish);
     assert.equal(await ball.getAttribute('transform'), position);
     const image = ball.locator('[data-sprite-ball] image');
-    const source = await image.getAttribute('href');
+    const source = await image.getAttribute('href') ?? '';
     assert.equal(source, `/sprites/balls/${finish}.png`);
     sources.push(source);
     await page.getByRole('button', { name: 'Actuelles', exact: true }).click();
@@ -160,15 +172,15 @@ test('every garage ball keeps its selected look in both modes without resetting 
 });
 
 
-test('every car, team and stadium loads its production atlas and switches without moving', async t => {
+test('every car, team and stadium loads its production atlas and switches without moving', async (t: TestContext) => {
   const page = await openPreview(t);
-  const sources = new Set();
+  const sources = new Set<string>();
   for (const stadium of ['diorama', 'cutaway', 'top-down']) {
     await page.getByLabel('Stade', { exact: true }).selectOption(stadium);
     for (const body of ['octane', 'fennec', 'dominus', 'merc']) {
       await page.getByLabel('Voiture', { exact: true }).selectOption(body);
       const sprites = page.locator('.arena [data-body] image');
-      const paths = await sprites.evaluateAll(nodes => nodes.map(node => node.getAttribute('href')));
+      const paths = await sprites.evaluateAll(nodes => nodes.map(node => node.getAttribute('href') ?? ''));
       assert.equal(paths.length, 4);
       assert.ok(paths.includes(`/sprites/cars/${stadium}/${body}-blue.png`));
       assert.ok(paths.includes(`/sprites/cars/${stadium}/${body}-orange.png`));
