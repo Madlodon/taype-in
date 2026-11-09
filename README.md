@@ -49,6 +49,23 @@ bun run db:seed             # optional: demo account and race history
 bun run dev                 # http://localhost:3000
 ```
 
+#### Environment variables
+
+All documented in [`.env.example`](.env.example). No secret is committed.
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Yes | PostgreSQL user, password (no special characters) and database created by Docker Compose |
+| `POSTGRES_PORT` | Yes | PostgreSQL port on the host (5432) |
+| `DATABASE_URL` | Yes | Connection string used by the app and Drizzle |
+| `PASSWORD_PEPPER` | Yes | Secret added to password hashing (`openssl rand -hex 32`); never change or lose it |
+| `PORT` | No | HTTP port of the Next.js + Socket.IO server (3000) |
+| `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | No | Discord sign-in; not offered without both |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | No | GitHub sign-in; not offered without both |
+| `APP_URL` | No | Public site address for the OAuth callback (default: the request address) |
+| `MAX_WPM` | No | Maximum speed accepted by the server, anti-cheat (300; `Infinity` in e2e tests) |
+| `DOMAIN` | Production | Domain served over HTTPS by Caddy (`compose.prod.yml`) |
+
 #### Commands
 
 | Command               | Purpose                                                  |
@@ -209,6 +226,23 @@ bun run db:migrate          # applique les migrations (dont le corpus de textes)
 bun run db:seed             # optionnel : compte de démo et historique de courses
 bun run dev                 # http://localhost:3000
 ```
+
+#### Variables d'environnement
+
+Toutes documentées dans [`.env.example`](.env.example). Aucun secret n'est commité.
+
+| Variable | Requise | Rôle |
+| --- | --- | --- |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Oui | Utilisateur, mot de passe (sans caractères spéciaux) et base PostgreSQL créés par Docker Compose |
+| `POSTGRES_PORT` | Oui | Port de PostgreSQL sur l'hôte (5432) |
+| `DATABASE_URL` | Oui | Chaîne de connexion de l'application et de Drizzle |
+| `PASSWORD_PEPPER` | Oui | Secret ajouté au hachage des mots de passe (`openssl rand -hex 32`) ; ne jamais le changer ni le perdre |
+| `PORT` | Non | Port HTTP du serveur Next.js + Socket.IO (3000) |
+| `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | Non | Connexion Discord ; non offerte sans les deux |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Non | Connexion GitHub ; non offerte sans les deux |
+| `APP_URL` | Non | Adresse publique du site pour le rappel OAuth (par défaut : l'adresse de la requête) |
+| `MAX_WPM` | Non | Vitesse maximale acceptée par le serveur, anti-triche (300 ; `Infinity` en e2e) |
+| `DOMAIN` | Production | Domaine servi en HTTPS par Caddy (`compose.prod.yml`) |
 
 #### Commandes
 
