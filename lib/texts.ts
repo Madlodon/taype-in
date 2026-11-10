@@ -8,7 +8,7 @@ export type TextLanguage = (typeof texts.$inferSelect)["language"];
 export type TextComplexity = (typeof texts.$inferSelect)["complexity"];
 
 // Nombre de mots proposés à l'hôte.
-export const TEXT_LENGTHS = [50, 100, 200] as const;
+export const TEXT_LENGTHS = [25, 50, 100, 200] as const;
 export type TextLength = (typeof TEXT_LENGTHS)[number];
 
 export const COMPLEXITIES = ["easy", "medium", "hard"] as const satisfies readonly TextComplexity[];

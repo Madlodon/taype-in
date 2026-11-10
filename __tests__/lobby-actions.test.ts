@@ -166,6 +166,16 @@ test.each([
   );
 });
 
+test("Should_SaveTwentyFiveWords_When_HostPicksShortestLength", async () => {
+  await expect(createLobbyAction(form({ textLength: "25" }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ textLength: 25 }),
+  );
+});
+
 test.each(["easy", "medium", "hard"])("Should_SaveComplexity_When_HostPicks_%s", async (textComplexity) => {
   await expect(createLobbyAction(form({ textComplexity }))).rejects.toThrow("NEXT_REDIRECT");
 

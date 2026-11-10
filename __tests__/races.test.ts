@@ -36,6 +36,7 @@ afterAll(async () => {
 });
 
 test.each([
+  ["fr", 25],
   ["fr", 50],
   ["en", 200],
 ] as const)(
