@@ -724,6 +724,28 @@ a, button, input {
   flex-shrink: 0;
 }
 
+.custom-length-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.custom-length .field {
+  display: none;
+}
+
+.custom-length:has(input[type="radio"]:checked) .field {
+  display: flex;
+}
+
+.custom-length .field input {
+  width: 100%;
+  max-width: 160px;
+  height: auto;
+  margin-top: 0;
+}
+
 .radio-option:has(input:disabled) {
   cursor: not-allowed;
   opacity: .55;

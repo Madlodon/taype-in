@@ -176,6 +176,45 @@ test("Should_SaveTwentyFiveWords_When_HostPicksShortestLength", async () => {
   );
 });
 
+test.each([1, 37, 250])("Should_SaveCustomLength_When_HostEnters_%i", async (words) => {
+  await expect(
+    createLobbyAction(form({ textLength: "custom", textLengthCustom: String(words) })),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ textLength: words }),
+  );
+});
+
+test.each(["", "0", "251", "12.5", "abc"])(
+  "Should_UseHundredWords_When_CustomLengthIs_%s",
+  async (textLengthCustom) => {
+    await expect(
+      createLobbyAction(form({ textLength: "custom", textLengthCustom })),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(lobbies.createLobby).toHaveBeenCalledWith(
+      "user-1",
+      "unlisted",
+      expect.objectContaining({ textLength: 100 }),
+    );
+  },
+);
+
+test("Should_IgnoreCustomNumber_When_PresetLengthIsPicked", async () => {
+  await expect(
+    createLobbyAction(form({ textLength: "50", textLengthCustom: "37" })),
+  ).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith(
+    "user-1",
+    "unlisted",
+    expect.objectContaining({ textLength: 50 }),
+  );
+});
+
 test.each(["easy", "medium", "hard"])("Should_SaveComplexity_When_HostPicks_%s", async (textComplexity) => {
   await expect(createLobbyAction(form({ textComplexity }))).rejects.toThrow("NEXT_REDIRECT");
 

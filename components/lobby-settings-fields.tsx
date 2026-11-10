@@ -6,7 +6,7 @@ import {
   TIMER_OPTIONS,
   type LobbySettings,
 } from "@/lib/lobbies";
-import { COMPLEXITIES, MAX_CUSTOM_TEXT, TEXT_LENGTHS, TEXT_TARGETS } from "@/lib/texts";
+import { COMPLEXITIES, MAX_CUSTOM_TEXT, MAX_TEXT_LENGTH, TEXT_LENGTHS, TEXT_TARGETS } from "@/lib/texts";
 
 type Props = { settings?: LobbySettings; locale: string };
 
@@ -17,6 +17,7 @@ export function LobbySettingsFields({ settings, locale }: Props) {
   const visibility = settings?.visibility ?? "public";
   const textLanguage = settings?.textLanguage ?? (locale === "en" ? "en" : "fr");
   const textLength = settings?.textLength ?? 100;
+  const customLength = !TEXT_LENGTHS.some((length) => length === textLength);
   const textComplexity = settings?.textComplexity ?? "medium";
   const textType = settings?.textType ?? "sentences";
   const errorMode = settings?.errorMode ?? "blocking";
@@ -49,6 +50,18 @@ export function LobbySettingsFields({ settings, locale }: Props) {
             <input type="radio" name="textLength" value={length} defaultChecked={length === textLength} />
             {t("words", { count: length })}</label>
         ))}
+        {/* Le champ du nombre de mots n'apparaît qu'avec « Personnalisée » cochée. */}
+        <label className="radio-option custom-length">
+          <input type="radio" name="textLength" value="custom" defaultChecked={customLength} />
+          <span className="custom-length-body">
+            {t("customLength")}
+            <span className="field">
+              <span aria-hidden="true">{t("customLengthWords", { max: MAX_TEXT_LENGTH })}</span>
+              <input type="number" name="textLengthCustom" aria-label={t("customLengthWords", { max: MAX_TEXT_LENGTH })}
+                min={1} max={MAX_TEXT_LENGTH} step={1} defaultValue={textLength} />
+            </span>
+          </span>
+        </label>
       </fieldset>
       <fieldset>
         <legend className="text-sm font-semibold">{t("complexity")}</legend>

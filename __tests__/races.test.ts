@@ -39,6 +39,7 @@ test.each([
   ["fr", 25],
   ["fr", 50],
   ["en", 200],
+  ["en", 37],
 ] as const)(
   "Should_CopyBankTextCutToLobbySettings_When_LobbyIs_%s_%i",
   async (textLanguage, textLength) => {
@@ -101,6 +102,12 @@ test("Should_UseScrambledWords_When_LobbyTextTypeIsWords", async () => {
 
   expect(race!.textId).toBeNull();
   expect(race!.content.split(" ")).toHaveLength(50);
+});
+
+test("Should_UseCustomWordCount_When_LobbyHasCustomLengthAndWords", async () => {
+  const race = await createRace(await newLobby({ textType: "words", textLength: 37 }));
+
+  expect(race!.content.split(" ")).toHaveLength(37);
 });
 
 test.each(["blocking", "tolerant"] as const)(

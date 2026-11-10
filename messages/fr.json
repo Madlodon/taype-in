@@ -86,6 +86,8 @@
     "english": "Anglais",
     "textLength": "Longueur du texte",
     "words": "{count} mots",
+    "customLength": "Personnalisée",
+    "customLengthWords": "Nombre de mots (1 à {max})",
     "complexity": "Complexité",
     "complexities": {
       "easy": "Facile : mots courts, sans chiffres ni caractères spéciaux",
