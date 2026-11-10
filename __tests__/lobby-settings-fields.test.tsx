@@ -160,3 +160,30 @@ test("Should_SelectLobbyVisibility_When_EditingSettings", () => {
 
   expect(visibility()).toBe("private");
 });
+
+function radio(name: string | RegExp) {
+  return screen.getByRole("radio", { name }) as HTMLInputElement;
+}
+
+test("Should_OfferTwentyFiveWordsAndCustom_When_CreatingLobby", () => {
+  fields();
+
+  const lengths = screen.getAllByRole("radio").filter((input) => input.getAttribute("name") === "textLength");
+  expect(lengths.map((input) => input.getAttribute("value"))).toEqual(["25", "50", "100", "200", "custom"]);
+  expect(radio("100 words").checked).toBe(true);
+  expect(radio(/^Custom/).checked).toBe(false);
+});
+
+test("Should_CheckCustomWithLobbyLength_When_LengthIsNotAPreset", () => {
+  fields({ ...settings, textLength: 37 });
+
+  expect(radio(/^Custom/).checked).toBe(true);
+  expect((screen.getByLabelText("Number of words (1 to 250)") as HTMLInputElement).value).toBe("37");
+});
+
+test("Should_CheckPresetLength_When_LobbyLengthIsAPreset", () => {
+  fields({ ...settings, textLength: 25 });
+
+  expect(radio("25 words").checked).toBe(true);
+  expect(radio(/^Custom/).checked).toBe(false);
+});

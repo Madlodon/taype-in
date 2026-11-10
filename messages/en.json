@@ -86,6 +86,8 @@
     "english": "English",
     "textLength": "Text length",
     "words": "{count} words",
+    "customLength": "Custom",
+    "customLengthWords": "Number of words (1 to {max})",
     "complexity": "Complexity",
     "complexities": {
       "easy": "Easy: short words, no digits or special characters",

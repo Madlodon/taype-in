@@ -4,7 +4,7 @@ import { and, asc, count, desc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/index.ts";
 import { lobbies, lobbyBans, lobbyInvites, lobbyParticipants, users } from "../db/schema.ts";
-import { COMPLEXITIES, MAX_CUSTOM_TEXT, normalizeLetters, TEXT_LENGTHS, TEXT_TARGETS } from "./texts.ts";
+import { COMPLEXITIES, MAX_CUSTOM_TEXT, MAX_TEXT_LENGTH, normalizeLetters, TEXT_LENGTHS, TEXT_TARGETS } from "./texts.ts";
 
 export type Lobby = typeof lobbies.$inferSelect;
 export type Participant = { id: string; username: string };
@@ -78,11 +78,14 @@ export function parseLobbySettings(input: unknown): LobbySettings {
   const visibility = z.enum(["public", "unlisted", "private"]).catch("unlisted").parse(fields.visibility);
   // Langue du texte indépendante de celle de l'interface (TXT-1, TXT-2).
   const textLanguage = z.enum(["fr", "en"]).catch("fr").parse(fields.textLanguage);
-  const textLength = z.coerce
-    .number()
-    .pipe(z.union(TEXT_LENGTHS.map((length) => z.literal(length))))
-    .catch(100)
-    .parse(fields.textLength);
+  // Une longueur proposée, ou « custom » avec le nombre de mots choisi par l'hôte.
+  const textLength = fields.textLength === "custom"
+    ? z.coerce.number().int().min(1).max(MAX_TEXT_LENGTH).catch(100).parse(fields.textLengthCustom)
+    : z.coerce
+      .number()
+      .pipe(z.union(TEXT_LENGTHS.map((length) => z.literal(length))))
+      .catch(100)
+      .parse(fields.textLength);
   // Complexité du texte, et contenu à garder : une case décochée retire ce contenu (CONF-05, CONF-06).
   const textComplexity = z.enum(COMPLEXITIES).catch("medium").parse(fields.textComplexity);
   const textPunctuation = Boolean(fields.textPunctuation);

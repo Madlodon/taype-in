@@ -7,9 +7,9 @@ import { texts } from "../db/schema.ts";
 export type TextLanguage = (typeof texts.$inferSelect)["language"];
 export type TextComplexity = (typeof texts.$inferSelect)["complexity"];
 
-// Nombre de mots proposés à l'hôte.
-export const TEXT_LENGTHS = [50, 100, 200] as const;
-export type TextLength = (typeof TEXT_LENGTHS)[number];
+// Nombre de mots proposés à l'hôte ; il peut aussi en choisir un entre 1 et MAX_TEXT_LENGTH.
+export const TEXT_LENGTHS = [25, 50, 100, 200] as const;
+export const MAX_TEXT_LENGTH = 250;
 
 export const COMPLEXITIES = ["easy", "medium", "hard"] as const satisfies readonly TextComplexity[];
 
