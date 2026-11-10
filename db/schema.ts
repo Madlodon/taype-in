@@ -226,7 +226,7 @@ export const races = pgTable("races", {
   endedAt: timestamp("ended_at", { withTimezone: true }),
 });
 
-// Résultats des participants humains ; les bots occupent un rang sans ligne.
+// Résultats des participants humains ; ceux des bots sont dans bot_results.
 export const results = pgTable(
   "results",
   {
@@ -266,5 +266,36 @@ export const results = pgTable(
       "results_accuracy_range",
       sql`${table.accuracy} between 0 and 100`,
     ),
+  ],
+);
+
+export const botLevelEnum = pgEnum("bot_level", ["noob", "beginner", "intermediate", "expert", "impossible"]);
+
+// Résultats des bots, pour revoir toute la course depuis l'historique (HIST-02).
+// Un bot n'est pas un utilisateur : il est désigné par son niveau et son numéro (« Bot Expert 2 »).
+export const botResults = pgTable(
+  "bot_results",
+  {
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id, { onDelete: "cascade" }),
+    botLevel: botLevelEnum("bot_level").notNull(),
+    botNumber: integer("bot_number").notNull(),
+    rank: integer("rank").notNull(),
+    wpm: real("wpm").notNull(),
+    rawWpm: real("raw_wpm").notNull(),
+    accuracy: real("accuracy").notNull(),
+    durationMs: integer("duration_ms").notNull(),
+    errorCount: integer("error_count").notNull(),
+    finished: boolean("finished").notNull(),
+    gaveUp: boolean("gave_up").notNull(),
+    bonuses: integer("bonuses").notNull(),
+    keyErrors: jsonb("key_errors").$type<Record<string, number>>().notNull(),
+    wpmSeries: jsonb("wpm_series").$type<number[]>().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.raceId, table.botLevel, table.botNumber] }),
+    check("bot_results_rank_positive", sql`${table.rank} >= 1`),
+    check("bot_results_accuracy_range", sql`${table.accuracy} between 0 and 100`),
   ],
 );

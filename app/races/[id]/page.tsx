@@ -14,9 +14,14 @@ export default async function PastRacePage({ params }: { params: Promise<{ id: s
   if (!race) notFound();
   const userId = (await getCurrentUser())?.id ?? "";
   const t = await getTranslations("PastRace");
+  const tLobby = await getTranslations("LobbyRoom");
   const format = await getFormatter();
   const results = race.results.map((result) => ({
     ...result,
+    // Nom traduit, comme dans la salle : « Bot Expert 2 ».
+    username: result.bot
+      ? tLobby("botName", { level: tLobby(`botLevels.${result.bot.level}`), number: result.bot.number })
+      : result.username,
     rankLevel: 0,
     rankChange: 0,
     xp: null,

@@ -3,7 +3,7 @@ import { withoutRemoved, type RemovedWord } from "./race-goals.ts";
 // enregistrés dans l'historique de chaque joueur, invités compris (FIN-4, PROF-5).
 import { and, eq, inArray, max, sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
-import { races, results, texts, users } from "../db/schema.ts";
+import { botResults, races, results, texts, users } from "../db/schema.ts";
 import { clampRankLevel, rankMoves } from "./ranks.ts";
 import { accuracy, countCorrect, wordsPerMinute, type ErrorMode } from "./typing.ts";
 import { raceXp } from "./xp.ts";
@@ -73,11 +73,9 @@ export function rankRacers(racers: Racer[], content: string, errorMode: ErrorMod
   }));
 }
 
-// Invités compris : leurs stats de session (PROF-5) les suivent s'ils s'inscrivent (AUTH-7).
-export async function saveResults(raceId: string, ranked: Placement[]) {
-  const rows = ranked.map((result) => ({
-    raceId,
-    userId: result.id,
+// Statistiques d'une place, communes aux joueurs et aux bots.
+function statsRow(result: Placement) {
+  return {
     rank: result.rank,
     wpm: result.wpm,
     rawWpm: result.rawWpm,
@@ -89,8 +87,18 @@ export async function saveResults(raceId: string, ranked: Placement[]) {
     bonuses: result.bonuses,
     keyErrors: result.keyErrors,
     wpmSeries: result.wpmSeries,
-  }));
+  };
+}
+
+// Invités compris : leurs stats de session (PROF-5) les suivent s'ils s'inscrivent (AUTH-7).
+// Les bots ont leurs propres lignes, pour revoir toute la course dans l'historique (HIST-02).
+export async function saveResults(raceId: string, ranked: Placement[]) {
+  const rows = ranked.flatMap((result) => (result.bot ? [] : [{ raceId, userId: result.id, ...statsRow(result) }]));
+  const botRows = ranked.flatMap((result) =>
+    result.bot ? [{ raceId, botLevel: result.bot.level, botNumber: result.bot.number, ...statsRow(result) }] : [],
+  );
   if (rows.length > 0) await db.insert(results).values(rows);
+  if (botRows.length > 0) await db.insert(botResults).values(botRows);
 }
 
 // Joueurs qui battent leur meilleure vitesse (RES-04) : mêmes courses que le profil
@@ -199,7 +207,7 @@ export type PastRace = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Résultats enregistrés d'une course finie, pour les réafficher depuis l'historique (HIST-02).
-// Les bots ne sont pas enregistrés ; null si la course est inconnue ou sans résultat.
+// Bots compris, nommés par la page ; null si la course est inconnue ou sans résultat.
 export async function findPastRace(raceId: string): Promise<PastRace | null> {
   if (!UUID.test(raceId)) return null;
   const date = sql<Date>`coalesce(${races.endedAt}, ${races.createdAt})`.mapWith(races.createdAt);
@@ -215,14 +223,25 @@ export async function findPastRace(raceId: string): Promise<PastRace | null> {
     .innerJoin(users, eq(users.id, results.userId))
     .where(eq(results.raceId, raceId))
     .orderBy(results.rank);
-  if (rows.length === 0) return null;
+  const botRows = await db.select().from(botResults).where(eq(botResults.raceId, raceId));
+  const saved = [
+    ...rows.map(({ result, username }) => ({ ...result, id: result.userId, username, bot: undefined })),
+    ...botRows.map((result) => ({
+      ...result,
+      id: `bot-${result.botLevel}-${result.botNumber}`,
+      username: "",
+      bot: { level: result.botLevel, number: result.botNumber },
+    })),
+  ].sort((a, b) => a.rank - b.rank);
+  if (saved.length === 0) return null;
   return {
     date: race.date,
     textTitle: race.textTitle,
     content: race.content,
-    results: rows.map(({ result, username }) => ({
-      id: result.userId,
-      username,
+    results: saved.map((result) => ({
+      id: result.id,
+      username: result.username,
+      bot: result.bot,
       rank: result.rank,
       wpm: result.wpm,
       rawWpm: result.rawWpm,

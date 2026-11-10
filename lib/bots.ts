@@ -1,4 +1,4 @@
-// Bots ajoutés par l'hôte (BOT-01 à BOT-05) : ils courent comme des joueurs, mais rien n'est enregistré pour eux.
+// Bots ajoutés par l'hôte (BOT-01 à BOT-05) : ils courent comme des joueurs ; seuls leurs résultats sont enregistrés (historique).
 // Sans accès à la base : la salle d'attente l'importe côté client.
 import type { RemovedWord } from "./race-goals.ts";
 import { applyInput, type ErrorMode, type Typing } from "./typing.ts";
