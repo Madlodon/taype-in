@@ -83,6 +83,22 @@ test("Should_HighlightViewer_When_ViewerRaced", async () => {
   expect(screen.getByRole("row", { name: /joueur2 \(toi\)/i }).className).toBe("ranking-you");
 });
 
+test("Should_ShowBotWithNameAndStats_When_BotRaced", async () => {
+  vi.mocked(findPastRace).mockResolvedValue({
+    date: new Date("2026-09-15T16:00:00Z"),
+    textTitle: "Le hockey",
+    content: "chat",
+    results: [placement(1, { id: "bot-expert-2", username: "", bot: { level: "expert", number: 2 } }), placement(2)],
+  });
+
+  await renderPage();
+
+  const row = screen.getByRole("row", { name: /Bot Expert 2/ });
+  expect(within(row).getByText("Bot", { selector: ".bot-badge" })).toBeDefined();
+  expect(within(row).getByText(/50/)).toBeDefined();
+  expect(screen.getByRole("option", { name: /Bot Expert 2/ })).toBeDefined();
+});
+
 test("Should_ThrowNotFound_When_RaceIsUnknown", async () => {
   vi.mocked(findPastRace).mockResolvedValue(null);
 

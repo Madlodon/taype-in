@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { lobbies, races, results, users } from "../db/schema";
+import { botResults, lobbies, races, results, users } from "../db/schema";
 import { createLobby } from "../lib/lobbies";
 import { createRace } from "../lib/races";
 import { xpForLevel } from "../lib/xp";
@@ -505,6 +505,29 @@ describe("findPastRace", () => {
     expect(past?.results.map((result) => [result.username, result.status, result.penaltyMs])).toEqual([
       [winner.username, "finished", 0],
       [quitter.username, "gaveUp", 2000],
+    ]);
+  });
+
+  test("Should_ReturnBotsAmongPlayersByRank_When_BotsRaced", async () => {
+    const player = await newUser();
+    const race = await newRace(player.id);
+    const ranked = rankRacers(
+      [
+        racer({ id: player.id, username: player.username, durationMs: 60_000 }),
+        racer({ id: crypto.randomUUID(), username: "bot", durationMs: 30_000, keyErrors: { a: 1 }, wpmSeries: [5, 9] }),
+      ],
+      TEXT,
+      "blocking",
+    ).map((placement) => (placement.id === player.id ? placement : { ...placement, bot: { level: "expert" as const, number: 2 } }));
+
+    await saveResults(race.id, ranked);
+
+    expect(await db.select().from(results).where(eq(results.raceId, race.id))).toHaveLength(1);
+    expect(await db.select().from(botResults).where(eq(botResults.raceId, race.id))).toHaveLength(1);
+    const past = await findPastRace(race.id);
+    expect(past?.results).toEqual([
+      { ...ranked[0], id: "bot-expert-2", username: "" },
+      { ...ranked[1], bot: undefined },
     ]);
   });
 

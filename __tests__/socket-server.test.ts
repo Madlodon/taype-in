@@ -8,7 +8,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { and, eq, inArray } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "../db";
-import { lobbies, lobbyParticipants, races, results, users } from "../db/schema";
+import { botResults, lobbies, lobbyParticipants, races, results, users } from "../db/schema";
 import { createSession } from "../lib/auth";
 import {
   banParticipant,
@@ -2518,7 +2518,7 @@ describe("bots", () => {
     expect((await startRace(hostClient)).racerIds).toHaveLength(2);
   });
 
-  test("Should_RankBotWithoutSavingIt_When_RaceEnds", async () => {
+  test("Should_RankBotAndSaveItApart_When_RaceEnds", async () => {
     const { host, lobby, hostClient } = await hostAlone();
     await db.update(users).set({ rankLevel: 10 }).where(eq(users.id, host.id));
     await addBot(hostClient, "beginner");
@@ -2541,6 +2541,13 @@ describe("bots", () => {
       .from(results)
       .where(eq(results.raceId, (await savedRace(lobby.id)).id));
     expect(saved.map((row) => row.userId)).toEqual([host.id]);
+    const savedBots = await db
+      .select()
+      .from(botResults)
+      .where(eq(botResults.raceId, (await savedRace(lobby.id)).id));
+    expect(savedBots).toEqual([
+      expect.objectContaining({ botLevel: "beginner", botNumber: 1, rank: 2, finished: true }),
+    ]);
   });
 
   test("Should_AckNoHumanRacer_When_HostWatchesWithOnlyBots", async () => {

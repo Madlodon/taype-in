@@ -369,19 +369,19 @@ export function createSocketServer(
       live.errorMode,
     );
     await markRaceEnded(live.raceId);
-    // Les bots prennent une place au classement, sans ligne de résultat ni rang (aucun utilisateur en base).
-    const players = placements.filter((placement) => !live.positions.get(placement.id)?.bot);
+    // Les bots sont enregistrés à part (historique), sans rang ni record (aucun utilisateur en base).
+    const withBots = placements.map((placement) => ({ ...placement, bot: live.positions.get(placement.id)?.bot }));
+    const players = withBots.filter((placement) => !placement.bot);
     // Avant l'enregistrement : la course elle-même ne compte pas dans l'ancien record.
     const personalBests = await findPersonalBests(live.raceId, players);
-    await saveResults(live.raceId, players);
+    await saveResults(live.raceId, withBots);
     const ranks = await updateRanks(placements.map((placement) => placement.id));
     // Les bots ne gagnent rien, mais leur niveau change l'XP des joueurs.
     const bots = [...live.positions.values()].flatMap(({ bot }) => (bot ? [bot.level] : []));
     const xp = await awardXp(placements, xpMultiplier(bots, placements.length - bots.length));
-    live.results = placements.map((placement) => ({
+    live.results = withBots.map((placement) => ({
       ...placement,
       ...(ranks.get(placement.id) ?? { rankLevel: 0, rankChange: 0 }),
-      bot: live.positions.get(placement.id)?.bot,
       ...(xp.get(placement.id) ?? { xp: null, xpGained: 0 }),
       personalBest: personalBests.has(placement.id),
     }));

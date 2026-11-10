@@ -169,6 +169,13 @@
       "when": 1792106432297,
       "tag": "0023_bonuses_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794344626600,
+      "tag": "0024_bot_results",
+      "breakpoints": true
     }
   ]
 }
