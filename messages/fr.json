@@ -242,6 +242,9 @@
       "off": "Désactivés"
     }
   },
+  "ConfirmDialog": {
+    "cancel": "Annuler"
+  },
   "RaceResults": {
     "title": "Résultats",
     "podium": "Podium",
