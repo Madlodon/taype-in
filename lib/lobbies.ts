@@ -17,8 +17,8 @@ export const CAPACITY_OPTIONS = Array.from({ length: 29 }, (_, i) => i + 2);
 export const MAX_CAPACITY = 30;
 // Un lien par participant possible.
 export const MAX_INVITES = MAX_CAPACITY;
-// CONF-01 : minuterie de 30 s à 10 min par pas de 30 s, 5 min par défaut.
-export const TIMER_OPTIONS = Array.from({ length: 20 }, (_, i) => (i + 1) * 30);
+// CONF-01 : minuterie de 1 à 10 min par pas de 1 min, 5 min par défaut.
+export const TIMER_OPTIONS = Array.from({ length: 10 }, (_, i) => (i + 1) * 60);
 export const DEFAULT_TIMER_SECONDS = 300;
 
 export function generateLobbyCode(): string {
@@ -92,16 +92,17 @@ export function parseLobbySettings(input: unknown): LobbySettings {
   const textNumbers = Boolean(fields.textNumbers);
   const textCapitals = Boolean(fields.textCapitals);
   const textAccents = Boolean(fields.textAccents);
-  // Phrases de la banque ou mots mélangés, avec les caractères cochés (TXT-4, TXT-5).
-  const textType = z.enum(["sentences", "words"]).catch("sentences").parse(fields.textType);
+  // Une seule source : phrases de la banque, mots mélangés ou texte de l'hôte (TXT-4 à TXT-6).
+  const source = z.enum(["sentences", "words", "custom"]).catch("sentences").parse(fields.textType);
+  const textType = source === "words" ? "words" : "sentences";
   const checked = Array.isArray(fields.textTargets) ? fields.textTargets : [];
   const textTargets = TEXT_TARGETS.filter((target) => checked.includes(target));
   const textLetters = normalizeLetters(String(fields.textLetters ?? ""));
-  // Texte de l'hôte sur une seule ligne, coupé à la taille maximale ; vide = banque (TXT-6).
-  const customText = String(fields.customText ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, MAX_CUSTOM_TEXT) || null;
+  // Texte de l'hôte sur une seule ligne, coupé à la taille maximale ; ignoré hors de sa source,
+  // vide = phrases de la banque (TXT-6).
+  const customText = source === "custom"
+    ? String(fields.customText ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_CUSTOM_TEXT) || null
+    : null;
   // Bloquant : la saisie s'arrête jusqu'au bon caractère ; tolérant : on continue (ERR-1).
   const errorMode = z.enum(["blocking", "tolerant"]).catch("blocking").parse(fields.errorMode);
   // Durée parmi les choix proposés, ou aucune minuterie (CONF-01).

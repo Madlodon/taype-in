@@ -293,7 +293,7 @@ test("Should_SaveScrambledWordsWithTargets_When_HostTicksCharacters", async () =
 
 test("Should_SaveCustomTextOnOneLine_When_HostWritesText", async () => {
   await expect(
-    createLobbyAction(form({ customText: "  Mon texte\n\nà moi.  " })),
+    createLobbyAction(form({ textType: "custom", customText: "  Mon texte\n\nà moi.  " })),
   ).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
@@ -305,15 +305,25 @@ test.each([
   ["empty", ""],
   ["blank", "  \n "],
 ])("Should_UseBank_When_CustomTextIs_%s", async (_, customText) => {
-  await expect(createLobbyAction(form({ customText }))).rejects.toThrow("NEXT_REDIRECT");
+  await expect(createLobbyAction(form({ textType: "custom", customText }))).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
+    textType: "sentences",
+    customText: null,
+  }));
+});
+
+test.each(["sentences", "words"])("Should_IgnoreCustomText_When_SourceIs_%s", async (textType) => {
+  await expect(createLobbyAction(form({ textType, customText: "Mon texte." }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
+    textType,
     customText: null,
   }));
 });
 
 test("Should_CutCustomText_When_LongerThanMax", async () => {
-  await expect(createLobbyAction(form({ customText: "a".repeat(MAX_CUSTOM_TEXT + 50) })))
+  await expect(createLobbyAction(form({ textType: "custom", customText: "a".repeat(MAX_CUSTOM_TEXT + 50) })))
     .rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
@@ -342,8 +352,8 @@ test("Should_UseBlockingMode_When_ErrorModeIsUnknown", async () => {
 });
 
 test.each([
-  ["30", 30],
-  ["90", 90],
+  ["60", 60],
+  ["120", 120],
   ["600", 600],
 ])("Should_SaveTimer_When_HostPicks_%s_Seconds", async (timerSeconds, seconds) => {
   await expect(createLobbyAction(form({ timerSeconds }))).rejects.toThrow("NEXT_REDIRECT");
@@ -355,7 +365,7 @@ test.each([
   );
 });
 
-test.each([["0"], ["29"], ["601"], ["630"], ["45"], ["-30"], ["abc"]])(
+test.each([["0"], ["30"], ["90"], ["601"], ["660"], ["45"], ["-60"], ["abc"]])(
   "Should_UseFiveMinutes_When_TimerIs_%s",
   async (timerSeconds) => {
     await expect(createLobbyAction(form({ timerSeconds }))).rejects.toThrow("NEXT_REDIRECT");

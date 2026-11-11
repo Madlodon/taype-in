@@ -26,25 +26,20 @@ const settings: LobbySettings = {
   textLetters: "",
   customText: null,
   errorMode: "blocking",
-  timeLimitSeconds: 90,
+  timeLimitSeconds: 120,
   capacity: 8,
   bonusesEnabled: false,
 };
 
 afterEach(cleanup);
 
-test("Should_OfferEvery30Seconds_From30SecondsTo10Minutes", () => {
+test("Should_OfferEveryMinute_From1To10Minutes", () => {
   const options = within(fields()).getAllByRole("option");
 
   expect(options.map((option) => option.getAttribute("value"))).toEqual(
-    Array.from({ length: 20 }, (_, i) => String((i + 1) * 30)),
+    Array.from({ length: 10 }, (_, i) => String((i + 1) * 60)),
   );
-  expect(options.slice(0, 4).map((option) => option.textContent)).toEqual([
-    "30 s",
-    "1 min",
-    "1 min 30",
-    "2 min",
-  ]);
+  expect(options.slice(0, 3).map((option) => option.textContent)).toEqual(["1 min", "2 min", "3 min"]);
   expect(options.at(-1)!.textContent).toBe("10 min");
 });
 
@@ -53,11 +48,11 @@ test("Should_SelectFiveMinutes_When_CreatingLobby", () => {
 });
 
 test("Should_SelectLobbyTimer_When_EditingSettings", () => {
-  expect(fields(settings).value).toBe("90");
+  expect(fields(settings).value).toBe("120");
 });
 
-test("Should_SelectFiveMinutes_When_LobbyTimerIsOutOfRange", () => {
-  expect(fields({ ...settings, timeLimitSeconds: 86400 }).value).toBe("300");
+test.each([86400, 90])("Should_SelectFiveMinutes_When_LobbyTimerIs_%s", (timeLimitSeconds) => {
+  expect(fields({ ...settings, timeLimitSeconds }).value).toBe("300");
 });
 
 function capacity(settings?: LobbySettings) {
@@ -88,9 +83,9 @@ const value = (label: string | RegExp) => (screen.getByLabelText(label) as HTMLI
 test("Should_CheckSentencesWithoutTargets_When_CreatingLobby", () => {
   fields();
 
-  expect(checked(/^Sentences/)).toBe(true);
+  expect(checked(/^Bank text/)).toBe(true);
   expect(checked("Digits")).toBe(false);
-  expect(value(/^Your own text/)).toBe("");
+  expect(value("Your text")).toBe("");
 });
 
 test("Should_ShowLobbyTextOptions_When_EditingSettings", () => {
@@ -99,15 +94,40 @@ test("Should_ShowLobbyTextOptions_When_EditingSettings", () => {
     textType: "words",
     textTargets: ["comma", "digits"],
     textLetters: "qz",
-    customText: "Mon texte.",
   });
 
   expect(checked(/^Scrambled words/)).toBe(true);
   expect(checked("Commas")).toBe(true);
   expect(checked("Digits")).toBe(true);
   expect(checked("Accents")).toBe(false);
-  expect(value("Specific letters")).toBe("qz");
-  expect(value(/^Your own text/)).toBe("Mon texte.");
+  expect(value("Letters to practise")).toBe("qz");
+});
+
+test("Should_CheckOwnTextWithLobbyText_When_LobbyHasCustomText", () => {
+  fields({ ...settings, customText: "Mon texte." });
+
+  expect(checked(/^My own text/)).toBe(true);
+  expect(checked(/^Bank text/)).toBe(false);
+  expect(value("Your text")).toBe("Mon texte.");
+});
+
+test("Should_DescribeLettersField_With_Hint", () => {
+  fields();
+
+  const hint = screen.getByLabelText("Letters to practise").getAttribute("aria-describedby");
+
+  expect(document.getElementById(hint!)?.textContent).toMatch(/^E\.g\. qzx/);
+});
+
+test("Should_TagEachTextOptionWithItsSources", () => {
+  fields();
+  const sources = (label: string) =>
+    screen.getByText(label, { selector: "legend" }).closest("[data-for]")?.getAttribute("data-for");
+
+  expect(sources("Text language")).toBe("sentences words");
+  expect(sources("Complexity")).toBe("sentences");
+  expect(sources("Characters to practise")).toBe("words");
+  expect(screen.getByLabelText("Your text").closest("[data-for]")?.getAttribute("data-for")).toBe("custom");
 });
 
 test("Should_SelectMediumAndTickEveryOption_When_CreatingLobby", () => {

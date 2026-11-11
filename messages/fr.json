@@ -99,10 +99,13 @@
     "numbers": "Nombres",
     "capitals": "Majuscules",
     "accents": "Accents (texte en français)",
-    "textType": "Type de texte",
-    "sentences": "Phrases : un texte de la banque",
-    "scrambledWords": "Mots mélangés : des mots tirés au hasard",
-    "textTargets": "Caractères ciblés (mots mélangés)",
+    "textType": "Source du texte",
+    "textSources": {
+      "sentences": "Texte de la banque : des phrases tirées au hasard",
+      "words": "Mots mélangés : des mots tirés au hasard, pour pratiquer des caractères",
+      "custom": "Mon propre texte : je l'écris ou je le colle"
+    },
+    "textTargets": "Caractères à pratiquer",
     "targets": {
       "accents": "Accents",
       "cedilla": "Cédille (ç)",
@@ -111,8 +114,9 @@
       "digits": "Chiffres",
       "special": "Caractères spéciaux (@ # % …)"
     },
-    "textLetters": "Lettres précises",
-    "customText": "Ton propre texte (optionnel, remplace la banque)",
+    "textLetters": "Lettres à pratiquer",
+    "textLettersHint": "Ex. : qzx. Environ la moitié des mots contiendront une de ces lettres.",
+    "customText": "Ton texte",
     "errorMode": "Erreurs de frappe",
     "blocking": "Bloquant : il faut taper le bon caractère pour continuer",
     "tolerant": "Tolérant : on continue et on peut corriger avec Retour arrière",
