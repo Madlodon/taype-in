@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, type FormEvent } from "react";
 import type { GarageFormState } from "@/app/actions/garage";
 import { Car } from "@/components/arena";
 import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, unlockLevel, type Loadout } from "@/lib/garage-items";
@@ -23,24 +23,51 @@ export function GarageForm({ action, initial, guest, level }: Props) {
   const t = useTranslations("Garage");
   const [state, formAction, pending] = useActionState(action, undefined);
   const [loadout, setLoadout] = useState(initial);
-  // The toast belongs to one save: it hides after a few seconds or as soon as the loadout changes again.
-  const [hiddenFor, setHiddenFor] = useState<GarageFormState>();
-  const showSaved = state?.saved && hiddenFor !== state;
+  // Last loadout known to be in the database, to tell when a save would change nothing.
+  const [savedLoadout, setSavedLoadout] = useState(initial);
+  const [submitted, setSubmitted] = useState(initial);
+  // The toast hides after a few seconds or as soon as the loadout changes again.
+  const [toast, setToast] = useState<"saved" | "unchanged" | null>(null);
+  const [toastId, setToastId] = useState(0);
+  const [lastState, setLastState] = useState(state);
+
+  function showToast(message: "saved" | "unchanged") {
+    setToast(message);
+    setToastId((id) => id + 1);
+  }
+
+  if (state !== lastState) {
+    setLastState(state);
+    if (state?.saved) {
+      setSavedLoadout(submitted);
+      showToast("saved");
+    }
+  }
 
   useEffect(() => {
-    if (!state?.saved) return;
-    const timer = setTimeout(() => setHiddenFor(state), 3000);
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(timer);
-  }, [state]);
+  }, [toast, toastId]);
 
   function choose(next: Loadout) {
     setLoadout(next);
-    setHiddenFor(state);
+    setToast(null);
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    const unchanged = (Object.keys(loadout) as (keyof Loadout)[]).every((key) => loadout[key] === savedLoadout[key]);
+    if (unchanged) {
+      event.preventDefault();
+      showToast("unchanged");
+      return;
+    }
+    setSubmitted(loadout);
   }
 
   return (
     <div className="split-layout">
-      <form action={formAction} className="panel panel-accent form-stack">
+      <form action={formAction} onSubmit={submit} className="panel panel-accent form-stack">
         {CATEGORIES.map(([category, items]) => (
           <fieldset key={category}>
             <legend className="text-sm font-semibold">{t(`categories.${category}`)}</legend>
@@ -79,7 +106,11 @@ export function GarageForm({ action, initial, guest, level }: Props) {
           </div>
         </fieldset>
         {state?.error && <p role="alert" className="form-error">{t(`errors.${state.error}`)}</p>}
-        {showSaved && <p role="status" className="toast"><span aria-hidden="true">✓</span> {t("saved")}</p>}
+        {toast && (
+          <p key={toastId} role="status" className={toast === "saved" ? "toast" : "toast toast-info"}>
+            <span aria-hidden="true">{toast === "saved" ? "✓" : "i"}</span> {t(toast)}
+          </p>
+        )}
         {guest
           ? <p className="description">{t("guestNotice")} <Link href="/signup">{t("signUp")}</Link></p>
           : <button type="submit" disabled={pending} className="btn btn-primary">{t("save")}</button>}

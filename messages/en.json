@@ -559,6 +559,7 @@
     "previewLabel": "{car} with {boost} boost, hat: {hat}, ball: {ball}",
     "save": "Save my garage",
     "saved": "Garage saved.",
+    "unchanged": "Nothing changed.",
     "guestNotice": "Guests can try things on, but only registered drivers keep their garage.",
     "signUp": "Create an account",
     "errors": {
