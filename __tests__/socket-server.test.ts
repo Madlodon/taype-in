@@ -1582,7 +1582,7 @@ describe("lobby:settings", () => {
     textLetters: "QZ",
     customText: "  Mon   texte secret ",
     errorMode: "tolerant",
-    timerSeconds: "90",
+    timerSeconds: "120",
     capacity: "4",
     bonusesEnabled: "on",
   };
@@ -1607,7 +1607,7 @@ describe("lobby:settings", () => {
       textLetters: "qz",
       customText: true,
       errorMode: "tolerant",
-      timeLimitSeconds: 90,
+      timeLimitSeconds: 120,
       capacity: 4,
       bonusesEnabled: true,
     });
@@ -1615,7 +1615,7 @@ describe("lobby:settings", () => {
       visibility: "private",
       textLanguage: "en",
       customText: "Mon texte secret",
-      timeLimitSeconds: 90,
+      timeLimitSeconds: 120,
       capacity: 4,
       bonusesEnabled: true,
     });

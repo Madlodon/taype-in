@@ -17,8 +17,8 @@ export const CAPACITY_OPTIONS = Array.from({ length: 29 }, (_, i) => i + 2);
 export const MAX_CAPACITY = 30;
 // Un lien par participant possible.
 export const MAX_INVITES = MAX_CAPACITY;
-// CONF-01 : minuterie de 30 s à 10 min par pas de 30 s, 5 min par défaut.
-export const TIMER_OPTIONS = Array.from({ length: 20 }, (_, i) => (i + 1) * 30);
+// CONF-01 : minuterie de 1 à 10 min par pas de 1 min, 5 min par défaut.
+export const TIMER_OPTIONS = Array.from({ length: 10 }, (_, i) => (i + 1) * 60);
 export const DEFAULT_TIMER_SECONDS = 300;
 
 export function generateLobbyCode(): string {

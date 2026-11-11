@@ -352,8 +352,8 @@ test("Should_UseBlockingMode_When_ErrorModeIsUnknown", async () => {
 });
 
 test.each([
-  ["30", 30],
-  ["90", 90],
+  ["60", 60],
+  ["120", 120],
   ["600", 600],
 ])("Should_SaveTimer_When_HostPicks_%s_Seconds", async (timerSeconds, seconds) => {
   await expect(createLobbyAction(form({ timerSeconds }))).rejects.toThrow("NEXT_REDIRECT");
@@ -365,7 +365,7 @@ test.each([
   );
 });
 
-test.each([["0"], ["29"], ["601"], ["630"], ["45"], ["-30"], ["abc"]])(
+test.each([["0"], ["30"], ["90"], ["601"], ["660"], ["45"], ["-60"], ["abc"]])(
   "Should_UseFiveMinutes_When_TimerIs_%s",
   async (timerSeconds) => {
     await expect(createLobbyAction(form({ timerSeconds }))).rejects.toThrow("NEXT_REDIRECT");

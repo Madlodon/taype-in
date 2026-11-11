@@ -26,25 +26,20 @@ const settings: LobbySettings = {
   textLetters: "",
   customText: null,
   errorMode: "blocking",
-  timeLimitSeconds: 90,
+  timeLimitSeconds: 120,
   capacity: 8,
   bonusesEnabled: false,
 };
 
 afterEach(cleanup);
 
-test("Should_OfferEvery30Seconds_From30SecondsTo10Minutes", () => {
+test("Should_OfferEveryMinute_From1To10Minutes", () => {
   const options = within(fields()).getAllByRole("option");
 
   expect(options.map((option) => option.getAttribute("value"))).toEqual(
-    Array.from({ length: 20 }, (_, i) => String((i + 1) * 30)),
+    Array.from({ length: 10 }, (_, i) => String((i + 1) * 60)),
   );
-  expect(options.slice(0, 4).map((option) => option.textContent)).toEqual([
-    "30 s",
-    "1 min",
-    "1 min 30",
-    "2 min",
-  ]);
+  expect(options.slice(0, 3).map((option) => option.textContent)).toEqual(["1 min", "2 min", "3 min"]);
   expect(options.at(-1)!.textContent).toBe("10 min");
 });
 
@@ -53,11 +48,11 @@ test("Should_SelectFiveMinutes_When_CreatingLobby", () => {
 });
 
 test("Should_SelectLobbyTimer_When_EditingSettings", () => {
-  expect(fields(settings).value).toBe("90");
+  expect(fields(settings).value).toBe("120");
 });
 
-test("Should_SelectFiveMinutes_When_LobbyTimerIsOutOfRange", () => {
-  expect(fields({ ...settings, timeLimitSeconds: 86400 }).value).toBe("300");
+test.each([86400, 90])("Should_SelectFiveMinutes_When_LobbyTimerIs_%s", (timeLimitSeconds) => {
+  expect(fields({ ...settings, timeLimitSeconds }).value).toBe("300");
 });
 
 function capacity(settings?: LobbySettings) {
