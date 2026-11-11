@@ -148,7 +148,7 @@ test("Should_RejoinLeavingOtherLobby_When_PlayerConfirms", () => {
   act(() => ack({ ok: false, error: "inOtherLobby" }));
   expect(
     screen.getByRole("dialog", {
-      name: "Tu es déjà dans un autre lobby. Le quitter pour rejoindre celui-ci ?",
+      name: "Êtes-vous certain de vouloir quitter votre autre lobby ?",
     }),
   ).toBeTruthy();
   answerConfirm("Quitter l'autre lobby");
@@ -261,7 +261,7 @@ test("Should_AskServerToKick_When_HostConfirms", () => {
   fireEvent.click(screen.getByRole("button", { name: "Exclure Invité-123456" }));
   expect(
     screen.getByRole("dialog", {
-      name: "Exclure Invité-123456 ? Cette personne ne pourra plus revenir dans cette course.",
+      name: "Êtes-vous certain de vouloir exclure Invité-123456 ?",
     }),
   ).toBeTruthy();
   answerConfirm("Exclure");

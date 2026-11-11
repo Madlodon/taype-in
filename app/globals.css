@@ -534,6 +534,47 @@ a, button, input {
   background: rgb(0 0 0 / 0.55);
 }
 
+.confirm-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.confirm-dialog-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.confirm-dialog-close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -8px 0 0;
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.confirm-dialog-close:hover {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--foreground);
+}
+
+.confirm-dialog p {
+  color: var(--muted);
+}
+
+/* La page derrière ne défile plus tant qu'une boîte de confirmation est ouverte. */
+html:has(.confirm-dialog[open]) {
+  overflow: hidden;
+}
+
 .split-layout {
   display: grid;
   grid-template-columns: 1fr 340px;

@@ -140,6 +140,7 @@ export function LobbyRoom({
   const [finished, setFinished] = useState(false);
   // Question en attente dans la boîte de confirmation du site.
   const [ask, setAsk] = useState<{
+    title: string;
     message: string;
     confirmLabel: string;
     onConfirm: () => void;
@@ -285,6 +286,7 @@ export function LobbyRoom({
           setError(ack.error);
         } else {
           setAsk({
+            title: tRef.current!("confirmLeaveOtherTitle"),
             message: tRef.current!("confirmLeaveOther"),
             confirmLabel: tRef.current!("leaveOther"),
             onConfirm: () => join(true),
@@ -370,7 +372,8 @@ export function LobbyRoom({
   // L'hôte exclut un participant ou un spectateur, à tout moment (SALLE-07).
   function kick(id: string, username: string) {
     setAsk({
-      message: t("confirmKick", { username }),
+      title: t("confirmKickTitle", { username }),
+      message: t("confirmKick"),
       confirmLabel: t("kick"),
       onConfirm: () =>
         socketRef.current?.emit("lobby:kick", { id }, (ack: Ack) => {
@@ -406,6 +409,7 @@ export function LobbyRoom({
 
   function giveUp() {
     setAsk({
+      title: t("confirmGiveUpTitle"),
       message: t("confirmGiveUp"),
       confirmLabel: t("giveUp"),
       onConfirm: () =>
@@ -438,6 +442,7 @@ export function LobbyRoom({
 
   function close() {
     setAsk({
+      title: t("confirmCloseTitle"),
       message: t("confirmClose"),
       confirmLabel: t("close"),
       onConfirm: () =>
@@ -556,6 +561,7 @@ export function LobbyRoom({
 
   const confirmDialog = ask && (
     <ConfirmDialog
+      title={ask.title}
       message={ask.message}
       confirmLabel={ask.confirmLabel}
       onConfirm={() => {
