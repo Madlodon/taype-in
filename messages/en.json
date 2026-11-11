@@ -476,9 +476,9 @@
     "space": "Space",
     "errors": "{count, plural, one {# error} other {# errors}}",
     "photo": {
-      "label": "Profile photo (PNG, JPEG or WebP, 2 MB max)",
-      "upload": "Upload",
-      "replace": "Replace",
+      "label": "Profile photo",
+      "hint": "Click the circle to choose an image (PNG, JPEG or WebP, 2 MB max).",
+      "save": "Save photo",
       "remove": "Remove photo",
       "errors": {
         "tooLarge": "This file is larger than 2 MB.",

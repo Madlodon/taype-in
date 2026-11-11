@@ -54,13 +54,14 @@ test("Should_Show404_When_UserIsUnknown", async ({ page }) => {
 
 test("Should_ShowPhotoThenInitials_When_OwnerUploadsThenRemovesPhoto", async ({ page }) => {
   await signUp(page, "e2e_pic");
-  const avatar = page.locator("main img.avatar");
+  const avatar = page.locator(".profile-identity img.avatar");
   const contentType = async () =>
     (await page.request.get((await avatar.getAttribute("src"))!)).headers()["content-type"];
   expect(await contentType()).toBe("image/svg+xml");
 
-  await page.getByLabel(/Photo de profil/).setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: PNG });
-  await page.getByRole("button", { name: "Téléverser" }).click();
+  await page.getByLabel("Photo de profil").setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: PNG });
+  await expect(page.locator(".avatar-picker img")).toHaveAttribute("src", /^blob:/);
+  await page.getByRole("button", { name: "Enregistrer la photo" }).click();
 
   await expect(avatar).toHaveAttribute("src", /\?v=\d+$/);
   await expect(page.locator("nav img.avatar")).toHaveAttribute("src", /\?v=\d+$/);
@@ -75,12 +76,12 @@ test("Should_ShowPhotoThenInitials_When_OwnerUploadsThenRemovesPhoto", async ({ 
 test("Should_RefuseFile_When_ItIsNotAnImage", async ({ page }) => {
   await signUp(page, "e2e_badpic");
 
-  await page.getByLabel(/Photo de profil/).setInputFiles({
+  await page.getByLabel("Photo de profil").setInputFiles({
     name: "photo.png",
     mimeType: "image/png",
     buffer: Buffer.from("pas une image"),
   });
-  await page.getByRole("button", { name: "Téléverser" }).click();
+  await page.getByRole("button", { name: "Enregistrer la photo" }).click();
 
   await expect(page.getByText("Choisis une image PNG, JPEG ou WebP.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Retirer la photo" })).toHaveCount(0);

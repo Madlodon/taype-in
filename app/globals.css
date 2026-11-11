@@ -1495,38 +1495,60 @@ html:has(.confirm-dialog[open]) {
   overflow-wrap: anywhere;
 }
 
-.avatar-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  align-items: flex-end;
+.profile-settings {
+  display: grid;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
-.avatar-form label {
+@media (min-width: 768px) {
+  .profile-settings {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+/* Le vrai champ fichier est caché : le cercle (son label) l'ouvre. */
+.avatar-picker {
+  position: relative;
+  align-self: flex-start;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.avatar-picker .avatar {
+  display: block;
+  border: 2px solid var(--border);
+  transition: filter 150ms ease;
+}
+
+.avatar-picker:hover .avatar {
+  filter: brightness(0.8);
+}
+
+.avatar-picker:has(input:focus-visible) {
+  outline: 3px solid var(--primary);
+  outline-offset: 5px;
+}
+
+.avatar-picker-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
   display: grid;
-  gap: 8px;
-}
-
-.avatar-form input[type="file"] {
-  max-width: 100%;
-  font-size: 12px;
-  font-weight: 400;
-}
-
-.avatar-form .form-error {
-  flex-basis: 100%;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .avatar-form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-}
-
-.username-form {
-  max-width: 480px;
-  margin-bottom: 20px;
 }
 
 .site-nav a .avatar {
