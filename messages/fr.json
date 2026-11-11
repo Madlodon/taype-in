@@ -172,6 +172,7 @@
     },
     "giveUp": "Abandonner",
     "confirmGiveUp": "Abandonner la course ? Tu deviendras spectateur et ne pourras plus taper.",
+    "leaveOther": "Quitter l'autre lobby",
     "confirmLeaveOther": "Tu es déjà dans un autre lobby. Le quitter pour rejoindre celui-ci ?",
     "gaveUp": "Tu as abandonné : tu regardes la fin de la course.",
     "errors": {
@@ -241,6 +242,9 @@
       "on": "Activés",
       "off": "Désactivés"
     }
+  },
+  "ConfirmDialog": {
+    "cancel": "Annuler"
   },
   "RaceResults": {
     "title": "Résultats",

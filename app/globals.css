@@ -522,6 +522,18 @@ a, button, input {
   border-top: 3px solid var(--primary);
 }
 
+/* Boîte de confirmation du site, à la place de window.confirm (voir ConfirmDialog). */
+.confirm-dialog {
+  width: min(440px, calc(100vw - 32px));
+  margin: auto;
+  color: var(--foreground);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.35);
+}
+
+.confirm-dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
 .split-layout {
   display: grid;
   grid-template-columns: 1fr 340px;

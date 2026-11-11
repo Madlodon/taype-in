@@ -332,8 +332,8 @@ test("Should_SendEveryoneBackToListAndForgetCode_When_HostClosesRace", async ({ 
   await expect(participants(player.page)).toHaveCount(2);
   await expect(player.page.getByRole("button", { name: "Fermer la course" })).toHaveCount(0);
 
-  host.page.once("dialog", (dialog) => dialog.accept());
   await host.page.getByRole("button", { name: "Fermer la course" }).click();
+  await host.page.getByRole("dialog").getByRole("button", { name: "Fermer la course" }).click();
 
   for (const page of [host.page, player.page]) {
     await expect(page).toHaveURL("/lobbies?closed=1");
@@ -562,8 +562,8 @@ test("Should_BecomeSpectator_When_RacerGivesUp", async ({ browser }) => {
   const input = player.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeVisible({ timeout: 8000 });
 
-  player.page.once("dialog", (dialog) => dialog.accept());
   await player.page.getByRole("button", { name: "Abandonner" }).click();
+  await player.page.getByRole("dialog").getByRole("button", { name: "Abandonner" }).click();
 
   await expect(input).toHaveCount(0);
   await expect(player.page.getByText("Tu as abandonné")).toBeVisible();
@@ -581,8 +581,8 @@ test("Should_ShowPodiumAndRankingToEveryone_When_RaceEnds", async ({ browser }) 
   await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const input = host.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused({ timeout: 8000 });
-  player.page.once("dialog", (dialog) => dialog.accept());
   await player.page.getByRole("button", { name: "Abandonner" }).click();
+  await player.page.getByRole("dialog").getByRole("button", { name: "Abandonner" }).click();
   const text = (await host.page.locator(".typing-text").textContent())!;
 
   await host.page.keyboard.type(text);
@@ -616,8 +616,8 @@ test("Should_ShowXpLevelUpAndUnlocks_When_RegisteredRacerWins", async ({ browser
   await expect(participants(page)).toHaveCount(2);
   await page.getByRole("button", { name: "Lancer et courir" }).click();
   await expect(page.getByRole("textbox", { name: "Tape le texte" })).toBeFocused({ timeout: 8000 });
-  player.page.once("dialog", (dialog) => dialog.accept());
   await player.page.getByRole("button", { name: "Abandonner" }).click();
+  await player.page.getByRole("dialog").getByRole("button", { name: "Abandonner" }).click();
 
   await page.keyboard.type((await page.locator(".typing-text").textContent())!);
 
@@ -641,8 +641,8 @@ test("Should_ColourMissedKeyForEveryone_When_RaceEndsWithErrors", async ({ brows
   await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   const input = host.page.getByRole("textbox", { name: "Tape le texte" });
   await expect(input).toBeFocused({ timeout: 8000 });
-  player.page.once("dialog", (dialog) => dialog.accept());
   await player.page.getByRole("button", { name: "Abandonner" }).click();
+  await player.page.getByRole("dialog").getByRole("button", { name: "Abandonner" }).click();
   const text = (await host.page.locator(".typing-text").textContent())!;
 
   // Mode bloquant : deux fausses touches sur la première lettre, puis tout le texte.
@@ -668,8 +668,8 @@ test("Should_ShowSessionStatsAndKeepThemOnSignUp_When_GuestRaced", async ({ brow
   await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   await expect(player.page.getByRole("textbox", { name: "Tape le texte" })).toBeVisible({ timeout: 8000 });
   for (const { page } of [player, host]) {
-    page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Abandonner" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Abandonner" }).click();
   }
 
   await expect(player.page.getByRole("region", { name: "Cette session : 1 course" })).toBeVisible();
@@ -716,8 +716,8 @@ test("Should_SendEveryoneToWaitingRoomAndShowNewSettings_When_HostRelaunchesAndC
   await host.page.getByRole("button", { name: "Lancer et courir" }).click();
   for (const { page } of [host, player]) {
     await expect(page.getByRole("button", { name: "Abandonner" })).toBeVisible({ timeout: 8000 });
-    page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Abandonner" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Abandonner" }).click();
   }
   await expect(player.page.getByRole("heading", { name: "Résultats" })).toBeVisible();
 

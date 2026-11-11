@@ -147,8 +147,8 @@ test("Should_FitResults_When_RaceEnds", async ({ browser }) => {
 
   // Les deux abandonnent : la course finit tout de suite et les résultats s'affichent.
   for (const { page } of [player, host]) {
-    page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Abandonner" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Abandonner" }).click();
   }
 
   for (const { page } of [host, player]) {

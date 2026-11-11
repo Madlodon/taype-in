@@ -172,6 +172,7 @@
     },
     "giveUp": "Give up",
     "confirmGiveUp": "Give up the race? You'll become a spectator and won't be able to type anymore.",
+    "leaveOther": "Leave the other lobby",
     "confirmLeaveOther": "You're already in another lobby. Leave it to join this one?",
     "gaveUp": "You gave up: you're watching the rest of the race.",
     "errors": {
@@ -241,6 +242,9 @@
       "on": "On",
       "off": "Off"
     }
+  },
+  "ConfirmDialog": {
+    "cancel": "Cancel"
   },
   "RaceResults": {
     "title": "Results",

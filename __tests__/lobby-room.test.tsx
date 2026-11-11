@@ -45,6 +45,11 @@ function renderRoom(
   return result;
 }
 
+// Répond à la boîte de confirmation du site avec le bouton nommé.
+function answerConfirm(button: string) {
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: button }));
+}
+
 function sendParticipants() {
   act(() =>
     handlers["lobby:participants"]({ hostId: "u1",
@@ -137,16 +142,18 @@ test("Should_ShowError_When_JoinIsRefused", () => {
 });
 
 test("Should_RejoinLeavingOtherLobby_When_PlayerConfirms", () => {
-  const confirm = vi.fn(() => true);
-  vi.stubGlobal("confirm", confirm);
   renderRoom();
   const ack = socket.emit.mock.calls[0][2] as Handler;
 
   act(() => ack({ ok: false, error: "inOtherLobby" }));
+  expect(
+    screen.getByRole("dialog", {
+      name: "Tu es déjà dans un autre lobby. Le quitter pour rejoindre celui-ci ?",
+    }),
+  ).toBeTruthy();
+  answerConfirm("Quitter l'autre lobby");
 
-  expect(confirm).toHaveBeenCalledWith(
-    "Tu es déjà dans un autre lobby. Le quitter pour rejoindre celui-ci ?",
-  );
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(socket.emit).toHaveBeenLastCalledWith(
     "lobby:join",
     { code: "K7P3XM", leave: true },
@@ -155,11 +162,11 @@ test("Should_RejoinLeavingOtherLobby_When_PlayerConfirms", () => {
 });
 
 test("Should_GoBackToLobbies_When_PlayerRefusesToLeaveOtherLobby", () => {
-  vi.stubGlobal("confirm", vi.fn(() => false));
   renderRoom();
   const ack = socket.emit.mock.calls[0][2] as Handler;
 
   act(() => ack({ ok: false, error: "inOtherLobby" }));
+  answerConfirm("Annuler");
 
   expect(router.replace).toHaveBeenCalledWith("/lobbies");
   expect(socket.emit).toHaveBeenCalledTimes(1);
@@ -199,36 +206,30 @@ test("Should_NotShowCloseButton_When_UserIsNotHost", () => {
 });
 
 test("Should_AskServerToClose_When_HostConfirms", () => {
-  vi.stubGlobal(
-    "confirm",
-    vi.fn(() => true),
-  );
   renderRoom("fr", true);
 
   fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
+  expect(socket.emit).not.toHaveBeenCalledWith("lobby:close", expect.anything());
+  answerConfirm("Fermer la course");
 
   expect(socket.emit).toHaveBeenCalledWith("lobby:close", expect.any(Function));
 });
 
 test("Should_NotClose_When_HostCancelsConfirmation", () => {
-  vi.stubGlobal(
-    "confirm",
-    vi.fn(() => false),
-  );
   renderRoom("fr", true);
 
   fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
+  answerConfirm("Annuler");
+
+  expect(screen.queryByRole("dialog")).toBeNull();
 
   expect(socket.emit).not.toHaveBeenCalledWith("lobby:close", expect.anything());
 });
 
 test("Should_ShowError_When_CloseIsRefused", () => {
-  vi.stubGlobal(
-    "confirm",
-    vi.fn(() => true),
-  );
   renderRoom("fr", true);
   fireEvent.click(screen.getByRole("button", { name: "Fermer la course" }));
+  answerConfirm("Fermer la course");
   const ack = socket.emit.mock.calls[1][1] as Handler;
 
   act(() => ack({ ok: false, error: "notHost" }));
@@ -254,25 +255,26 @@ test("Should_ReturnToLobbyListWithMessage_When_PlayerIsKicked", () => {
 });
 
 test("Should_AskServerToKick_When_HostConfirms", () => {
-  const confirm = vi.fn(() => true);
-  vi.stubGlobal("confirm", confirm);
   renderRoom("fr", true);
   sendParticipants();
 
   fireEvent.click(screen.getByRole("button", { name: "Exclure Invité-123456" }));
+  expect(
+    screen.getByRole("dialog", {
+      name: "Exclure Invité-123456 ? Cette personne ne pourra plus revenir dans cette course.",
+    }),
+  ).toBeTruthy();
+  answerConfirm("Exclure");
 
-  expect(confirm).toHaveBeenCalledWith(
-    "Exclure Invité-123456 ? Cette personne ne pourra plus revenir dans cette course.",
-  );
   expect(socket.emit).toHaveBeenCalledWith("lobby:kick", { id: "u2" }, expect.any(Function));
 });
 
 test("Should_NotKick_When_HostCancels", () => {
-  vi.stubGlobal("confirm", vi.fn(() => false));
   renderRoom("fr", true);
   sendParticipants();
 
   fireEvent.click(screen.getByRole("button", { name: "Exclure Invité-123456" }));
+  answerConfirm("Annuler");
 
   expect(socket.emit).not.toHaveBeenCalledWith("lobby:kick", expect.anything(), expect.any(Function));
 });
@@ -876,11 +878,11 @@ test("Should_KeepLocalTyping_When_ServerResendsRaceAfterShortDrop", () => {
 });
 
 test("Should_BecomeSpectator_When_RacerConfirmsGiveUp", () => {
-  vi.stubGlobal("confirm", vi.fn(() => true));
   renderRoom();
   startRace(["u1", "u2"]);
 
   fireEvent.click(giveUpButton()!);
+  answerConfirm("Abandonner");
   act(() => lastAck("race:giveUp")({ ok: true }));
 
   expect(typingBox()).toBeNull();
@@ -888,11 +890,11 @@ test("Should_BecomeSpectator_When_RacerConfirmsGiveUp", () => {
 });
 
 test("Should_KeepRacing_When_GiveUpIsNotConfirmed", () => {
-  vi.stubGlobal("confirm", vi.fn(() => false));
   renderRoom();
   startRace(["u1", "u2"]);
 
   fireEvent.click(giveUpButton()!);
+  answerConfirm("Annuler");
 
   expect(socket.emit).not.toHaveBeenCalledWith("race:giveUp", expect.any(Function));
   expect(typingBox()).toBeTruthy();
