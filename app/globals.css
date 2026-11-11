@@ -1474,6 +1474,8 @@ html:has(.confirm-dialog[open]) {
 /* Photo de profil ou initiales (PROF-1) */
 .avatar {
   flex: none;
+  /* Toujours un cercle, même pour un aperçu pas carré (comme le recadrage du serveur). */
+  aspect-ratio: 1;
   border-radius: 50%;
   object-fit: cover;
   background: var(--border);
@@ -1504,7 +1506,6 @@ html:has(.confirm-dialog[open]) {
 @media (min-width: 768px) {
   .profile-settings {
     grid-template-columns: 1fr 1fr;
-    align-items: start;
   }
 }
 
