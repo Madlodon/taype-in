@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import type { GarageFormState } from "@/app/actions/garage";
 import { Car } from "@/components/arena";
 import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, unlockLevel, type Loadout } from "@/lib/garage-items";
@@ -23,6 +23,20 @@ export function GarageForm({ action, initial, guest, level }: Props) {
   const t = useTranslations("Garage");
   const [state, formAction, pending] = useActionState(action, undefined);
   const [loadout, setLoadout] = useState(initial);
+  // The toast belongs to one save: it hides after a few seconds or as soon as the loadout changes again.
+  const [hiddenFor, setHiddenFor] = useState<GarageFormState>();
+  const showSaved = state?.saved && hiddenFor !== state;
+
+  useEffect(() => {
+    if (!state?.saved) return;
+    const timer = setTimeout(() => setHiddenFor(state), 3000);
+    return () => clearTimeout(timer);
+  }, [state]);
+
+  function choose(next: Loadout) {
+    setLoadout(next);
+    setHiddenFor(state);
+  }
 
   return (
     <div className="split-layout">
@@ -41,7 +55,7 @@ export function GarageForm({ action, initial, guest, level }: Props) {
                       value={item}
                       checked={loadout[category] === item}
                       disabled={required > level}
-                      onChange={() => setLoadout({ ...loadout, [category]: item })}
+                      onChange={() => choose({ ...loadout, [category]: item })}
                     />
                     <span>
                       {t(`items.${category}.${item}`)}
@@ -58,14 +72,14 @@ export function GarageForm({ action, initial, guest, level }: Props) {
           <div className="stadium-options">
             {STADIUMS.map(stadium => <label key={stadium} className="stadium-option">
               <input type="radio" name="stadium" value={stadium} checked={loadout.stadium === stadium}
-                onChange={() => setLoadout({ ...loadout, stadium })} />
+                onChange={() => choose({ ...loadout, stadium })} />
               <Image src={STADIUM_IMAGES[stadium]} alt="" width={280} height={180} sizes="(max-width: 640px) 30vw, 160px" />
               <span>{t(`items.stadium.${stadium}`)}</span>
             </label>)}
           </div>
         </fieldset>
         {state?.error && <p role="alert" className="form-error">{t(`errors.${state.error}`)}</p>}
-        {state?.saved && <p role="status">{t("saved")}</p>}
+        {showSaved && <p role="status" className="toast"><span aria-hidden="true">✓</span> {t("saved")}</p>}
         {guest
           ? <p className="description">{t("guestNotice")} <Link href="/signup">{t("signUp")}</Link></p>
           : <button type="submit" disabled={pending} className="btn btn-primary">{t("save")}</button>}

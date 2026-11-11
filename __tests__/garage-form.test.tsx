@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { GarageForm } from "../components/garage-form";
 import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, DEFAULT_LOADOUT } from "../lib/garage-items";
@@ -12,7 +12,45 @@ function garage(guest = false, level = 15) {
   </NextIntlClientProvider>);
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+
+async function saveGarage() {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  render(<NextIntlClientProvider locale="en" messages={en}>
+    <GarageForm action={vi.fn().mockResolvedValue({ saved: true })} initial={DEFAULT_LOADOUT} guest={false} level={15} />
+  </NextIntlClientProvider>);
+  fireEvent.click(screen.getByRole("button", { name: "Save my garage" }));
+  const toast = await screen.findByRole("status");
+  // Let React run the effect that starts the hide timer.
+  await act(async () => {});
+  return toast;
+}
+
+test("Should_ShowSavedToast_When_GarageIsSaved", async () => {
+  const toast = await saveGarage();
+
+  expect(toast.textContent).toContain(en.Garage.saved);
+  expect(toast.className).toContain("toast");
+});
+
+test("Should_HideSavedToast_When_ThreeSecondsPass", async () => {
+  await saveGarage();
+
+  await act(async () => vi.advanceTimersByTime(2900));
+  expect(screen.queryByRole("status")).toBeTruthy();
+  await act(async () => vi.advanceTimersByTime(200));
+  expect(screen.queryByRole("status")).toBeNull();
+});
+
+test("Should_HideSavedToast_When_LoadoutChangesAfterSaving", async () => {
+  await saveGarage();
+
+  fireEvent.click(screen.getByLabelText("Flames"));
+  expect(screen.queryByRole("status")).toBeNull();
+});
 
 test.each([["en", en], ["fr", fr]] as const)("Should_PreviewAndSubmitGoldSet_When_LocaleIs_%s", (locale, messages) => {
   render(<NextIntlClientProvider locale={locale} messages={messages}>
