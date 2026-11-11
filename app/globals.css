@@ -927,6 +927,11 @@ a, button, input {
   gap: 16px;
 }
 
+/* Pendant que tu cours, le terrain laisse assez de hauteur d'écran pour le texte et le champ. */
+.race-focus .arena {
+  max-height: max(240px, calc(100svh - 400px));
+}
+
 /* Le classement prend la hauteur de l'arène et défile au-delà (COURSE-05). */
 .ranking-panel {
   position: relative;
