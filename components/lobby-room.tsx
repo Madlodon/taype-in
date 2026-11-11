@@ -45,6 +45,8 @@ type Props = {
   loadSessionStats: () => Promise<Stats | null>;
   // Champs de réglages préremplis, rendus par la page pour l'hôte seulement (CONF-12).
   settingsFields?: ReactNode;
+  // Boîtes à côté du terrain (code, liens d'invitation, aperçu), cachées pendant que tu cours.
+  aside?: ReactNode;
 };
 
 function toProgress({ typed, errors, keys, keyErrors }: Typing) {
@@ -86,6 +88,7 @@ export function LobbyRoom({
   stadium,
   loadSessionStats,
   settingsFields,
+  aside,
 }: Props) {
   const t = useTranslations("LobbyRoom");
   const format = useFormatter();
@@ -134,6 +137,9 @@ export function LobbyRoom({
   const hitTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [slowLetters, setSlowLetters] = useState(0);
   const [finished, setFinished] = useState(false);
+  // Tu cours : la page ne montre que le terrain et ton texte.
+  const racing = race?.racerIds.includes(userId) && !gaveUp && !endReason;
+  const contentRef = useRef<HTMLDivElement>(null);
   // Lu par les gestionnaires du socket, branchés une seule fois.
   const botNameRef = useRef<(bot: Bot) => string>(null);
   const tRef = useRef(t);
@@ -310,6 +316,11 @@ export function LobbyRoom({
     const timer = setTimeout(() => setSecondsLeft(secondsLeft - 1), 1000);
     return () => clearTimeout(timer);
   }, [secondsLeft, endReason]);
+
+  // Au départ, le champ prend le focus et la page défile vers lui : on remonte au terrain.
+  useEffect(() => {
+    if (racing) contentRef.current?.scrollIntoView?.({ block: "start" });
+  }, [racing]);
 
   useEffect(() => {
     if (!overtake) return;
@@ -491,15 +502,26 @@ export function LobbyRoom({
       </div>
     );
 
+  // Le coureur n'a que le terrain et son texte ; l'hôte qui regarde garde ses boîtes.
+  const layout = (content: ReactNode, showAside = true) =>
+    showAside ? (
+      <div className="split-layout">
+        <div className="side-stack">{content}</div>
+        <aside className="side-stack">{aside}</aside>
+      </div>
+    ) : (
+      <div ref={contentRef} className="side-stack race-focus">{content}</div>
+    );
+
   // Une erreur de transport n'a pas de clé de traduction : son message est affiché tel quel.
   if (error) {
-    return (
+    return layout(
       <>
         {track}
         <p role="alert" className="form-error">
           {t.has(`errors.${error}`) ? t(`errors.${error}`) : error}
         </p>
-      </>
+      </>,
     );
   }
 
@@ -510,8 +532,8 @@ export function LobbyRoom({
   );
 
   // Pendant la course, le coureur ne voit que le texte à taper, le temps restant et « Abandonner » (CRS-7, CRS-8).
-  if (race?.racerIds.includes(userId) && !gaveUp && !endReason) {
-    return (
+  if (race && racing) {
+    return layout(
       <>
         {track}
         <KeyboardNote />
@@ -553,11 +575,12 @@ export function LobbyRoom({
             </button>
           )}
         </section>
-      </>
+      </>,
+      false,
     );
   }
 
-  return (
+  return layout(
     <>
       {track}
       <section className="panel">
@@ -698,6 +721,6 @@ export function LobbyRoom({
           </div>
         )}
       </section>
-    </>
+    </>,
   );
 }

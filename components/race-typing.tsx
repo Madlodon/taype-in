@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { withoutRemoved, restoreRemoved, type RemovedWord } from "@/lib/race-goals";
 import { SLOW_LETTER_MS } from "@/lib/race-bonuses";
 import {
@@ -56,6 +56,7 @@ export function RaceTyping({
   // Pendant une composition (accent circonflexe, tréma…), le champ garde la saisie en cours.
   const [draft, setDraft] = useState<string>();
   const lastKeyAtRef = useRef(0);
+  const textRef = useRef<HTMLParagraphElement>(null);
   const visibleContent = withoutRemoved(content, removed);
   const visibleTyped = withoutRemoved(typing.typed, removed);
   const finished = visibleTyped.length === visibleContent.length;
@@ -68,6 +69,16 @@ export function RaceTyping({
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [finished]);
+
+  // Seulement deux lignes visibles : la ligne du curseur en haut, la suivante en dessous.
+  // Le reste du texte est caché pour que le terrain reste à l'écran.
+  useLayoutEffect(() => {
+    const text = textRef.current;
+    const cursor = text?.querySelector<HTMLElement>(".typing-cursor");
+    if (!text || !cursor) return;
+    const line = parseFloat(getComputedStyle(text).lineHeight);
+    text.scrollTop = line > 0 ? Math.floor(cursor.offsetTop / line) * line : cursor.offsetTop;
+  });
 
   function update(value: string) {
     setDraft(undefined);
@@ -98,7 +109,11 @@ export function RaceTyping({
     <>
       {/* aria-label est interdit sur un <p> : le texte lu reste dans une copie invisible (A11Y-03). */}
       <p className="sr-only">{visibleContent}</p>
-      <p className={textClassName ? `typing-text ${textClassName}` : "typing-text"} aria-hidden="true">
+      <p
+        ref={textRef}
+        className={textClassName ? `typing-text typing-window ${textClassName}` : "typing-text typing-window"}
+        aria-hidden="true"
+      >
         {content.split("").map((character, index) => removed.some(range => index >= range.start && index < range.end) ? null : (
           <span key={index} className={letterClass(index)}>
             {character}

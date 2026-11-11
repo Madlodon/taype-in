@@ -33,14 +33,11 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
         </div>
         <span className="badge">{d("waiting")}</span>
       </div>
-      <div className="split-layout">
-        <div className="side-stack">
-          <LobbyRoom code={lobby.code} hostId={lobby.hostId} userId={user.id}
-            stadium={loadoutSchema.shape.stadium.catch(DEFAULT_LOADOUT.stadium).parse(user.stadium)}
-            loadSessionStats={sessionStatsAction}
-            settingsFields={isHost && <LobbySettingsFields settings={lobby} locale={locale} />} />
-        </div>
-        <aside className="side-stack">
+      <LobbyRoom code={lobby.code} hostId={lobby.hostId} userId={user.id}
+        stadium={loadoutSchema.shape.stadium.catch(DEFAULT_LOADOUT.stadium).parse(user.stadium)}
+        loadSessionStats={sessionStatsAction}
+        settingsFields={isHost && <LobbySettingsFields settings={lobby} locale={locale} />}
+        aside={<>
           {isHost && lobby.visibility !== "private" &&
             <section className="panel panel-accent">
               <p className="room-code">{t("code")}<strong>{lobby.code}</strong>
@@ -54,8 +51,7 @@ export default async function LobbyPage({ params }: { params: Promise<{ code: st
             <p className="room-info">{d("previewSeparate")}</p>
             <Link href="/race" className="text-link inline-block mt-5">{d("tryPreview")} →</Link>
           </section>
-        </aside>
-      </div>
+        </>} />
     </main>
   );
 }
