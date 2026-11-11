@@ -293,7 +293,7 @@ test("Should_SaveScrambledWordsWithTargets_When_HostTicksCharacters", async () =
 
 test("Should_SaveCustomTextOnOneLine_When_HostWritesText", async () => {
   await expect(
-    createLobbyAction(form({ customText: "  Mon texte\n\nà moi.  " })),
+    createLobbyAction(form({ textType: "custom", customText: "  Mon texte\n\nà moi.  " })),
   ).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
@@ -305,15 +305,25 @@ test.each([
   ["empty", ""],
   ["blank", "  \n "],
 ])("Should_UseBank_When_CustomTextIs_%s", async (_, customText) => {
-  await expect(createLobbyAction(form({ customText }))).rejects.toThrow("NEXT_REDIRECT");
+  await expect(createLobbyAction(form({ textType: "custom", customText }))).rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
+    textType: "sentences",
+    customText: null,
+  }));
+});
+
+test.each(["sentences", "words"])("Should_IgnoreCustomText_When_SourceIs_%s", async (textType) => {
+  await expect(createLobbyAction(form({ textType, customText: "Mon texte." }))).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
+    textType,
     customText: null,
   }));
 });
 
 test("Should_CutCustomText_When_LongerThanMax", async () => {
-  await expect(createLobbyAction(form({ customText: "a".repeat(MAX_CUSTOM_TEXT + 50) })))
+  await expect(createLobbyAction(form({ textType: "custom", customText: "a".repeat(MAX_CUSTOM_TEXT + 50) })))
     .rejects.toThrow("NEXT_REDIRECT");
 
   expect(lobbies.createLobby).toHaveBeenCalledWith("user-1", "unlisted", expect.objectContaining({
