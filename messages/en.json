@@ -151,7 +151,8 @@
     "participantsList": "Participants",
     "host": "(host)",
     "close": "Close the race",
-    "confirmClose": "Close the race? Every participant will be sent back to the race list.",
+    "confirmCloseTitle": "Are you sure you want to close the race?",
+    "confirmClose": "Every participant will be sent back to the race list.",
     "needMore": "At least {count} participants are needed to start the race: invite a player or add a bot.",
     "countdown": "Starting in {seconds}",
     "raceText": "Race text",
@@ -171,9 +172,11 @@
       "down": "{names} passed you · {rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}"
     },
     "giveUp": "Give up",
-    "confirmGiveUp": "Give up the race? You'll become a spectator and won't be able to type anymore.",
+    "confirmGiveUpTitle": "Are you sure you want to give up the race?",
+    "confirmGiveUp": "You'll become a spectator and won't be able to type anymore.",
     "leaveOther": "Leave the other lobby",
-    "confirmLeaveOther": "You're already in another lobby. Leave it to join this one?",
+    "confirmLeaveOtherTitle": "Are you sure you want to leave your other lobby?",
+    "confirmLeaveOther": "You're already in another lobby. You need to leave it to join this one.",
     "gaveUp": "You gave up: you're watching the rest of the race.",
     "errors": {
       "notLoggedIn": "Not logged in",
@@ -213,7 +216,8 @@
     "addBot": "Add a bot",
     "removeBot": "Remove",
     "kick": "Kick",
-    "confirmKick": "Kick {username}? They won't be able to come back to this race.",
+    "confirmKickTitle": "Are you sure you want to kick {username}?",
+    "confirmKick": "They won't be able to come back to this race.",
     "botLevels": {
       "noob": "Noob",
       "beginner": "Beginner",
@@ -244,7 +248,8 @@
     }
   },
   "ConfirmDialog": {
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "RaceResults": {
     "title": "Results",

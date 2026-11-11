@@ -151,7 +151,8 @@
     "participantsList": "Participants",
     "host": "(hôte)",
     "close": "Fermer la course",
-    "confirmClose": "Fermer la course ? Tous les participants seront renvoyés à la liste des courses.",
+    "confirmCloseTitle": "Êtes-vous certain de vouloir fermer la course ?",
+    "confirmClose": "Tous les participants seront renvoyés à la liste des courses.",
     "needMore": "Il faut au moins {count} participants pour lancer la course : invite un joueur ou ajoute un bot.",
     "countdown": "Départ dans {seconds}",
     "raceText": "Texte de la course",
@@ -171,9 +172,11 @@
       "down": "{names} {count, plural, one {t'a dépassé} other {t'ont dépassé}} · {rank, selectordinal, one {#er} other {#e}}"
     },
     "giveUp": "Abandonner",
-    "confirmGiveUp": "Abandonner la course ? Tu deviendras spectateur et ne pourras plus taper.",
+    "confirmGiveUpTitle": "Êtes-vous certain de vouloir abandonner la course ?",
+    "confirmGiveUp": "Vous deviendrez spectateur et ne pourrez plus taper.",
     "leaveOther": "Quitter l'autre lobby",
-    "confirmLeaveOther": "Tu es déjà dans un autre lobby. Le quitter pour rejoindre celui-ci ?",
+    "confirmLeaveOtherTitle": "Êtes-vous certain de vouloir quitter votre autre lobby ?",
+    "confirmLeaveOther": "Vous êtes déjà dans un autre lobby. Il faut le quitter pour rejoindre celui-ci.",
     "gaveUp": "Tu as abandonné : tu regardes la fin de la course.",
     "errors": {
       "notLoggedIn": "Non connecté",
@@ -213,7 +216,8 @@
     "addBot": "Ajouter un bot",
     "removeBot": "Retirer",
     "kick": "Exclure",
-    "confirmKick": "Exclure {username} ? Cette personne ne pourra plus revenir dans cette course.",
+    "confirmKickTitle": "Êtes-vous certain de vouloir exclure {username} ?",
+    "confirmKick": "Cette personne ne pourra plus revenir dans cette course.",
     "botLevels": {
       "noob": "Noob",
       "beginner": "Débutant",
@@ -244,7 +248,8 @@
     }
   },
   "ConfirmDialog": {
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "close": "Fermer"
   },
   "RaceResults": {
     "title": "Résultats",
