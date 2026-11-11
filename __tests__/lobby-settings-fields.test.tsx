@@ -88,9 +88,9 @@ const value = (label: string | RegExp) => (screen.getByLabelText(label) as HTMLI
 test("Should_CheckSentencesWithoutTargets_When_CreatingLobby", () => {
   fields();
 
-  expect(checked(/^Sentences/)).toBe(true);
+  expect(checked(/^Bank text/)).toBe(true);
   expect(checked("Digits")).toBe(false);
-  expect(value(/^Your own text/)).toBe("");
+  expect(value("Your text")).toBe("");
 });
 
 test("Should_ShowLobbyTextOptions_When_EditingSettings", () => {
@@ -99,15 +99,40 @@ test("Should_ShowLobbyTextOptions_When_EditingSettings", () => {
     textType: "words",
     textTargets: ["comma", "digits"],
     textLetters: "qz",
-    customText: "Mon texte.",
   });
 
   expect(checked(/^Scrambled words/)).toBe(true);
   expect(checked("Commas")).toBe(true);
   expect(checked("Digits")).toBe(true);
   expect(checked("Accents")).toBe(false);
-  expect(value("Specific letters")).toBe("qz");
-  expect(value(/^Your own text/)).toBe("Mon texte.");
+  expect(value("Letters to practise")).toBe("qz");
+});
+
+test("Should_CheckOwnTextWithLobbyText_When_LobbyHasCustomText", () => {
+  fields({ ...settings, customText: "Mon texte." });
+
+  expect(checked(/^My own text/)).toBe(true);
+  expect(checked(/^Bank text/)).toBe(false);
+  expect(value("Your text")).toBe("Mon texte.");
+});
+
+test("Should_DescribeLettersField_With_Hint", () => {
+  fields();
+
+  const hint = screen.getByLabelText("Letters to practise").getAttribute("aria-describedby");
+
+  expect(document.getElementById(hint!)?.textContent).toMatch(/^E\.g\. qzx/);
+});
+
+test("Should_TagEachTextOptionWithItsSources", () => {
+  fields();
+  const sources = (label: string) =>
+    screen.getByText(label, { selector: "legend" }).closest("[data-for]")?.getAttribute("data-for");
+
+  expect(sources("Text language")).toBe("sentences words");
+  expect(sources("Complexity")).toBe("sentences");
+  expect(sources("Characters to practise")).toBe("words");
+  expect(screen.getByLabelText("Your text").closest("[data-for]")?.getAttribute("data-for")).toBe("custom");
 });
 
 test("Should_SelectMediumAndTickEveryOption_When_CreatingLobby", () => {
