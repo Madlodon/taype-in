@@ -427,6 +427,38 @@ test("Should_BlockAndCountError_When_RacerTypesWrongCharacter", async ({ browser
   await expect(player.page.getByRole("status")).toHaveText("1 faute");
 });
 
+// Le code et les autres boîtes à côté du terrain : cachés pour qui court, gardés pour l'hôte qui regarde.
+test("Should_HideSideBoxesForRacersButNotForWatchingHost_When_RaceStarts", async ({ browser }) => {
+  const host = await newHost(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const players = [await newGuest(browser), await newGuest(browser)];
+  for (const { page } of players) await page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(3);
+  await expect(players[0].page.getByRole("heading", { name: "Sur la ligne de départ" })).toBeVisible();
+
+  await host.page.getByRole("button", { name: "Lancer et regarder" }).click();
+
+  await expect(players[0].page.getByRole("textbox", { name: "Tape le texte" })).toBeVisible({ timeout: 8000 });
+  await expect(players[0].page.getByRole("heading", { name: "Sur la ligne de départ" })).toHaveCount(0);
+  await expect(host.page.getByText("Code de la course :")).toBeVisible();
+  await expect(host.page.getByRole("heading", { name: "Liens d'invitation" })).toBeVisible();
+});
+
+test("Should_HideCodeAndInviteLinks_When_HostRaces", async ({ browser }) => {
+  const host = await newHost(browser);
+  const code = await createRace(host.page, /Non répertoriée/);
+  const player = await newGuest(browser);
+  await player.page.goto(`/lobbies/${code}`);
+  await expect(participants(host.page)).toHaveCount(2);
+  await expect(host.page.getByText("Code de la course :")).toBeVisible();
+
+  await host.page.getByRole("button", { name: "Lancer et courir" }).click();
+
+  await expect(host.page.getByRole("textbox", { name: "Tape le texte" })).toBeVisible({ timeout: 8000 });
+  await expect(host.page.getByText("Code de la course :")).toHaveCount(0);
+  await expect(host.page.getByRole("heading", { name: "Liens d'invitation" })).toHaveCount(0);
+});
+
 test("Should_MoveRacerUpTheRankingForEveryone_When_RacerTypes", async ({ browser }) => {
   const host = await newHost(browser);
   const code = await createRace(host.page, /Non répertoriée/);
