@@ -24,6 +24,7 @@ import { BOT_LEVELS, MAX_BOTS, type Bot } from "@/lib/bots";
 import { Arena } from "@/components/arena";
 import { Avatar } from "@/components/avatar";
 import { BotBadge } from "@/components/bot-badge";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
 import { LobbySettingsSummary } from "@/components/lobby-settings-summary";
 import { RaceResults } from "@/components/race-results";
@@ -134,6 +135,13 @@ export function LobbyRoom({
   const hitTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [slowLetters, setSlowLetters] = useState(0);
   const [finished, setFinished] = useState(false);
+  // Question en attente dans la boîte de confirmation du site.
+  const [ask, setAsk] = useState<{
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>();
   // Lu par les gestionnaires du socket, branchés une seule fois.
   const botNameRef = useRef<(bot: Bot) => string>(null);
   const tRef = useRef(t);
@@ -269,10 +277,13 @@ export function LobbyRoom({
           if (typingRef.current) socket.emit("race:progress", toProgress(typingRef.current));
         } else if (ack.error !== "inOtherLobby") {
           setError(ack.error);
-        } else if (window.confirm(tRef.current!("confirmLeaveOther"))) {
-          join(true);
         } else {
-          router.replace("/lobbies");
+          setAsk({
+            message: tRef.current!("confirmLeaveOther"),
+            confirmLabel: tRef.current!("leaveOther"),
+            onConfirm: () => join(true),
+            onCancel: () => router.replace("/lobbies"),
+          });
         }
       });
     // À chaque connexion, y compris après une coupure, on rentre dans la salle.
@@ -347,9 +358,13 @@ export function LobbyRoom({
 
   // L'hôte exclut un participant ou un spectateur, à tout moment (SALLE-07).
   function kick(id: string, username: string) {
-    if (!window.confirm(t("confirmKick", { username }))) return;
-    socketRef.current?.emit("lobby:kick", { id }, (ack: Ack) => {
-      if (!ack.ok) setError(ack.error);
+    setAsk({
+      message: t("confirmKick", { username }),
+      confirmLabel: t("kick"),
+      onConfirm: () =>
+        socketRef.current?.emit("lobby:kick", { id }, (ack: Ack) => {
+          if (!ack.ok) setError(ack.error);
+        }),
     });
   }
 
@@ -379,10 +394,14 @@ export function LobbyRoom({
   }
 
   function giveUp() {
-    if (!window.confirm(t("confirmGiveUp"))) return;
-    socketRef.current?.emit("race:giveUp", (ack: Ack) => {
-      if (ack.ok) setGaveUp(true);
-      else setError(ack.error);
+    setAsk({
+      message: t("confirmGiveUp"),
+      confirmLabel: t("giveUp"),
+      onConfirm: () =>
+        socketRef.current?.emit("race:giveUp", (ack: Ack) => {
+          if (ack.ok) setGaveUp(true);
+          else setError(ack.error);
+        }),
     });
   }
 
@@ -407,9 +426,13 @@ export function LobbyRoom({
   }
 
   function close() {
-    if (!window.confirm(t("confirmClose"))) return;
-    socketRef.current?.emit("lobby:close", (ack: Ack) => {
-      if (!ack.ok) setError(ack.error);
+    setAsk({
+      message: t("confirmClose"),
+      confirmLabel: t("close"),
+      onConfirm: () =>
+        socketRef.current?.emit("lobby:close", (ack: Ack) => {
+          if (!ack.ok) setError(ack.error);
+        }),
     });
   }
 
@@ -509,10 +532,26 @@ export function LobbyRoom({
     </p>
   );
 
+  const confirmDialog = ask && (
+    <ConfirmDialog
+      message={ask.message}
+      confirmLabel={ask.confirmLabel}
+      onConfirm={() => {
+        setAsk(undefined);
+        ask.onConfirm();
+      }}
+      onCancel={() => {
+        setAsk(undefined);
+        ask.onCancel?.();
+      }}
+    />
+  );
+
   // Pendant la course, le coureur ne voit que le texte à taper, le temps restant et « Abandonner » (CRS-7, CRS-8).
   if (race?.racerIds.includes(userId) && !gaveUp && !endReason) {
     return (
       <>
+        {confirmDialog}
         {track}
         <KeyboardNote />
         <section className="panel panel-accent">
@@ -559,6 +598,7 @@ export function LobbyRoom({
 
   return (
     <>
+      {confirmDialog}
       {track}
       <section className="panel">
         <h2 className="text-xl font-semibold">
