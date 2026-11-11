@@ -37,7 +37,8 @@ function renderRoom(
   const result = render(
     <NextIntlClientProvider locale={locale} messages={locale === "fr" ? fr : en}>
       <LobbyRoom code="K7P3XM" hostId="u1" userId={isHost ? "u1" : "u2"} stadium={stadium}
-        loadSessionStats={loadSessionStats} settingsFields={settingsFields} />
+        loadSessionStats={loadSessionStats} settingsFields={settingsFields}
+        aside={<p>Boîte à côté</p>} />
     </NextIntlClientProvider>,
   );
   act(() => handlers["connect"]());
@@ -659,6 +660,45 @@ test("Should_MarkHostWatchingAndNotCountHim_When_HostWatchesRace", () => {
   expect(screen.getByRole("heading", { name: "Participants (2)" })).toBeTruthy();
   expect(screen.getByText("Tu regardes la course sans courir.")).toBeTruthy();
   expect(screen.queryByRole("textbox")).toBeNull();
+});
+
+// Boîtes à côté du terrain (code, liens, aperçu) : cachées pour qui court, gardées pour qui regarde.
+test("Should_ShowSideBoxes_When_WaitingForRace", () => {
+  renderRoom("fr", true);
+  sendParticipants();
+
+  expect(screen.getByText("Boîte à côté")).toBeTruthy();
+});
+
+test.each([
+  ["host", true],
+  ["player", false],
+])("Should_HideSideBoxes_When_%sRaces", (_who, isHost) => {
+  renderRoom("fr", isHost);
+  sendParticipants();
+
+  startRace(["u1", "u2"]);
+
+  expect(screen.getByRole("textbox", { name: "Tape le texte" })).toBeTruthy();
+  expect(screen.queryByText("Boîte à côté")).toBeNull();
+});
+
+test("Should_ShowSideBoxes_When_HostOnlyWatches", () => {
+  renderRoom("fr", true);
+
+  startRace(["u2", "u3"]);
+
+  expect(screen.getByText("Tu regardes la course sans courir.")).toBeTruthy();
+  expect(screen.getByText("Boîte à côté")).toBeTruthy();
+});
+
+test("Should_ShowSideBoxesAgain_When_RaceEnds", () => {
+  renderRoom("fr", true);
+  startRace(["u1", "u2"]);
+
+  act(() => handlers["race:ended"]({ reason: "allFinished", results: [] }));
+
+  expect(screen.getByText("Boîte à côté")).toBeTruthy();
 });
 
 test("Should_ShowPodiumAndRanking_When_RaceEndsWithResults", () => {

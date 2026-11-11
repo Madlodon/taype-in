@@ -956,6 +956,11 @@ a, button, input {
   gap: 16px;
 }
 
+/* Pendant que tu cours, le terrain laisse assez de hauteur d'écran pour le texte et le champ. */
+.race-focus .arena {
+  max-height: max(240px, calc(100svh - 400px));
+}
+
 /* Le classement prend la hauteur de l'arène et défile au-delà (COURSE-05). */
 .ranking-panel {
   position: relative;
@@ -1559,6 +1564,13 @@ a, button, input {
   letter-spacing: .2px;
   margin: 22px 0;
   overflow-wrap: anywhere;
+}
+
+/* Zone de frappe : deux lignes à la fois, qui suivent le curseur. */
+.typing-window {
+  position: relative;
+  max-height: calc(2 * 1.95em);
+  overflow: hidden;
 }
 
 /* Bonus reçus d'un adversaire (BON-3) : texte flou ou réduit pendant 5 s. */
