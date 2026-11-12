@@ -82,7 +82,7 @@ export default async function ProfilePage({
           <div className="flex items-center gap-4">
             <span className="badge">{t("you")}</span>
             <form action={logOutAction}>
-              <button className="text-link" type="submit">{t("logOut")}</button>
+              <button className="btn btn-secondary" type="submit">{t("logOut")}</button>
             </form>
           </div>
         )}
