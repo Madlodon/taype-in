@@ -8,7 +8,7 @@ import { CarBoost } from "@/components/car-boost";
 import { CarBody } from "@/components/car-body";
 import type { Loadout } from "@/lib/garage-items";
 import { STADIUM_IMAGES, type Stadium } from "@/lib/garage-items";
-import { DRIVING_AREA, MAX_CAR_SCALE, project } from "@/lib/stadium-track";
+import { DRIVING_AREA, MAX_CAR_SCALE, fieldViewBox, project } from "@/lib/stadium-track";
 import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls, launchFieldShot, finishFieldBall } from "@/lib/field-motion";
 
 // The same route is used by the preview car and its ball: floor, wall, ceiling, goal.
@@ -65,9 +65,10 @@ type Shot = { sequence: number; scored: boolean; receivedAt: number };
 
 export const BOOST_MS = 350;
 
-type ArenaProps = { boosts?: Record<string, number>; shots?: Record<string, Shot>; progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number };
+type ArenaProps = { boosts?: Record<string, number>; shots?: Record<string, Shot>; progress?: number; cars?: TrackCar[]; className?: string; stadium?: Stadium; carScale?: number; zoom?: boolean };
 
-export function Arena({ progress, cars, shots = {}, boosts = {}, className = "", stadium = "diorama", carScale = .45 }: ArenaProps) {
+// zoom : en course, recadre sur le terrain pour que le stade remplisse son cadre (#260).
+export function Arena({ progress, cars, shots = {}, boosts = {}, className = "", stadium = "diorama", carScale = .45, zoom = false }: ArenaProps) {
   const racers: TrackCar[] = cars ?? [{ id: "preview", name: "", progress: progress ?? .16, you: true }];
   const ids = racers.map(car => car.id);
   const scale = Math.max(.1, Math.min(carScale, MAX_CAR_SCALE));
@@ -120,7 +121,7 @@ export function Arena({ progress, cars, shots = {}, boosts = {}, className = "",
     const balls = createFieldBalls(poses, motion.balls, scale, bodies).map(ball =>
       finished.has(ball.id) && typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
         ? { ...ball, x: 56, y: 0, z: 1.2 } : ball);
-    return <svg className={`arena ${className}`} viewBox="0 0 1400 900" fill="none" aria-hidden="true" data-stadium={stadium}>
+    return <svg className={`arena ${className}`} viewBox={zoom ? fieldViewBox(stadium) : "0 0 1400 900"} fill="none" aria-hidden="true" data-stadium={stadium}>
       <defs>
         <clipPath id={`${id}-driving-area`}>
           <polygon points={[[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => {

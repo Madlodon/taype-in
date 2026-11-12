@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { Arena } from "../components/arena";
 import { STADIUMS, STADIUM_IMAGES } from "../lib/garage-items";
-import { DRIVING_AREA, MAX_CAR_SCALE, project, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
+import { DRIVING_AREA, MAX_CAR_SCALE, fieldViewBox, project, stadiumPosition, stadiumRoute } from "../lib/stadium-track";
 
 import { createFieldCars, stepFieldCars, createFieldBalls, stepFieldBalls } from "../lib/field-motion";
 
@@ -344,4 +344,29 @@ test("Should_ShowFinishedBallInNetWithoutAnimation_When_ReducedMotionIsRequested
   expect(raf).not.toHaveBeenCalled();
   rerender(<Arena stadium="top-down" progress={0} />);
   expect(container.querySelector("[data-field-ball]")!.getAttribute("transform")).toBe(initial);
+});
+
+test.each(STADIUMS)("Should_CropToTheFieldAndBothGoals_When_ArenaIsZoomedIn_%s", stadium => {
+  const [left, top, width, height] = fieldViewBox(stadium).split(" ").map(Number);
+  // Plus petit que l'image entière, sans en sortir.
+  expect(left).toBeGreaterThanOrEqual(0);
+  expect(top).toBeGreaterThanOrEqual(0);
+  expect(left + width).toBeLessThanOrEqual(1400);
+  expect(top + height).toBeLessThanOrEqual(900);
+  expect(width * height).toBeLessThan(1400 * 900 * .75);
+  // Les coins du terrain et le fond des deux buts restent visibles.
+  const corners = [-1, 1].flatMap(x => [-1, 1].map(y => project(x * DRIVING_AREA.halfLength, y * DRIVING_AREA.halfWidth, 0, stadium)));
+  for (const point of [...corners, project(-56, 0, 0, stadium), project(56, 0, 0, stadium)]) {
+    expect(point.x).toBeGreaterThan(left);
+    expect(point.x).toBeLessThan(left + width);
+    expect(point.y).toBeGreaterThan(top);
+    expect(point.y).toBeLessThan(top + height);
+  }
+});
+
+test("Should_ShowTheWholeImage_When_ArenaIsNotZoomed", () => {
+  const { container, rerender } = render(<Arena stadium="cutaway" />);
+  expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 1400 900");
+  rerender(<Arena stadium="cutaway" zoom />);
+  expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe(fieldViewBox("cutaway"));
 });

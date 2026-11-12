@@ -121,12 +121,14 @@ export function RaceTyping({
         ))}
       </p>
       {children}
-      <label htmlFor="race-typing" className="field mb-3">
+      {/* Caché à l'écran pour laisser la hauteur à l'arène, mais toujours lu (#260). */}
+      <label htmlFor="race-typing" className="sr-only">
         {t("label")}
       </label>
       <textarea
         id="race-typing"
         className="typing-input"
+        rows={1}
         value={draft ?? visibleTyped}
         onChange={(event) =>
           (event.nativeEvent as InputEvent).isComposing
@@ -149,18 +151,20 @@ export function RaceTyping({
         onPaste={(event) => event.preventDefault()}
         onDrop={(event) => event.preventDefault()}
       />
-      <p id="race-typing-help" className="form-note">
-        {t(errorMode)}
-      </p>
-      <p className="form-note">
-        {t("live", {
-          wpm: Math.round(wpm),
-          accuracy: Math.round(accuracy(typing.keys, typing.errors)),
-        })}
-      </p>
-      <p role="status" className="form-note">
-        {finished ? t("finished", { count: typing.errors }) : t("errors", { count: typing.errors })}
-      </p>
+      <div className="typing-notes">
+        <p id="race-typing-help" className="form-note">
+          {t(errorMode)}
+        </p>
+        <p className="form-note">
+          {t("live", {
+            wpm: Math.round(wpm),
+            accuracy: Math.round(accuracy(typing.keys, typing.errors)),
+          })}
+        </p>
+        <p role="status" className="form-note">
+          {finished ? t("finished", { count: typing.errors }) : t("errors", { count: typing.errors })}
+        </p>
+      </div>
     </>
   );
 }

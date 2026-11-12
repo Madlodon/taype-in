@@ -481,6 +481,7 @@ export function LobbyRoom({
     ) : (
       <div className="race-board">
         <Arena
+          zoom
           stadium={stadium}
           shots={shots}
           boosts={boosts}
