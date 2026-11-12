@@ -23,6 +23,24 @@ export function project(x: number, y: number, z: number, stadium: Stadium) {
   return { x: 700 + dot(right) * 1400 / scale, y: 450 - dot(up) * 1400 / scale, depth: dot([nx, ny, nz]) };
 }
 
+// Pendant une course, le cadre se resserre sur le terrain et les buts (#260) :
+// l'image fait 1400×900, mais le stade n'en remplit qu'une partie.
+// La marge du haut laisse la place aux noms au-dessus des voitures.
+const FIELD_CORNERS = { halfLength: 60, halfWidth: 32, height: 8 };
+const FIELD_MARGIN = { side: 80, top: 110, bottom: 80 };
+
+export function fieldViewBox(stadium: Stadium) {
+  const points = [];
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [0, 1]) {
+    points.push(project(x * FIELD_CORNERS.halfLength, y * FIELD_CORNERS.halfWidth, z * FIELD_CORNERS.height, stadium));
+  }
+  const left = Math.max(0, Math.min(...points.map((point) => point.x)) - FIELD_MARGIN.side);
+  const right = Math.min(1400, Math.max(...points.map((point) => point.x)) + FIELD_MARGIN.side);
+  const top = Math.max(0, Math.min(...points.map((point) => point.y)) - FIELD_MARGIN.top);
+  const bottom = Math.min(900, Math.max(...points.map((point) => point.y)) + FIELD_MARGIN.bottom);
+  return [left, top, right - left, bottom - top].map(Math.round).join(" ");
+}
+
 export function stadiumRoute(stadium: Stadium) {
   return ROUTE.map(([progress, x, y, z]) => ({ progress, ...project(x, y, z, stadium) }));
 }
