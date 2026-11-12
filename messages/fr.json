@@ -360,7 +360,21 @@
     "disclaimer": "Projet de fan inspiré de Rocket League. Non affilié à Epic Games ni à Psyonix, ni approuvé par eux."
   },
   "Metadata": {
-    "description": "Courses de dactylo entre amis, inspirées de Rocket League."
+    "description": "Courses de dactylo entre amis, inspirées de Rocket League.",
+    "titles": {
+      "lobbies": "Courses",
+      "newLobby": "Créer une course",
+      "lobby": "Salle d'attente",
+      "logIn": "Se connecter",
+      "signUp": "Créer un compte",
+      "oauth": "Choisis ton nom",
+      "race": "Entraînement",
+      "garage": "Garage",
+      "pastRace": "Résultats de la course",
+      "invite": "Invitation",
+      "notFound": "Page introuvable",
+      "error": "Erreur"
+    }
   },
   "Design": {
     "brandTag": "Le clavier passe le turbo",

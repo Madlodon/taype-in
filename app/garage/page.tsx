@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { saveLoadoutAction } from "@/app/actions/garage";
@@ -5,6 +6,10 @@ import { GarageForm } from "@/components/garage-form";
 import { getLoadout } from "@/lib/garage";
 import { getCurrentUser } from "@/lib/session-cookie";
 import { levelFromXp } from "@/lib/xp";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("garage") };
+}
 
 export default async function GaragePage() {
   const user = await getCurrentUser();

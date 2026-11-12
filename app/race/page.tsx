@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { RacePreview } from "@/components/race-preview";
 import { getCurrentUser } from "@/lib/session-cookie";
 import { DEFAULT_LOADOUT } from "@/lib/garage-items";
 import { loadoutSchema } from "@/lib/garage";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("race") };
+}
 
 export default async function RacePage() {
   const t = await getTranslations("Race");

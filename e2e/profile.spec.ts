@@ -24,6 +24,7 @@ test("Should_ShowYouBadgeOnlyToOwner_When_VisitingAProfile", async ({ page }) =>
   const username = await signUp(page, "e2e");
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(username);
+  await expect(page).toHaveTitle(`${username} · Taype-in`);
   await expect(page.getByText("Toi", { exact: true })).toBeVisible();
   await expect(page.getByText("Aucune course pour l’instant.")).toBeVisible();
 

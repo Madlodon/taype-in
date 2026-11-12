@@ -36,3 +36,27 @@ test("Should_ReplaceDefaultMetadata_When_VisitingAnyPage", async ({ page }) => {
   // Next.js peut ajouter la nouvelle balise avant de retirer l'ancienne : on cherche l'anglaise.
   await expect(page.locator('meta[name="description"][content^="Typing races"]')).toBeAttached();
 });
+
+// Chaque page a son propre titre, traduit (#273).
+test("Should_NamePageInTitle_When_VisitingIt", async ({ page }) => {
+  // Connecté en invité : la liste des courses ne renvoie pas à la connexion.
+  await page.goto("/");
+  await page.getByRole("button", { name: "Jouer en invité" }).click();
+  await expect(page.getByText(/Invité-\d{6} \(invité\)/)).toBeVisible();
+
+  for (const [path, title] of [
+    ["/lobbies", "Courses · Taype-in"],
+    ["/race", "Entraînement · Taype-in"],
+    ["/garage", "Garage · Taype-in"],
+    ["/login", "Se connecter · Taype-in"],
+    ["/signup", "Créer un compte · Taype-in"],
+    ["/zzz-page-inconnue", "Page introuvable · Taype-in"],
+  ]) {
+    await page.goto(path);
+    await expect(page).toHaveTitle(title);
+  }
+
+  await page.goto("/lobbies");
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page).toHaveTitle("Races · Taype-in");
+});

@@ -33,7 +33,8 @@ const russoOne = Russo_One({
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Metadata");
-  return { title: "Taype-in", description: t("description") };
+  // Chaque page donne son nom : « Garage · Taype-in » ; l'accueil garde « Taype-in » (#273).
+  return { title: { default: "Taype-in", template: "%s · Taype-in" }, description: t("description") };
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { guestAction, logInAction } from "@/app/actions/auth";
 import { Arena } from "@/components/arena";
 import { AuthForm } from "@/components/auth-form";
 import { OAuthButtons } from "@/components/oauth-buttons";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("logIn") };
+}
 
 export default async function LogInPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const { next, error } = await searchParams;

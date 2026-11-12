@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { joinInviteAction } from "@/app/actions/lobbies";
@@ -5,6 +6,10 @@ import { Arena } from "@/components/arena";
 import { getClientIp } from "@/lib/client-ip";
 import { findInviteLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("invite") };
+}
 
 // Lien d'invitation à une course privée (LOB-3). Le lien est pris au clic sur le bouton,
 // pas à l'ouverture : un aperçu de lien (messagerie, courriel) ne le gaspille pas.

@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { JoinLobbyForm } from "@/components/join-lobby-form";
 import { LobbyExplorer } from "@/components/lobby-explorer";
 import { getCurrentUser } from "@/lib/session-cookie";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("lobbies") };
+}
 
 export default async function LobbiesPage({ searchParams }: { searchParams: Promise<{ closed?: string; kicked?: string; lang?: string; complexity?: string }> }) {
   const user = await getCurrentUser();

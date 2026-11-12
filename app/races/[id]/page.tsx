@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { KeyboardHeatmap } from "@/components/keyboard-heatmap";
@@ -6,6 +7,10 @@ import { WpmChart } from "@/components/wpm-chart";
 import { textLabel } from "@/lib/profile";
 import { findPastRace } from "@/lib/results";
 import { getCurrentUser } from "@/lib/session-cookie";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("pastRace") };
+}
 
 // Résultats complets d'une course de l'historique, ouverts depuis un profil (HIST-02).
 // Publique comme les profils ; le rang gagné, l'XP et le record du moment ne sont pas enregistrés, donc pas réaffichés.
