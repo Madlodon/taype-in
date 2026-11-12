@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { GarageForm } from "../components/garage-form";
 import { BALLS, BOOSTS, CARS, HATS, STADIUMS, STADIUM_IMAGES, DEFAULT_LOADOUT } from "../lib/garage-items";
@@ -12,7 +12,87 @@ function garage(guest = false, level = 15) {
   </NextIntlClientProvider>);
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+
+function savableGarage() {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  const action = vi.fn().mockResolvedValue({ saved: true });
+  render(<NextIntlClientProvider locale="en" messages={en}>
+    <GarageForm action={action} initial={DEFAULT_LOADOUT} guest={false} level={15} />
+  </NextIntlClientProvider>);
+  return action;
+}
+
+async function clickSave() {
+  fireEvent.click(screen.getByRole("button", { name: "Save my garage" }));
+  const toast = await screen.findByRole("status");
+  // Let React run the effect that starts the hide timer.
+  await act(async () => {});
+  return toast;
+}
+
+async function saveGarage() {
+  savableGarage();
+  fireEvent.click(screen.getByLabelText("Flames"));
+  return clickSave();
+}
+
+test("Should_ShowSavedToast_When_GarageIsSaved", async () => {
+  const toast = await saveGarage();
+
+  expect(toast.textContent).toContain(en.Garage.saved);
+  expect(toast.className).toContain("toast");
+});
+
+test("Should_HideSavedToast_When_ThreeSecondsPass", async () => {
+  await saveGarage();
+
+  await act(async () => vi.advanceTimersByTime(2900));
+  expect(screen.queryByRole("status")).toBeTruthy();
+  await act(async () => vi.advanceTimersByTime(200));
+  expect(screen.queryByRole("status")).toBeNull();
+});
+
+test("Should_HideSavedToast_When_LoadoutChangesAfterSaving", async () => {
+  await saveGarage();
+
+  fireEvent.click(screen.getByLabelText("Traffic cone"));
+  expect(screen.queryByRole("status")).toBeNull();
+});
+
+test("Should_ShowNothingChangedWithoutSaving_When_LoadoutIsUnchanged", async () => {
+  const action = savableGarage();
+
+  const toast = await clickSave();
+
+  expect(toast.textContent).toContain(en.Garage.unchanged);
+  expect(action).not.toHaveBeenCalled();
+});
+
+test("Should_ShowNothingChanged_When_SavingTheSameLoadoutTwice", async () => {
+  const action = savableGarage();
+  fireEvent.click(screen.getByLabelText("Flames"));
+  await clickSave();
+
+  const toast = await clickSave();
+
+  expect(toast.textContent).toContain(en.Garage.unchanged);
+  expect(action).toHaveBeenCalledTimes(1);
+});
+
+test("Should_ShowNothingChanged_When_ChoiceIsRevertedToSavedLoadout", async () => {
+  const action = savableGarage();
+  fireEvent.click(screen.getByLabelText("Flames"));
+  fireEvent.click(screen.getByLabelText("Standard"));
+
+  const toast = await clickSave();
+
+  expect(toast.textContent).toContain(en.Garage.unchanged);
+  expect(action).not.toHaveBeenCalled();
+});
 
 test.each([["en", en], ["fr", fr]] as const)("Should_PreviewAndSubmitGoldSet_When_LocaleIs_%s", (locale, messages) => {
   render(<NextIntlClientProvider locale={locale} messages={messages}>
