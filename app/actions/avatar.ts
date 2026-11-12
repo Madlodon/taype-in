@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { removeAvatar, saveAvatar } from "@/lib/avatars";
+import { avatarCropSchema, removeAvatar, saveAvatar } from "@/lib/avatars";
 import { getCurrentUser } from "@/lib/session-cookie";
 
 // error est une clé de traduction (Profile.photo.errors).
@@ -24,7 +24,20 @@ export async function uploadAvatarAction(
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) return { error: "missing" };
 
-  const { error } = await saveAvatar(user.id, file);
+  // Le recadreur envoie la zone choisie ; sans elle, la photo est recadrée au centre.
+  let crop;
+  if (formData.has("cropWidth")) {
+    const parsed = avatarCropSchema.safeParse({
+      x: formData.get("cropX"),
+      y: formData.get("cropY"),
+      width: formData.get("cropWidth"),
+      height: formData.get("cropHeight"),
+    });
+    if (!parsed.success) return { error: "crop" };
+    crop = parsed.data;
+  }
+
+  const { error } = await saveAvatar(user.id, file, crop);
   if (error) return { error };
   refresh();
   return undefined;

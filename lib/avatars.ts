@@ -2,6 +2,7 @@
 // Gardée dans Postgres (bytea) pour rester gratuit.
 import { eq } from "drizzle-orm";
 import sharp from "sharp";
+import { z } from "zod";
 import { db } from "../db/index.ts";
 import { avatars, users } from "../db/schema.ts";
 
@@ -9,6 +10,17 @@ export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 // Côté du carré gardé : 2 × la plus grande taille affichée (96 px), pour les écrans haute densité.
 export const AVATAR_SIZE = 256;
+
+// Zone choisie dans le recadreur, en pixels de l'image une fois redressée (#262).
+// Les champs arrivent du formulaire : seulement des chiffres (pas de champ vide changé en 0).
+const pixels = z.string().regex(/^\d{1,5}$/).transform(Number);
+export const avatarCropSchema = z.object({
+  x: pixels,
+  y: pixels,
+  width: pixels.pipe(z.number().min(1)),
+  height: pixels.pipe(z.number().min(1)),
+});
+export type AvatarCrop = z.output<typeof avatarCropSchema>;
 
 export type AvatarImage = { contentType: string; body: Uint8Array<ArrayBuffer> | string; etag: string };
 
@@ -22,24 +34,36 @@ export function detectImageType(bytes: Uint8Array): (typeof AVATAR_TYPES)[number
 }
 
 // error est une clé de traduction (Profile.photo.errors).
-export async function saveAvatar(userId: string, file: File): Promise<{ error?: "tooLarge" | "type" }> {
+// Sans zone, la photo est recadrée au centre.
+export async function saveAvatar(
+  userId: string,
+  file: File,
+  crop?: AvatarCrop,
+): Promise<{ error?: "tooLarge" | "type" | "crop" }> {
   if (file.size > MAX_AVATAR_BYTES) return { error: "tooLarge" };
   const original = Buffer.from(await file.arrayBuffer());
   if (!detectImageType(original)) return { error: "type" };
-  const data = await resizeAvatar(original);
-  if (!data) return { error: "type" };
+  const data = await resizeAvatar(original, crop);
+  if (typeof data === "string") return { error: data };
   const row = { userId, contentType: "image/webp", data, updatedAt: new Date() };
   await db.insert(avatars).values(row).onConflictDoUpdate({ target: avatars.userId, set: row });
   return {};
 }
 
-// Carré recadré au centre, en WebP ; null si l'image est illisible malgré sa signature.
-async function resizeAvatar(original: Buffer): Promise<Buffer | null> {
+// Carré en WebP : la zone choisie, sinon le centre. Le navigateur affiche la photo déjà
+// redressée (EXIF), donc on la redresse avant de découper pour que la zone tombe au même endroit.
+async function resizeAvatar(original: Buffer, crop?: AvatarCrop): Promise<Buffer | "type" | "crop"> {
+  let upright;
   try {
-    return await sharp(original).rotate().resize(AVATAR_SIZE, AVATAR_SIZE, { fit: "cover" }).webp().toBuffer();
+    upright = await sharp(original).rotate().raw().toBuffer({ resolveWithObject: true });
   } catch {
-    return null;
+    return "type";
   }
+  const { width, height, channels } = upright.info;
+  if (crop && (crop.x + crop.width > width || crop.y + crop.height > height)) return "crop";
+  const image = sharp(upright.data, { raw: { width, height, channels } });
+  if (crop) image.extract({ left: crop.x, top: crop.y, width: crop.width, height: crop.height });
+  return image.resize(AVATAR_SIZE, AVATAR_SIZE, { fit: "cover" }).webp().toBuffer();
 }
 
 export async function removeAvatar(userId: string): Promise<void> {
