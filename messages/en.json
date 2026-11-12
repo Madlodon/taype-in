@@ -33,7 +33,9 @@
       "passwordTooLong": "Password must be at most 128 characters.",
       "usernameTaken": "This username is already taken.",
       "wrongCredentials": "Wrong username or password.",
-      "oauthFailed": "Logging in with Discord or GitHub failed. Try again."
+      "oauthFailed": "Logging in with Discord or GitHub failed. Try again.",
+      "tooManyAttempts": "Too many attempts. Try again in a minute.",
+      "tooManyGuests": "Too many guest accounts created. Try again in a minute."
     }
   },
   "Lobbies": {

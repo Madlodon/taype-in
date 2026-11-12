@@ -24,7 +24,7 @@ export default async function LogInPage({ searchParams }: { searchParams: Promis
         <h1 className="page-title">{t("logInTitle")}</h1>
         <p className="description">{d("logInDescription")}</p>
         {next && <p role="status" className="panel panel-accent mb-6">{t("signInToContinue")}</p>}
-        {error === "oauthFailed" && <p role="alert" className="form-error mb-6">{t("errors.oauthFailed")}</p>}
+        {(error === "oauthFailed" || error === "tooManyGuests") && <p role="alert" className="form-error mb-6">{t(`errors.${error}`)}</p>}
         <AuthForm action={logInAction} submitLabel={t("logInSubmit")} passwordAutoComplete="current-password" next={next} rememberMe />
         <OAuthButtons next={next} />
 

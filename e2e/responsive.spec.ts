@@ -3,6 +3,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 // Roule sur ordinateur, téléphone et tablette (projets de playwright.config.ts).
 
 // browser.newContext() ne reprend pas l'appareil du projet : on le lui passe.
+// Une adresse au hasard : la limite d'invités par IP n'est pas atteinte (#271).
 async function newDevicePage(browser: Browser): Promise<Page> {
   const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch, baseURL, locale } =
     test.info().project.use;
@@ -14,6 +15,9 @@ async function newDevicePage(browser: Browser): Promise<Page> {
     hasTouch,
     baseURL,
     locale,
+    extraHTTPHeaders: {
+      "x-forwarded-for": `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`,
+    },
   });
   return context.newPage();
 }

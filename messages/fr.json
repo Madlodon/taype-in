@@ -33,7 +33,9 @@
       "passwordTooLong": "Le mot de passe doit avoir au plus 128 caractères.",
       "usernameTaken": "Ce nom d'utilisateur est déjà pris.",
       "wrongCredentials": "Nom d'utilisateur ou mot de passe incorrect.",
-      "oauthFailed": "La connexion avec Discord ou GitHub a échoué. Réessaie."
+      "oauthFailed": "La connexion avec Discord ou GitHub a échoué. Réessaie.",
+      "tooManyAttempts": "Trop d'essais. Réessayez dans une minute.",
+      "tooManyGuests": "Trop de comptes invités créés. Réessayez dans une minute."
     }
   },
   "Lobbies": {
