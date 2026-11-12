@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -20,6 +21,10 @@ import {
 import { getCurrentUser } from "@/lib/session-cookie";
 import { findRenamedUser, nextRenameAt, revertUntil } from "@/lib/username";
 import { levelProgress } from "@/lib/xp";
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  return { title: (await params).username };
+}
 
 // Page publique : visiteurs, invités et propriétaire voient les mêmes données (PROF-2, PROF-3).
 export default async function ProfilePage({

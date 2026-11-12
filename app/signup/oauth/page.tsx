@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -5,6 +6,10 @@ import { oauthSignUpAction } from "@/app/actions/auth";
 import { Arena } from "@/components/arena";
 import { AuthForm } from "@/components/auth-form";
 import { decodePending, PENDING_COOKIE, PROVIDER_NAMES } from "@/lib/oauth";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("oauth") };
+}
 
 // Nouveau compte Discord ou GitHub : le joueur choisit son nom avant la création (AUTH-2).
 export default async function OAuthSignUpPage() {

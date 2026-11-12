@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { signUpAction } from "@/app/actions/auth";
 import { Arena } from "@/components/arena";
 import { AuthForm } from "@/components/auth-form";
 import { OAuthButtons } from "@/components/oauth-buttons";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("signUp") };
+}
 
 export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;

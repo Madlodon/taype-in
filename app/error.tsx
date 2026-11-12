@@ -8,9 +8,12 @@ import { Arena } from "@/components/arena";
 export default function Error({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   const t = useTranslations("ErrorPages");
   const d = useTranslations("Design");
+  const titles = useTranslations("Metadata.titles");
 
   return (
     <main id="main" className="page-shell auth-layout">
+      {/* Composant client : pas de generateMetadata, React place ce titre dans le <head> (#273). */}
+      <title>{`${titles("error")} · Taype-in`}</title>
       <section className="auth-story">
         <p className="eyebrow">{d("heroTag")}</p>
         <h2>{d("authHeadline")}</h2>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
@@ -9,6 +10,10 @@ import { canEnterLobby, findOpenLobby } from "@/lib/lobbies";
 import { getCurrentUser } from "@/lib/session-cookie";
 import { DEFAULT_LOADOUT } from "@/lib/garage-items";
 import { loadoutSchema } from "@/lib/garage";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("lobby") };
+}
 
 export default async function LobbyPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;

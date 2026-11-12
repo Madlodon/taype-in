@@ -362,7 +362,21 @@
     "disclaimer": "Fan project inspired by Rocket League. Not affiliated with or endorsed by Epic Games or Psyonix."
   },
   "Metadata": {
-    "description": "Typing races between friends, inspired by Rocket League."
+    "description": "Typing races between friends, inspired by Rocket League.",
+    "titles": {
+      "lobbies": "Races",
+      "newLobby": "Create a race",
+      "lobby": "Waiting room",
+      "logIn": "Log in",
+      "signUp": "Sign up",
+      "oauth": "Choose your username",
+      "race": "Practice",
+      "garage": "Garage",
+      "pastRace": "Race results",
+      "invite": "Invitation",
+      "notFound": "Page not found",
+      "error": "Error"
+    }
   },
   "Design": {
     "brandTag": "Typing meets boost",

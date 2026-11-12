@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Arena } from "@/components/arena";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations("Metadata.titles"))("notFound") };
+}
 
 // Page affichée pour une URL inconnue ou un code de course introuvable.
 export default async function NotFound() {
