@@ -41,6 +41,25 @@ function signatureOnly(signature: number[], type: string) {
   return new File([bytes], "photo", { type });
 }
 
+// Moitié gauche rouge, moitié droite bleue ; orientation EXIF en option.
+async function halves(width: number, height: number, orientation?: number) {
+  const half = (background: string) =>
+    sharp({ create: { width: width / 2, height, channels: 3, background } }).png().toBuffer();
+  let pipeline = sharp({ create: { width, height, channels: 3, background: "#000000" } }).composite([
+    { input: await half("#ff0000"), left: 0, top: 0 },
+    { input: await half("#0000ff"), left: width / 2, top: 0 },
+  ]);
+  if (orientation) pipeline = sharp(await pipeline.jpeg().toBuffer()).withMetadata({ orientation });
+  return new File([new Uint8Array(await pipeline.jpeg().toBuffer())], "photo.jpg", { type: "image/jpeg" });
+}
+
+// Couleur moyenne de la photo enregistrée.
+async function storedColor(userId: string) {
+  const avatar = await getAvatarImage(userId);
+  const { channels } = await sharp(avatar!.body as Uint8Array).stats();
+  return channels.slice(0, 3).map((channel) => Math.round(channel.mean / 255));
+}
+
 async function storedSize(userId: string) {
   const avatar = await getAvatarImage(userId);
   const { format, width, height } = await sharp(avatar!.body as Uint8Array).metadata();
@@ -78,6 +97,36 @@ test("Should_ShrinkToTargetSize_When_PhotoIsLarge", async () => {
 
   expect(await storedSize(user.id)).toEqual(SQUARE_WEBP);
   expect((await getAvatarImage(user.id))!.body.length).toBeLessThan(file.size);
+});
+
+test("Should_KeepChosenArea_When_CropIsGiven", async () => {
+  const user = await newUser();
+
+  expect(await saveAvatar(user.id, await halves(200, 100), { x: 100, y: 0, width: 100, height: 100 })).toEqual({});
+
+  expect(await storedSize(user.id)).toEqual(SQUARE_WEBP);
+  expect(await storedColor(user.id)).toEqual([0, 0, 1]);
+});
+
+test("Should_CropUprightPhoto_When_PhotoHasExifRotation", async () => {
+  const user = await newUser();
+  // Orientation 6 : affichée tournée de 90° à droite, donc 100 × 200 avec le bleu en bas.
+  const file = await halves(200, 100, 6);
+
+  expect(await saveAvatar(user.id, file, { x: 0, y: 100, width: 100, height: 100 })).toEqual({});
+  expect(await storedColor(user.id)).toEqual([0, 0, 1]);
+});
+
+test.each([
+  ["past the right edge", { x: 101, y: 0, width: 100, height: 100 }, undefined],
+  ["past the bottom edge", { x: 0, y: 1, width: 100, height: 100 }, undefined],
+  ["sized for the unrotated photo", { x: 0, y: 0, width: 200, height: 100 }, 6],
+])("Should_RefuseWithoutSaving_When_CropIs_%s", async (_name, crop, orientation) => {
+  const user = await newUser();
+  const file = await halves(200, 100, orientation);
+
+  expect(await saveAvatar(user.id, file, crop)).toEqual({ error: "crop" });
+  expect(await getAvatarVersion(user.id)).toBeNull();
 });
 
 test("Should_AcceptPhoto_When_ExactlyTwoMegabytes", async () => {

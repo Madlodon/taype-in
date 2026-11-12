@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { logOutAction } from "@/app/actions/auth";
 import { removeAvatarAction, uploadAvatarAction } from "@/app/actions/avatar";
 import { changeUsernameAction, revertUsernameAction } from "@/app/actions/username";
-import { Avatar } from "@/components/avatar";
+import { Avatar, avatarSrc } from "@/components/avatar";
 import { AvatarForm } from "@/components/avatar-form";
 import { UsernameForm } from "@/components/username-form";
 import { ProgressionChart } from "@/components/progression-chart";
@@ -83,22 +83,23 @@ export default async function ProfilePage({
         )}
       </div>
       {isOwner && (
-        <AvatarForm
-          upload={uploadAvatarAction}
-          remove={removeAvatarAction}
-          hasPhoto={avatarVersion !== null}
-          maxBytes={MAX_AVATAR_BYTES}
-        />
-      )}
-      {isOwner && (
-        <UsernameForm
-          change={changeUsernameAction}
-          revert={revertUsernameAction}
-          username={profile.username}
-          nextChange={longDate(nextRenameAt(profile))}
-          previousUsername={profile.previousUsername}
-          reservedUntil={longDate(revertUntil(profile))}
-        />
+        <div className="profile-settings">
+          <AvatarForm
+            upload={uploadAvatarAction}
+            remove={removeAvatarAction}
+            src={avatarSrc(profile.id, avatarVersion)}
+            hasPhoto={avatarVersion !== null}
+            maxBytes={MAX_AVATAR_BYTES}
+          />
+          <UsernameForm
+            change={changeUsernameAction}
+            revert={revertUsernameAction}
+            username={profile.username}
+            nextChange={longDate(nextRenameAt(profile))}
+            previousUsername={profile.previousUsername}
+            reservedUntil={longDate(revertUntil(profile))}
+          />
+        </div>
       )}
       <dl className="race-stats" aria-label={t("stats")}>
         <div>

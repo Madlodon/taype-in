@@ -476,12 +476,15 @@
     "space": "Espace",
     "errors": "{count, plural, one {# faute} other {# fautes}}",
     "photo": {
-      "label": "Photo de profil (PNG, JPEG ou WebP, 2 Mo max)",
-      "upload": "Téléverser",
-      "replace": "Remplacer",
+      "label": "Photo de profil",
+      "hint": "Clique sur le cercle pour choisir une image (PNG, JPEG ou WebP, 2 Mo max).",
+      "cropHint": "Glisse l’image pour la placer dans le cercle et zoome avec le curseur.",
+      "zoom": "Zoom",
+      "save": "Enregistrer la photo",
       "remove": "Retirer la photo",
       "errors": {
         "tooLarge": "Ce fichier dépasse 2 Mo.",
+        "crop": "Ce cadrage ne tient pas dans l’image. Recadre-la et réessaie.",
         "type": "Choisis une image PNG, JPEG ou WebP.",
         "missing": "Choisis une image.",
         "guest": "Crée un compte pour avoir une photo de profil."

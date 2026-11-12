@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import sharp from "sharp";
 
 // Image PNG de 1 × 1 pixel.
 const PNG = Buffer.from(
@@ -54,13 +55,14 @@ test("Should_Show404_When_UserIsUnknown", async ({ page }) => {
 
 test("Should_ShowPhotoThenInitials_When_OwnerUploadsThenRemovesPhoto", async ({ page }) => {
   await signUp(page, "e2e_pic");
-  const avatar = page.locator("main img.avatar");
+  const avatar = page.locator(".profile-identity img.avatar");
   const contentType = async () =>
     (await page.request.get((await avatar.getAttribute("src"))!)).headers()["content-type"];
   expect(await contentType()).toBe("image/svg+xml");
 
-  await page.getByLabel(/Photo de profil/).setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: PNG });
-  await page.getByRole("button", { name: "Téléverser" }).click();
+  await page.getByLabel("Photo de profil").setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: PNG });
+  await expect(page.locator(".avatar-cropper img")).toHaveAttribute("src", /^blob:/);
+  await page.getByRole("button", { name: "Enregistrer la photo" }).click();
 
   await expect(avatar).toHaveAttribute("src", /\?v=\d+$/);
   await expect(page.locator("nav img.avatar")).toHaveAttribute("src", /\?v=\d+$/);
@@ -72,15 +74,45 @@ test("Should_ShowPhotoThenInitials_When_OwnerUploadsThenRemovesPhoto", async ({ 
   expect(await contentType()).toBe("image/svg+xml");
 });
 
+test("Should_KeepFramedHalf_When_OwnerDragsImageInCropper", async ({ page }) => {
+  await signUp(page, "e2e_crop");
+  // 200 × 100 : moitié gauche rouge, moitié droite bleue. Le cercle n'en montre que 100 × 100.
+  const half = (background: string) => sharp({ create: { width: 100, height: 100, channels: 3, background } }).png().toBuffer();
+  const photo = await sharp({ create: { width: 200, height: 100, channels: 3, background: "#000000" } })
+    .composite([
+      { input: await half("#ff0000"), left: 0, top: 0 },
+      { input: await half("#0000ff"), left: 100, top: 0 },
+    ])
+    .png()
+    .toBuffer();
+
+  await page.getByLabel("Photo de profil").setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: photo });
+  const cropper = page.locator(".avatar-cropper");
+  await expect(cropper.locator("img")).toBeVisible();
+  // Glisser l'image vers la droite amène sa moitié gauche (rouge) dans le cercle.
+  const box = (await cropper.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width, box.y + box.height / 2, { steps: 10 });
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Enregistrer la photo" }).click();
+
+  const avatar = page.locator(".profile-identity img.avatar");
+  await expect(avatar).toHaveAttribute("src", /\?v=\d+$/);
+  const stored = await (await page.request.get((await avatar.getAttribute("src"))!)).body();
+  const { channels } = await sharp(stored).stats();
+  expect(channels.slice(0, 3).map((channel) => Math.round(channel.mean / 255))).toEqual([1, 0, 0]);
+});
+
 test("Should_RefuseFile_When_ItIsNotAnImage", async ({ page }) => {
   await signUp(page, "e2e_badpic");
 
-  await page.getByLabel(/Photo de profil/).setInputFiles({
+  await page.getByLabel("Photo de profil").setInputFiles({
     name: "photo.png",
     mimeType: "image/png",
     buffer: Buffer.from("pas une image"),
   });
-  await page.getByRole("button", { name: "Téléverser" }).click();
+  await page.getByRole("button", { name: "Enregistrer la photo" }).click();
 
   await expect(page.getByText("Choisis une image PNG, JPEG ou WebP.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Retirer la photo" })).toHaveCount(0);
