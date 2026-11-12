@@ -32,8 +32,9 @@ export const credentialsSchema = z.object({
 export type User = typeof users.$inferSelect;
 
 // Page où revenir après la connexion (ex. un lien d'invitation) ; seulement un chemin du site.
+// Le navigateur retire les tabulations et retours à la ligne d'une adresse : « /\t/site » deviendrait « //site ».
 export function safeNextPath(next: string): string {
-  return /^\/(?![/\\])/.test(next) ? next : "/";
+  return /^\/(?![/\\])/.test(next) && !/[\u0000-\u001F\u007F]/.test(next) ? next : "/";
 }
 
 // Clé secrète ajoutée au hachage, gardée hors de la base (variable d'environnement).
