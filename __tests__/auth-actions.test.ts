@@ -231,6 +231,9 @@ test.each([
   ["another site", "https://evil.example"],
   ["protocol-relative URL", "//evil.example"],
   ["backslash trick", "/\\evil.example"],
+  ["tab trick", "/\t/evil.example"],
+  ["new line trick", "/\n/evil.example"],
+  ["carriage return trick", "/\r/evil.example"],
   ["relative path", "invite/abc"],
 ])("Should_RedirectHome_When_NextIs_%s", async (_, next) => {
   vi.mocked(auth.logIn).mockResolvedValue(aUser);
