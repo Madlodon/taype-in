@@ -1547,6 +1547,17 @@ html:has(.confirm-dialog[open]) {
   color: var(--primary-foreground);
 }
 
+/* Le recadreur se place en absolu dans ce carré (#262). */
+.avatar-cropper {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--border);
+}
+
 .avatar-form-actions {
   display: flex;
   flex-wrap: wrap;

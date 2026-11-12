@@ -478,6 +478,8 @@
     "photo": {
       "label": "Photo de profil",
       "hint": "Clique sur le cercle pour choisir une image (PNG, JPEG ou WebP, 2 Mo max).",
+      "cropHint": "Glisse l’image pour la placer dans le cercle et zoome avec le curseur.",
+      "zoom": "Zoom",
       "save": "Enregistrer la photo",
       "remove": "Retirer la photo",
       "errors": {
