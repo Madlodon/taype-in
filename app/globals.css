@@ -1640,7 +1640,19 @@ html:has(.confirm-dialog[open]) {
 .typing-input {
   resize: vertical;
   font-family: var(--font-jetbrains-mono);
-  min-height: 84px;
+  min-height: 52px;
+}
+
+/* Les trois infos sous le champ tiennent sur une ligne quand il y a la place (#260). */
+.typing-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin-top: 8px;
+}
+
+.typing-notes .form-note {
+  margin-top: 0;
 }
 
 .race-complete {
