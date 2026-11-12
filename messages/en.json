@@ -484,6 +484,7 @@
       "remove": "Remove photo",
       "errors": {
         "tooLarge": "This file is larger than 2 MB.",
+        "tooManyPixels": "This image is too big (25 megapixels max).",
         "crop": "This framing doesn’t fit in the image. Crop it again and retry.",
         "type": "Choose a PNG, JPEG or WebP image.",
         "missing": "Choose an image.",

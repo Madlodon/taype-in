@@ -484,6 +484,7 @@
       "remove": "Retirer la photo",
       "errors": {
         "tooLarge": "Ce fichier dépasse 2 Mo.",
+        "tooManyPixels": "Cette image est trop grande (25 mégapixels max).",
         "crop": "Ce cadrage ne tient pas dans l’image. Recadre-la et réessaie.",
         "type": "Choisis une image PNG, JPEG ou WebP.",
         "missing": "Choisis une image.",
