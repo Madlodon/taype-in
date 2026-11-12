@@ -1,9 +1,14 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
+function randomIp() {
+  return `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
+}
+
 // Chaque joueur a son propre contexte, donc sa propre session invité.
-// ip simule une autre adresse : Next.js garde le x-forwarded-for reçu.
-async function newGuest(browser: Browser, ip?: string): Promise<{ page: Page; name: string }> {
-  const context = await browser.newContext(ip ? { extraHTTPHeaders: { "x-forwarded-for": ip } } : {});
+// ip simule une autre adresse : Next.js garde le x-forwarded-for reçu. Par défaut, une adresse
+// au hasard : chaque invité vient d'ailleurs et la limite d'invités par IP n'est pas atteinte (#271).
+async function newGuest(browser: Browser, ip = randomIp()): Promise<{ page: Page; name: string }> {
+  const context = await browser.newContext({ extraHTTPHeaders: { "x-forwarded-for": ip } });
   const page = await context.newPage();
   await page.goto("/");
   await page.getByRole("button", { name: "Jouer en invité" }).click();
