@@ -12,7 +12,9 @@ import {
   safeNextPath,
   signUp,
 } from "@/lib/auth";
+import { getClientIp } from "@/lib/client-ip";
 import { decodePending, findOAuthUser, PENDING_COOKIE, signUpWithOAuth } from "@/lib/oauth";
+import { guestCreations, logInAttempts } from "@/lib/rate-limit";
 import {
   deleteSessionCookie,
   getCurrentUser,
@@ -101,6 +103,11 @@ export async function logInAction(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  // Trop de mots de passe ratés depuis cette IP : on attend la fin de la minute.
+  const ip = await getClientIp();
+  if (logInAttempts.isBlocked(ip)) {
+    return { error: "tooManyAttempts", username: String(formData.get("username") ?? "") };
+  }
   const parsed = z
     .object({ username: z.string().trim(), password: z.string() })
     .safeParse({
@@ -111,6 +118,7 @@ export async function logInAction(
     ? await logIn(parsed.data.username, parsed.data.password)
     : null;
   if (!user) {
+    logInAttempts.recordFailure(ip);
     return {
       error: "wrongCredentials",
       username: String(formData.get("username") ?? ""),
@@ -122,6 +130,12 @@ export async function logInAction(
 }
 
 export async function guestAction(formData: FormData) {
+  const ip = await getClientIp();
+  if (guestCreations.isBlocked(ip)) {
+    const next = String(formData.get("next") ?? "");
+    redirect(`/login?error=tooManyGuests${next ? `&next=${encodeURIComponent(nextPath(formData))}` : ""}`);
+  }
+  guestCreations.recordFailure(ip);
   const guest = await createGuest();
   await startSession(guest.id);
   redirect(nextPath(formData));

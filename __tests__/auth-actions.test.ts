@@ -11,7 +11,12 @@ import * as auth from "../lib/auth";
 
 const cookieStore = { get: vi.fn(), set: vi.fn(), delete: vi.fn() };
 
-vi.mock("next/headers", () => ({ cookies: async () => cookieStore }));
+// Une IP différente à chaque test : les limites d'essais ne débordent pas d'un test à l'autre.
+let ip = "";
+vi.mock("next/headers", () => ({
+  cookies: async () => cookieStore,
+  headers: async () => new Headers({ "x-forwarded-for": ip }),
+}));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(() => {
     throw new Error("NEXT_REDIRECT");
@@ -54,6 +59,7 @@ function form(username: string, password: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  ip = `10.0.0.${Math.random()}`;
   cookieStore.get.mockReturnValue(undefined);
   vi.mocked(auth.createSession).mockResolvedValue({ token: "jeton", expiresAt });
 });
@@ -243,4 +249,38 @@ test.each([
   await expect(logInAction(undefined, data)).rejects.toThrow("NEXT_REDIRECT");
 
   expect(redirect).toHaveBeenCalledWith("/");
+});
+
+test("Should_RefuseWithoutCheckingPassword_When_TenLogInsFailedThisMinute", async () => {
+  vi.mocked(auth.logIn).mockResolvedValue(null);
+  for (let i = 0; i < 10; i++) await logInAction(undefined, form("alex", "mauvais-mot-de-passe"));
+  vi.mocked(auth.logIn).mockClear();
+
+  const state = await logInAction(undefined, form("alex", "motdepasse123"));
+
+  expect(state).toEqual({ error: "tooManyAttempts", username: "alex" });
+  expect(auth.logIn).not.toHaveBeenCalled();
+});
+
+test("Should_LogIn_When_PreviousLogInsSucceeded", async () => {
+  vi.mocked(auth.logIn).mockResolvedValue(aUser);
+  for (let i = 0; i < 10; i++) {
+    await expect(logInAction(undefined, form("alex", "motdepasse123"))).rejects.toThrow("NEXT_REDIRECT");
+  }
+
+  await expect(logInAction(undefined, form("alex", "motdepasse123"))).rejects.toThrow("NEXT_REDIRECT");
+  expect(auth.logIn).toHaveBeenCalledTimes(11);
+});
+
+test("Should_SendToLoginWithoutCreatingGuest_When_TenGuestsCreatedThisMinute", async () => {
+  vi.mocked(auth.createGuest).mockResolvedValue({ ...aUser, id: "guest-1", isGuest: true });
+  for (let i = 0; i < 10; i++) await expect(guestAction(new FormData())).rejects.toThrow("NEXT_REDIRECT");
+  vi.mocked(auth.createGuest).mockClear();
+  const data = new FormData();
+  data.set("next", "/lobbies/ABC123");
+
+  await expect(guestAction(data)).rejects.toThrow("NEXT_REDIRECT");
+
+  expect(redirect).toHaveBeenLastCalledWith("/login?error=tooManyGuests&next=%2Flobbies%2FABC123");
+  expect(auth.createGuest).not.toHaveBeenCalled();
 });

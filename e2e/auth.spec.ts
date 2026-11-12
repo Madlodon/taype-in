@@ -37,6 +37,28 @@ test("Should_ShowError_When_PasswordIsWrong", async ({ page }) => {
   ).toHaveText("Nom d'utilisateur ou mot de passe incorrect.");
 });
 
+// Une adresse à part : les autres tests ne sont pas bloqués (#271).
+test.describe("Many wrong passwords", () => {
+  test.use({ extraHTTPHeaders: { "x-forwarded-for": `10.99.${Math.floor(Math.random() * 256)}.1` } });
+
+  test("Should_ShowTooManyAttempts_When_TenLogInsFailed", async ({ page }) => {
+    await page.goto("/login");
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await page.getByLabel("Nom d'utilisateur").fill("personne_inconnue");
+      await page.getByLabel("Mot de passe").fill(`mauvais-${attempt}-mdp`);
+      // L'erreur reste affichée d'un essai à l'autre : on attend la réponse de chaque envoi.
+      const answered = page.waitForResponse((response) => response.request().method() === "POST");
+      await page.getByRole("button", { name: "Se connecter" }).click();
+      await answered;
+    }
+
+    await page.getByLabel("Mot de passe").fill("motdepasse123");
+    await page.getByRole("button", { name: "Se connecter" }).click();
+
+    await expect(page.getByRole("alert").filter({ hasText: "Trop d'essais" })).toBeVisible();
+  });
+});
+
 test("Should_BeLoggedInAsGuest_When_PlayingAsGuest", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Jouer en invité" }).click();

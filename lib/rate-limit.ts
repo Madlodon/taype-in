@@ -40,8 +40,21 @@ export function createRateLimiter(limit: number, windowMs: number): RateLimiter 
 }
 
 // Partagé par le formulaire (Next.js) et Socket.IO, qui chargent chacun leur copie du module.
-const store = globalThis as { codeAttempts?: RateLimiter };
+const store = globalThis as { codeAttempts?: RateLimiter; logInAttempts?: RateLimiter; guestCreations?: RateLimiter };
 export const codeAttempts = (store.codeAttempts ??= createRateLimiter(
+  CODE_ATTEMPT_LIMIT,
+  CODE_ATTEMPT_WINDOW_MS,
+));
+
+// Mots de passe ratés par IP : empêche d'en essayer sans fin (#271).
+export const logInAttempts = (store.logInAttempts ??= createRateLimiter(
+  CODE_ATTEMPT_LIMIT,
+  CODE_ATTEMPT_WINDOW_MS,
+));
+
+// Comptes invités créés par IP : un script ne remplit pas la base (#271).
+// Ici, chaque création compte, pas seulement les échecs.
+export const guestCreations = (store.guestCreations ??= createRateLimiter(
   CODE_ATTEMPT_LIMIT,
   CODE_ATTEMPT_WINDOW_MS,
 ));
