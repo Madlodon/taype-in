@@ -104,6 +104,14 @@ test("Should_ShowLogOut_When_OwnerViewsTheirProfile", async () => {
   expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeDefined();
 });
 
+test("Should_StyleLogOutAsButton_When_OwnerViewsTheirProfile", async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(alex);
+
+  await renderProfile();
+
+  expect(screen.getByRole("button", { name: "Se déconnecter" }).className).toBe("btn btn-secondary");
+});
+
 test("Should_HideLogOut_When_AnotherUserVisits", async () => {
   vi.mocked(getCurrentUser).mockResolvedValue(sam);
 
