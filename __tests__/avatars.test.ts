@@ -12,6 +12,7 @@ import {
   initials,
   initialsColor,
   MAX_AVATAR_BYTES,
+  MAX_AVATAR_PIXELS,
   removeAvatar,
   saveAvatar,
 } from "../lib/avatars";
@@ -140,6 +141,23 @@ test("Should_RefuseWithoutSaving_When_PhotoIsOverTwoMegabytes", async () => {
   const user = await newUser();
 
   expect(await saveAvatar(user.id, await image("png", { size: MAX_AVATAR_BYTES + 1 }))).toEqual({ error: "tooLarge" });
+  expect(await getAvatarVersion(user.id)).toBeNull();
+});
+
+test("Should_AcceptPhoto_When_ExactlyAtPixelLimit", async () => {
+  const user = await newUser();
+
+  expect(await saveAvatar(user.id, await image("png", { width: 5000, height: MAX_AVATAR_PIXELS / 5000 }))).toEqual({});
+  expect(await storedSize(user.id)).toEqual(SQUARE_WEBP);
+});
+
+// Un PNG uni de moins de 1 Mo, mais qui prendrait des centaines de Mo une fois décodé.
+test("Should_RefuseWithoutSaving_When_SmallFileHasTooManyPixels", async () => {
+  const user = await newUser();
+  const file = await image("png", { width: 5000, height: MAX_AVATAR_PIXELS / 5000 + 1 });
+
+  expect(file.size).toBeLessThan(MAX_AVATAR_BYTES);
+  expect(await saveAvatar(user.id, file)).toEqual({ error: "tooManyPixels" });
   expect(await getAvatarVersion(user.id)).toBeNull();
 });
 

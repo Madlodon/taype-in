@@ -10,6 +10,8 @@ export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 // Côté du carré gardé : 2 × la plus grande taille affichée (96 px), pour les écrans haute densité.
 export const AVATAR_SIZE = 256;
+// Une petite image peut avoir des dimensions énormes : décodée, elle prendrait des centaines de Mo.
+export const MAX_AVATAR_PIXELS = 25_000_000;
 
 // Zone choisie dans le recadreur, en pixels de l'image une fois redressée (#262).
 // Les champs arrivent du formulaire : seulement des chiffres (pas de champ vide changé en 0).
@@ -39,7 +41,7 @@ export async function saveAvatar(
   userId: string,
   file: File,
   crop?: AvatarCrop,
-): Promise<{ error?: "tooLarge" | "type" | "crop" }> {
+): Promise<{ error?: "tooLarge" | "tooManyPixels" | "type" | "crop" }> {
   if (file.size > MAX_AVATAR_BYTES) return { error: "tooLarge" };
   const original = Buffer.from(await file.arrayBuffer());
   if (!detectImageType(original)) return { error: "type" };
@@ -52,9 +54,12 @@ export async function saveAvatar(
 
 // Carré en WebP : la zone choisie, sinon le centre. Le navigateur affiche la photo déjà
 // redressée (EXIF), donc on la redresse avant de découper pour que la zone tombe au même endroit.
-async function resizeAvatar(original: Buffer, crop?: AvatarCrop): Promise<Buffer | "type" | "crop"> {
+async function resizeAvatar(original: Buffer, crop?: AvatarCrop): Promise<Buffer | "tooManyPixels" | "type" | "crop"> {
   let upright;
   try {
+    // Les dimensions se lisent dans l'en-tête, sans décoder l'image.
+    const { width = 0, height = 0 } = await sharp(original).metadata();
+    if (width * height > MAX_AVATAR_PIXELS) return "tooManyPixels";
     upright = await sharp(original).rotate().raw().toBuffer({ resolveWithObject: true });
   } catch {
     return "type";
